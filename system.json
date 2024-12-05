@@ -1,9 +1,9 @@
 {
-  "name": "ose-dev",
-  "id": "ose-dev",
+  "name": "ose",
+  "id": "ose",
   "title": "Old-School Essentials Development Build",
   "description": "Simple, robust rules compatible with decades of Basic/Expert material",
-  "version": "AUTOMATICALLY REPLACED BY GITHUB WORKFLOW ACTION",
+  "version": "2.0.2_2-gygax75",
   "minimumCoreVersion": "12",
   "compatibleCoreVersion": "12",
   "compatibility": {

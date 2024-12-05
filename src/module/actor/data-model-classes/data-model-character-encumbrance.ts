@@ -20,7 +20,7 @@ export interface CharacterEncumbrance {
 export default class OseDataModelCharacterEncumbrance
   implements CharacterEncumbrance
 {
-  static baseEncumbranceCap = 1600;
+  static baseEncumbranceCap = 2400;
   // Default encumbrance steps used by the 'complete' and 'detailed' encumbrance variants
   static encumbranceSteps = {
     quarter: 25,

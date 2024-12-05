@@ -32,7 +32,7 @@ export default class OseDataModelCharacterEncumbranceComplete
   #weight;
 
   constructor(
-    max = OseDataModelCharacterEncumbrance.baseEncumbranceCap,
+    max = 2400,
     items: Item[] = []
   ) {
     super(OseDataModelCharacterEncumbranceComplete.type, max);

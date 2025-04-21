@@ -6,6 +6,7 @@ export const colorGroups = OSE.colors;
 export const actionGroups = {
   'slow': "OSE.items.Slow",
   'cast': "OSE.spells.Cast",
+  'fast': "OSE.combat.Fast"
 }
 
 /**
@@ -60,7 +61,7 @@ export class OSEGroupCombat extends OSECombat {
     return this.availableGroups.reduce((prev, curr, i) => ({
         ...prev,
         [curr]: {
-          initiative: curr !== "slow" ? rollValues[i] : OSEGroupCombatant.INITIATIVE_VALUE_SLOWED,
+          initiative: curr === "slow" ? OSEGroupCombatant.INITIATIVE_VALUE_SLOWED : curr === "fast" ? OSEGroupCombatant.INITIATIVE_VALUE_FAST : rollValues[i],
           roll: evaluatedRolls.dice[i]
         }
       }), {});
@@ -69,7 +70,7 @@ export class OSEGroupCombat extends OSECombat {
   async #rollInitiativeUIFeedback(groups = []) {
     const content = [
       Object.keys(groups).map(
-        (k) => k === "slow" ? "" : this.#constructInitiativeOutputForGroup(k, groups[k].roll)
+        (k) => k.match("^slow|fast$") ? "" : this.#constructInitiativeOutputForGroup(k, groups[k].roll)
       ).join("\n")
     ];
     const chatData = content.map(c => {

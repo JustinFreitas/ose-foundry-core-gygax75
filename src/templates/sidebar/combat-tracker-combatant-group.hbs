@@ -6,6 +6,8 @@
     <span class="create-button" style="font-weight: 600; font-size: 1.25em;">
       {{#if (eq this.group "slow")}}
         <i class="fa fa-weight-hanging"></i>
+      {{else if (eq this.group "fast")}}
+        <i class="fa fa-forward-fast"></i>
       {{else}}
         {{this.initiative}}
       {{/if}}

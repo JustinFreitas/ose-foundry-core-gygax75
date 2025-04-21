@@ -4,6 +4,9 @@ export class OSEGroupCombatant extends OSECombatant {
   get group() {
     if (this.actor.system.isSlow)
       return "slow";
+
+    if (this.isFast)
+      return "fast";
     
     return this.groupRaw;
   }

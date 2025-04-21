@@ -60,6 +60,8 @@
                 {{else if this.hasRolled}}
                     {{#if this.isSlowed}}
                         <i class="fa fa-weight-hanging"></i>
+                    {{else if this.isFast}}
+                        <i class="fa fa-forward-fast"></i>
                     {{else}}
                         <span class="initiative">{{this.initiative}}</span>
                     {{/if}}

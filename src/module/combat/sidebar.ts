@@ -29,7 +29,8 @@ export class OSECombatTab extends CombatTracker {
     // @ts-expect-error - We don't have type data for the combat tracker turn object
     const turns = context.turns.map((turn) => {
       const combatant = game.combat.combatants.get(turn.id);
-      turn.isSlowed = turn.initiative === `${OSECombatant.INITIATIVE_VALUE_SLOWED}`
+      turn.isSlowed = turn.initiative === `${OSECombatant.INITIATIVE_VALUE_SLOWED}`;
+      turn.isFast = turn.initiative === `${OSECombatant.INITIATIVE_VALUE_FAST}`;
       turn.isCasting = !!combatant.getFlag(game.system.id, "prepareSpell");
       turn.isRetreating = !!combatant.getFlag(game.system.id, "moveInCombat");
       turn.isOwnedByUser = !!combatant.actor.isOwner;

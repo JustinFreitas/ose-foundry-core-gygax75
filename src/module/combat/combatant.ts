@@ -26,7 +26,9 @@ export class OSECombatant extends Combatant {
   }
 
   get isFast() {
-    return !this.isSlow && !this.isDefeated && ['Halfling'].includes(this.actor.system.details.class);
+    return !this.isSlow
+        && !this.isDefeated
+        && (this.actor.system.config.fastCombat || ['Halfling'].includes(this.actor.system.details.class));
   }
 
   // ===========================================================================

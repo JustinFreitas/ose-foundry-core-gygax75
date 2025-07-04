@@ -2,7 +2,7 @@
   "id": "ose",
   "title": "Old-School Essentials - Gygax75",
   "description": "Simple, robust rules compatible with decades of Basic/Expert material",
-  "version": "2.1.1_1-gygax75",
+  "version": "2.1.1_2-gygax75",
   "compatibility": {
     "minimum": "13",
     "verified": "13"
@@ -104,8 +104,8 @@
     "units": "ft"
   },
   "url": "https://github.com/JustinFreitas/ose-foundry-core",
-  "manifest": "https://github.com/NecroticGnome/ose-foundry-core/releases/download/2.1.1/system.json",
-  "download": "https://github.com/NecroticGnome/ose-foundry-core/releases/download/2.1.1/system.zip",
+  "manifest": "https://github.com/JustinFreitas/ose-foundry-core/releases/latest/download/system.json",
+  "download": "https://github.com/NecroticGnome/ose-foundry-core/releases/download/v2.1.1_2-gygax75/ose-v2.1.1_2-gygax75.zip",
   "bugs": "https://github.com/NecroticGnome/ose-foundry-core/issues",
   "flags": {
     "allowBugReporter": true

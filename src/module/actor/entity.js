@@ -341,20 +341,32 @@ export default class OseActor extends Actor {
     });
   }
 
-  rollHitDice(options = {}) {
+  selectSingleOrAllHitDiceRoll(options = {}) {
     const actorType = this.type;
 
     const actorData = this.system;
 
     const label = game.i18n.localize(`OSE.roll.hd`);
-    let rollParts = [actorData.hp.hd];
-
+    let rollParts;
+    if (options.hdRollType === "single" && actorType === "character") {
+        const parts = /^\d+d(\d+)$/.exec(actorData.hp.hd);
+        const singleHd = parts ? "1d" + parts[1] || 0 : "1d0";
+        rollParts = [singleHd];
+    } else {
+        const parts = /^\d+d(\d+)$/.exec(actorData.hp.hd);
+        const level = +actorData.details.level || +1;
+        const allHd = parts ? level + "d" + parts[1] || 0 : level + "d0";
+        rollParts = [allHd];
+    };
+    
     if (actorType === "character") {
       // A character always gains at least 1 hit point per Hit Die,
       // regardless of CON modifier.
       rollParts = [
         `max(${actorData.hp.hd} + ${
-          actorData.scores.con.mod * actorData.details.level
+          options?.hdRollType === "single"
+          ? actorData.scores.con.mod
+          : actorData.scores.con.mod * actorData.details.level
         }, ${actorData.hp.hd[0]})`,
       ];
     }
@@ -376,6 +388,38 @@ export default class OseActor extends Actor {
       flavor: label,
       title: label,
     });
+  }
+
+  rollHitDice(options = {}) {
+    const formHtml = [];
+    formHtml.push('<form>');
+    formHtml.push('<p>Choose to roll a single level worth of hit dice to the chat or roll all levels of hit dice to the chat.</p>');
+    formHtml.push('</form>');
+
+    new Dialog({
+        title: "Roll HD to Chat",
+        content: formHtml.join('\n'),
+        buttons: {
+            single: {
+                label: "Single Level",
+                callback: (html) => {
+                    options['hdRollType'] = 'single';
+                    this.selectSingleOrAllHitDiceRoll(options);
+                }
+            },
+            all: {
+                label: "All Levels",
+                callback: (html) => {
+                    options['hdRollType'] = 'all';
+                    this.selectSingleOrAllHitDiceRoll(options);
+                }
+            },
+            close: {
+                label: "Close"
+            }
+        },
+        default: "close"
+    }).render(true);
   }
 
   rollAppearing(options = {}) {

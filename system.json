@@ -1,8 +1,8 @@
 {
-  "id": "ose-dev",
-  "title": "Old-School Essentials Development Build",
+  "id": "ose",
+  "title": "Old-School Essentials - Gygax75",
   "description": "Simple, robust rules compatible with decades of Basic/Expert material",
-  "version": "AUTOMATICALLY REPLACED BY GITHUB WORKFLOW ACTION",
+  "version": "2.1.1_1-gygax75",
   "compatibility": {
     "minimum": "13",
     "verified": "13"
@@ -20,6 +20,10 @@
     {
       "name": "Blair McMillan",
       "discord": "blair#9056"
+    },
+    {
+      "name": "Justin Freitas",
+      "url": "https://github.com/JustinFreitas"
     },
     {
       "name": "and many other contributors",
@@ -99,9 +103,9 @@
     "distance": 5,
     "units": "ft"
   },
-  "url": "AUTOMATICALLY REPLACED BY GITHUB WORKFLOW ACTION",
-  "manifest": "AUTOMATICALLY REPLACED BY GITHUB WORKFLOW ACTION",
-  "download": "AUTOMATICALLY REPLACED BY GITHUB WORKFLOW ACTION",
+  "url": "https://github.com/JustinFreitas/ose-foundry-core",
+  "manifest": "https://github.com/NecroticGnome/ose-foundry-core/releases/download/2.1.1/system.json",
+  "download": "https://github.com/NecroticGnome/ose-foundry-core/releases/download/2.1.1/system.zip",
   "bugs": "https://github.com/NecroticGnome/ose-foundry-core/issues",
   "flags": {
     "allowBugReporter": true

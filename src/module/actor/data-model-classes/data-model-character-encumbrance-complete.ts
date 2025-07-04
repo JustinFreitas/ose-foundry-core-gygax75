@@ -32,7 +32,7 @@ export default class OseDataModelCharacterEncumbranceComplete
   #weight;
 
   constructor(
-    max = OseDataModelCharacterEncumbrance.baseEncumbranceCap,
+    max = OseDataModelCharacterEncumbrance.baseEncumbranceCap, // Gygax75 specific change, DO NOT COMMIT TO main
     items: Item[] = []
   ) {
     super(OseDataModelCharacterEncumbranceComplete.type, max);

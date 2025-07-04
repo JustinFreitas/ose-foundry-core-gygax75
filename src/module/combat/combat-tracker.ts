@@ -3,8 +3,7 @@ import { OSECombat } from "./combat";
 import { OSECombatant } from "./combatant";
 
 
-export default class OSECombatTracker extends foundry.applications.sidebar.tabs
-  .CombatTracker {
+export default class OSECombatTracker extends foundry.applications.sidebar.tabs.CombatTracker {
   /** @inheritDoc */
   static DEFAULT_OPTIONS = {
     ...foundry.applications.sidebar.tabs.CombatTracker.DEFAULT_OPTIONS,
@@ -23,6 +22,7 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs
       const combatant = game.combat.combatants.get(turn.id);
       turn.isSlowed =
         turn.initiative === `${OSECombatant.INITIATIVE_VALUE_SLOWED}`;
+      turn.isFast = turn.initiative === `${OSECombatant.INITIATIVE_VALUE_FAST}`;
       turn.isCasting = !!combatant.getFlag(game.system.id, "prepareSpell");
       turn.isRetreating = !!combatant.getFlag(game.system.id, "moveInCombat");
       turn.isOwnedByUser = !!combatant.actor?.isOwner;
@@ -194,6 +194,8 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs
 
       if (label === "slow") {
         initiativeCounter.innerHTML = `<i class="fa fa-weight-hanging"></i>`;
+      } else if (label === "fast") {
+        initiativeCounter.innerHTML = `<i class="fa fa-bolt-lightning"></i>`;
       } else {
         initiativeCounter.textContent = combatantGroup.initiative;
       }
@@ -214,9 +216,7 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs
 
       nameStrong.append(
         " ",
-        game.i18n.localize(
-          label === "slow" ? "OSE.items.Slow" : `OSE.colors.${label}`
-        )
+        game.i18n.localize(OSECombatTracker.getDispositionFromColor(label))
       );
 
       tokenName.append(nameStrong);
@@ -234,11 +234,49 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs
       groupContainer.append(wrapper);
       groupContainer.dataset.groupKey = label;
       groupContainer.dataset.initiative =
-        label === "slow" ? "-1" : combatantGroup.initiative;
+        label === "slow"
+          ? "-789"
+          : label === "fast"
+          ? "789"
+          : combatantGroup.initiative;
       children[0].before(groupContainer);
       groupContainer
         .querySelector(".group-children")
         ?.replaceChildren(...children);
     }
+  }
+
+  private static getDispositionFromColor(label) {
+    let groupName;
+    switch (label) {
+      case "fast":
+        groupName = "Fast";
+        break;
+
+      case "green":
+        groupName = "Friendly";
+        break;
+
+      case "purple":
+        groupName = "Neutral";
+        break;
+
+      case "red":
+        groupName = "Hostile";
+        break;
+
+      case "white":
+        groupName = "Secret";
+        break;
+
+      case "slow":
+        groupName = "Slow";
+        break;
+
+      default:
+        return String(label).charAt(0).toUpperCase() + String(label).slice(1);
+    }
+
+    return groupName;
   }
 }

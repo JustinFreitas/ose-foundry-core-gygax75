@@ -95,6 +95,13 @@
     </div>
   </div>
   {{/if}}
+  <div class="form-group">
+    <label for="fastCombat">Fast Combat</label>
+    <div class="form-fields">
+      <input type="checkbox" name="system.config.fastCombat" id="fastCombat" {{checked system.config.fastCombat}}
+        data-dtype="Boolean" {{#unless user.isGM}}disabled{{/unless}} />
+    </div>
+  </div>
   <footer class="sheet-footer">
     <button type="submit">
       <i class="fas fa-save"></i>{{localize "Save Changes"}}

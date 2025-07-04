@@ -1,7 +1,7 @@
 export class OSECombatant extends Combatant {
   static INITIATIVE_VALUE_SLOWED = -789;
-
   static INITIATIVE_VALUE_DEFEATED = -790;
+  static INITIATIVE_VALUE_FAST = 789;
 
   // ===========================================================================
   // BOOLEAN FLAGS
@@ -12,7 +12,7 @@ export class OSECombatant extends Combatant {
   }
 
   set isCasting(value) {
-    this.setFlag(game.system.id, "prepareSpell", value);
+    this.setFlag(game.system.id, 'prepareSpell', value);
   }
 
   get isSlow() {
@@ -25,12 +25,19 @@ export class OSECombatant extends Combatant {
     return !this.defeated && this.actor?.system?.hp?.value === 0;
   }
 
+  get isFast() {
+    return !this.isSlow
+        && !this.isDefeated
+        && (this.actor?.system?.config?.fastCombat || ['Halfling'].includes(this.actor?.system?.details?.class));
+  }
+
   // ===========================================================================
   // INITIATIVE MANAGEMENT
   // ===========================================================================
 
   getInitiativeRoll(formula: string) {
     let term = formula || CONFIG.Combat.initiative.formula;
+    if (this.isFast) term = `${OSECombatant.INITIATIVE_VALUE_FAST}`;
     if (this.isSlow) term = `${OSECombatant.INITIATIVE_VALUE_SLOWED}`;
     if (this.isDefeated) term = `${OSECombatant.INITIATIVE_VALUE_DEFEATED}`;
     const rollData = this.actor?.getRollData() || {};
@@ -42,6 +49,7 @@ export class OSECombatant extends Combatant {
     return foundry.utils.mergeObject(context, {
       slow: this.isSlow,
       casting: this.isCasting,
+      fast: this.isFast,
     });
   }
 
@@ -72,6 +80,10 @@ export class OSECombatant extends Combatant {
       return "slow";
     }
 
+    if (this.isFast) {
+      return "fast";
+    }
+
     const assignedGroup = this.group?.name;
     if (assignedGroup) {
       return assignedGroup;
@@ -79,13 +91,13 @@ export class OSECombatant extends Combatant {
 
     switch (this.token?.disposition) {
       case -1:
-        return "red";
+        return "red"; // hostile
       case 0:
-        return "purple";
+        return "purple"; // neutral
       case 1:
-        return "green";
+        return "green";  // friendly
       default:
-        return "white";
+        return "white";  // secret
     }
   }
 }

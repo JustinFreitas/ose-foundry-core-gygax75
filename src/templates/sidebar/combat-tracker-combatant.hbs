@@ -72,6 +72,8 @@
         {{else if isOwner}}
           {{#if isSlowed}}
             <i class="fa fa-weight-hanging" title="{{ localize "OSE.items.Slow" }}"></i>
+          {{else if isFast}}
+            <i class="fa fa-forward-fast" title="Fast"></i>
           {{else}}
             {{#unless group}}
               {{#if initiative}}

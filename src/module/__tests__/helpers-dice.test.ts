@@ -273,7 +273,7 @@ export default ({
         expect(OseDice.attackIsSuccess(roll, target, bonus)).equal(true);
       });
 
-      it("Roll + bnous under target is unsuccessful", () => {
+      it("Roll + bonus under target is unsuccessful", () => {
         const roll = createMockRoll(10);
         const target = 21;
         const bonus = 10;
@@ -361,7 +361,7 @@ export default ({
         ).equal(true);
       });
 
-      it("Attack rolls with a modified result of 1 are allowed to succeeed if hits target AC. Issue#340", () => {
+      it("Attack rolls with a modified result of 1 are allowed to succeed if hits target AC. Issue#340", () => {
         const attackBonus = -1;
         const targetData = {
           roll: {
@@ -387,27 +387,24 @@ export default ({
       });
 
       it("Lower than target AC is unsuccessful", () => {
-        const attackBonus = 19 - data.roll.thac0;
         const roll = createMockRoll(
-          data.roll.target.actor.system.aac.value - attackBonus - 1
+          data.roll.target.actor.system.aac.value - 1
         );
         expect(OseDice.digestAttackResult(data, roll).isSuccess).equal(false);
         expect(OseDice.digestAttackResult(data, roll).isFailure).equal(true);
       });
 
       it("Equal than target AC is successful", () => {
-        const attackBonus = 19 - data.roll.thac0;
         const roll = createMockRoll(
-          data.roll.target.actor.system.aac.value - attackBonus
+          data.roll.target.actor.system.aac.value
         );
         expect(OseDice.digestAttackResult(data, roll).isSuccess).equal(true);
         expect(OseDice.digestAttackResult(data, roll).isFailure).equal(false);
       });
 
       it("Higher than target AC is successful", () => {
-        const attackBonus = 19 - data.roll.thac0;
         const roll = createMockRoll(
-          data.roll.target.actor.system.aac.value - attackBonus + 1
+          data.roll.target.actor.system.aac.value + 1
         );
         expect(OseDice.digestAttackResult(data, roll).isSuccess).equal(true);
         expect(OseDice.digestAttackResult(data, roll).isFailure).equal(false);

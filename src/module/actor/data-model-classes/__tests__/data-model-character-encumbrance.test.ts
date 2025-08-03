@@ -55,7 +55,7 @@ export default ({ describe, it, expect }: QuenchMethods) => {
 
     describe("Returns current carried weight", () => {
       it("As Percentage", () => {
-        const max = 1600;
+        const max = 2400;
         const pct25 = 400;
         const pct50 = 800;
         const pct75 = 1200;
@@ -86,7 +86,7 @@ export default ({ describe, it, expect }: QuenchMethods) => {
         expect(enc.pct).to.equal(0);
       });
       it("As Value", () => {
-        const max = 1600;
+        const max = 2400;
         const pct25 = 400;
         const pct50 = 800;
         const pct75 = 1200;
@@ -117,24 +117,24 @@ export default ({ describe, it, expect }: QuenchMethods) => {
         expect(enc.value).to.equal(0);
       });
       describe("As fully encumbered flag", () => {
-        it("Encumbered over full load (1600.1)", () => {
-          const enc = new EncumbranceBasic(1600, [
-            createMockItem("item", 1600.1, 1, { treasure: true }),
+        it("Encumbered over full load (2400.1)", () => {
+          const enc = new EncumbranceBasic(2400, [
+            createMockItem("item", 2400.1, 1, { treasure: true }),
           ]);
           expect(enc.encumbered).to.be.true;
         });
         describe("Not encumbered", () => {
           it("from non-treasure items", () => {
-            const enc = new EncumbranceBasic(1600, [
-              createMockItem("weapon", 1600.1, 1),
-              createMockItem("armor", 1600.1, 1),
-              createMockItem("container", 1600.1, 1),
-              createMockItem("item", 1600.1, 1),
+            const enc = new EncumbranceBasic(2400, [
+              createMockItem("weapon", 2400.1, 1),
+              createMockItem("armor", 2400.1, 1),
+              createMockItem("container", 2400.1, 1),
+              createMockItem("item", 2400.1, 1),
             ]);
             expect(enc.encumbered).to.be.false;
           });
           it("from a partial load", () => {
-            const enc = new EncumbranceBasic(1600, [
+            const enc = new EncumbranceBasic(2400, [
               createMockItem("item", 400, 1, { treasure: true }),
             ]);
             expect(enc.encumbered).to.be.false;
@@ -142,17 +142,17 @@ export default ({ describe, it, expect }: QuenchMethods) => {
         });
       });
       it('As "over significant treasure threshold" flag', () => {
-        let enc = new EncumbranceBasic(1600, [
+        let enc = new EncumbranceBasic(2400, [
           createMockItem("item", 400, 1, { treasure: true }),
         ]);
         expect(enc.overSignificantTreasureThreshold).to.be.false;
 
-        enc = new EncumbranceBasic(1600, [
+        enc = new EncumbranceBasic(2400, [
           createMockItem("item", 800, 1, { treasure: true }),
         ]);
         expect(enc.overSignificantTreasureThreshold).to.be.true;
 
-        enc = new EncumbranceBasic(1600, [createMockItem("weapon", 800, 1)]);
+        enc = new EncumbranceBasic(2400, [createMockItem("weapon", 800, 1)]);
         expect(enc.overSignificantTreasureThreshold).to.be.false;
       });
     });
@@ -183,7 +183,7 @@ export default ({ describe, it, expect }: QuenchMethods) => {
     });
     describe("Returns current carried weight", () => {
       it("As Percentage", () => {
-        const max = 1600;
+        const max = 2400;
         const pct25 = 400;
         const pct50 = 800;
         const pct75 = 1200;
@@ -214,7 +214,7 @@ export default ({ describe, it, expect }: QuenchMethods) => {
         expect(enc.pct).to.equal(toPct(EncumbranceDetailed.gearWeight, max));
       });
       it("As Value", () => {
-        const max = 1600;
+        const max = 2400;
         const pct25 = 400;
         const pct50 = 800;
         const pct75 = 1200;
@@ -245,22 +245,22 @@ export default ({ describe, it, expect }: QuenchMethods) => {
         expect(enc.value).to.equal(EncumbranceDetailed.gearWeight);
       });
       describe("As fully encumbered flag", () => {
-        it("Encumbered over full load (1600.1)", () => {
-          const enc = new EncumbranceDetailed(1600, [
-            createMockItem("item", 1600.1, 1, { treasure: true }),
+        it("Encumbered over full load (2400.1)", () => {
+          const enc = new EncumbranceDetailed(2400, [
+            createMockItem("item", 2400.1, 1, { treasure: true }),
           ]);
           expect(enc.encumbered).to.be.true;
         });
         describe("Not encumbered", () => {
           it("from non-treasure items", () => {
-            const enc = new EncumbranceDetailed(1600, [
-              createMockItem("item", 1600.1, 1),
+            const enc = new EncumbranceDetailed(2400, [
+              createMockItem("item", 2400.1, 1),
             ]);
             expect(enc.encumbered).to.be.false;
             expect(enc.value).to.equal(80);
           });
           it("from a partial load", () => {
-            const enc = new EncumbranceDetailed(1600, [
+            const enc = new EncumbranceDetailed(2400, [
               createMockItem("item", 400, 1, { treasure: true }),
             ]);
             expect(enc.encumbered).to.be.false;
@@ -296,7 +296,7 @@ export default ({ describe, it, expect }: QuenchMethods) => {
     });
     describe("Returns current carried weight", () => {
       it("As Percentage", () => {
-        const max = 1600;
+        const max = 2400;
         const pct25 = 400;
         const pct50 = 800;
         const pct75 = 1200;
@@ -327,7 +327,7 @@ export default ({ describe, it, expect }: QuenchMethods) => {
         expect(enc.pct).to.equal(100);
       });
       it("As Value", () => {
-        const max = 1600;
+        const max = 2400;
         const pct25 = 400;
         const pct50 = 800;
         const pct75 = 1200;
@@ -358,30 +358,30 @@ export default ({ describe, it, expect }: QuenchMethods) => {
         expect(enc.value).to.equal(max);
       });
       describe("As fully encumbered flag", () => {
-        it("Encumbered over full load (1600.1)", () => {
-          let enc = new EncumbranceComplete(1600, [
-            createMockItem("item", 1600.1, 1, { treasure: true }),
+        it("Encumbered over full load (2400.1)", () => {
+          let enc = new EncumbranceComplete(2400, [
+            createMockItem("item", 2400.1, 1, { treasure: true }),
           ]);
           expect(enc.encumbered).to.be.true;
-          enc = new EncumbranceComplete(1600, [
-            createMockItem("item", 1600.1, 1, { treasure: false }),
+          enc = new EncumbranceComplete(2400, [
+            createMockItem("item", 2400.1, 1, { treasure: false }),
           ]);
           expect(enc.encumbered).to.be.true;
         });
         describe("Not encumbered", () => {
           it("from a partial load", () => {
-            const enc = new EncumbranceComplete(1600, [
+            const enc = new EncumbranceComplete(2400, [
               createMockItem("item", 400, 1, { treasure: true }),
             ]);
             expect(enc.encumbered).to.be.false;
           });
           it("from a full load", () => {
-            let enc = new EncumbranceComplete(1600, [
-              createMockItem("item", 1600, 1, { treasure: true }),
+            let enc = new EncumbranceComplete(2400, [
+              createMockItem("item", 2400, 1, { treasure: true }),
             ]);
             expect(enc.encumbered).to.be.false;
-            enc = new EncumbranceComplete(1600, [
-              createMockItem("item", 1600, 1, { treasure: false }),
+            enc = new EncumbranceComplete(2400, [
+              createMockItem("item", 2400, 1, { treasure: false }),
             ]);
             console.info(enc);
             expect(enc.encumbered).to.be.false;
@@ -418,7 +418,7 @@ export default ({ describe, it, expect }: QuenchMethods) => {
     });
     describe("Returns current carried weight", () => {
       it("As Percentage", () => {
-        const max = 1600;
+        const max = 2400;
         const pct25 = 400;
         const pct50 = 800;
         const pct75 = 1200;
@@ -449,7 +449,7 @@ export default ({ describe, it, expect }: QuenchMethods) => {
         expect(enc.pct).to.equal(100);
       });
       it("As Value", () => {
-        const max = 1600;
+        const max = 2400;
         const pct25 = 400;
         const pct50 = 800;
         const pct75 = 1200;
@@ -480,30 +480,30 @@ export default ({ describe, it, expect }: QuenchMethods) => {
         expect(enc.value).to.equal(max);
       });
       describe("As fully encumbered flag", () => {
-        it("Encumbered over full load (1600.1)", () => {
-          let enc = new EncumbranceItemBased(1600, [
-            createMockItem("item", 1600.1, 1, { treasure: true }),
+        it("Encumbered over full load (2400.1)", () => {
+          let enc = new EncumbranceItemBased(2400, [
+            createMockItem("item", 2400.1, 1, { treasure: true }),
           ]);
           expect(enc.encumbered).to.be.true;
-          enc = new EncumbranceItemBased(1600, [
-            createMockItem("item", 1600.1, 1, { treasure: false }),
+          enc = new EncumbranceItemBased(2400, [
+            createMockItem("item", 2400.1, 1, { treasure: false }),
           ]);
           expect(enc.encumbered).to.be.true;
         });
         describe("Not encumbered", () => {
           it("from a partial load", () => {
-            const enc = new EncumbranceItemBased(1600, [
+            const enc = new EncumbranceItemBased(2400, [
               createMockItem("item", 400, 1, { treasure: true }),
             ]);
             expect(enc.encumbered).to.be.false;
           });
           it("from a full load", () => {
-            let enc = new EncumbranceItemBased(1600, [
-              createMockItem("item", 1600, 1, { treasure: true }),
+            let enc = new EncumbranceItemBased(2400, [
+              createMockItem("item", 2400, 1, { treasure: true }),
             ]);
             expect(enc.encumbered).to.be.false;
-            enc = new EncumbranceItemBased(1600, [
-              createMockItem("item", 1600, 1, { treasure: false }),
+            enc = new EncumbranceItemBased(2400, [
+              createMockItem("item", 2400, 1, { treasure: false }),
             ]);
             console.info(enc);
             expect(enc.encumbered).to.be.false;

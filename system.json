@@ -22,6 +22,10 @@
       "discord": "blair#9056"
     },
     {
+      "name": "Justin Freitas",
+      "url": "https://github.com/JustinFreitas"
+    },
+    {
       "name": "and many other contributors",
       "url": "https://github.com/NecroticGnome/ose-foundry-core#contributors-"
     }
@@ -102,7 +106,7 @@
   "url": "AUTOMATICALLY REPLACED BY GITHUB WORKFLOW ACTION",
   "manifest": "AUTOMATICALLY REPLACED BY GITHUB WORKFLOW ACTION",
   "download": "AUTOMATICALLY REPLACED BY GITHUB WORKFLOW ACTION",
-  "bugs": "https://github.com/NecroticGnome/ose-foundry-core/issues",
+  "bugs": "https://github.com/JustinFreitas/ose-foundry-core-gygax75/issues",
   "media": [
     {
       "type": "cover",

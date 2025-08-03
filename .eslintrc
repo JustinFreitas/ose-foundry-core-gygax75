@@ -18,7 +18,7 @@
 	},
 	"ignorePatterns": ["**/lang/**/*.json", "**/*.d.ts"],
 	"rules": {
-		"prettier/prettier": ["error"],
+		"prettier/prettier": ["error"], // For end of line adjustments, see "endOfLine": "auto"
 		"jsdoc/check-access": 1, // Recommended
 		"jsdoc/check-alignment": 1, // Recommended
 		"jsdoc/check-line-alignment": 1,

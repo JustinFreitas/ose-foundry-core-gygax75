@@ -3,15 +3,18 @@
  */
 import { OSE } from "../config";
 import OSECombatGroupSelector from "./combat-set-groups";
+import { OSECombatant } from "./combatant";
+
 
 export const actionGroups = {
   slow: "OSE.items.Slow",
   cast: "OSE.spells.Cast",
+  fast: "OSE.combat.Fast",
 };
 
 /**
  * An extension of Foundry's Combat class that implements initiative for individual combatants.
- *
+ * 
  * @todo Use a single chat card for rolling group initiative
  */
 export class OSECombat extends foundry.documents.Combat {
@@ -39,7 +42,7 @@ export class OSECombat extends foundry.documents.Combat {
 
   /**
    * Returns whether the combat is using group initiative.
-   *
+   * 
    * @returns {boolean} True if the combat is using group initiative, false otherwise.
    */
   get isGroupInitiative(): boolean {
@@ -52,11 +55,11 @@ export class OSECombat extends foundry.documents.Combat {
 
   /**
    * Roll initiative for all combatants.
-   *
+   * 
    * @param {object} [options={}] - Additional options which modify how initiative rolls are created or presented.
    * @param {boolean} [options.excludeAlreadyRolled=false] - If true, exclude combatants that have already rolled initiative.
    * @param {boolean} [options.updateTurn=false] - Update the Combat turn after adding new initiative scores to
-   *                                               keep the turn on the same Combatant.
+   * keep the turn on the same Combatant.
    * @private
    */
   async #rollAbsolutelyEveryone({
@@ -83,11 +86,11 @@ export class OSECombat extends foundry.documents.Combat {
   /**
    * Reroll initiative for all combatants.
    * If the initiative type is set to "group", reroll initiative for each group.
-   *
+   * 
    * @param {object} [options={}] - Additional options which modify how initiative rolls are created or presented.
    * @param {boolean} [options.excludeAlreadyRolled=false] - If true, exclude combatants that have already rolled initiative.
    * @param {boolean} [options.updateTurn=false] - Update the Combat turn after adding new initiative scores to
-   *                                               keep the turn on the same Combatant.
+   * keep the turn on the same Combatant.
    */
   async smartRerollInitiative({
     excludeAlreadyRolled = false,
@@ -103,7 +106,7 @@ export class OSECombat extends foundry.documents.Combat {
       if (
         group.members.size === 0 ||
         (excludeAlreadyRolled && group.initiative !== null) ||
-        group.name === "slow"
+        group.name.match("^slow|fast$")
       ) {
         continue;
       }
@@ -192,17 +195,20 @@ export class OSECombat extends foundry.documents.Combat {
     if (context?.round) {
       // Further processing when rounds other than round 0 end (start combat).
       switch (this.#rerollBehavior) {
-        case "reset":
+        case "reset": {
           await this.resetAll();
           break;
+        }
 
-        case "reroll":
+        case "reroll": {
           await this.smartRerollInitiative();
           break;
+        }
 
         case "keep":
-        default:
+        default: {
           break;
+        }
       }
       await this.resetActions();
     }
@@ -228,7 +234,7 @@ export class OSECombat extends foundry.documents.Combat {
 
   /**
    * Activate the given combatant within the combat.
-   *
+   * 
    * @param {number} turn - The turn number of the combatant to activate.
    */
   async activateCombatant(turn: number) {
@@ -241,7 +247,7 @@ export class OSECombat extends foundry.documents.Combat {
    * Assign a combatant to a group, creating the group if it doesn't exist.
    * This method prevents multiple groups being created due to the async nature
    * of Foundry VTT.
-   *
+   * 
    * @param {OSECombatant} combatant - The combatant to assign to the group.
    * @param {string} groupName - The name of the group to assign the combatant to.
    */
@@ -269,7 +275,7 @@ export class OSECombat extends foundry.documents.Combat {
 
   /**
    * Determine which group each combatant should be added to, or if a new group should be created.
-   *
+   * 
    * @returns {Map<string, { combatants: OSECombatant[], expanded: boolean }>}
    */
   async createGroups() {
@@ -282,7 +288,7 @@ export class OSECombat extends foundry.documents.Combat {
       await this.assignGroup(combatant, key);
     }
 
-    return this.groups;
+    return this.groups.sort((a, b) => {});
   }
 
   /**
@@ -295,14 +301,22 @@ export class OSECombat extends foundry.documents.Combat {
   /** @override */
   _sortCombatants(a, b) {
     // First sort by initiative
-    const ia = Number.isNumeric(a.initiative) ? a.initiative : -Infinity;
-    const ib = Number.isNumeric(b.initiative) ? b.initiative : -Infinity;
+    const ia: number = OSECombat.getInitiativeForCombatant(a);
+    const ib: number = OSECombat.getInitiativeForCombatant(b);
     const initiativeDiff = ib - ia;
 
     if (initiativeDiff !== 0) return initiativeDiff;
 
     // If still tied, sort by group name if available
     if (a.group?.name && b.group?.name && a.group?.name !== b.group?.name) {
+      if (a.group?.name === "Fast" || b.group?.name === "Slow") {
+        return -1;
+      }
+
+      if (a.group?.name === "Slow" || b.group?.name === "Fast") {
+        return 1;
+      }
+
       const colorsKeys = Object.keys(OSECombat.GROUPS);
       const indexA = colorsKeys.indexOf(a.group.name);
       const indexB = colorsKeys.indexOf(b.group.name);
@@ -347,5 +361,13 @@ export class OSECombat extends foundry.documents.Combat {
     }
 
     return (a.name || "").localeCompare(b.name || "");
+  }
+
+  private static getInitiativeForCombatant(combatant: OSECombatant) {
+    return combatant.isFast
+      ? Infinity
+      : Number.isNaN(combatant.initiative)
+      ? -Infinity
+      : combatant.initiative;
   }
 }

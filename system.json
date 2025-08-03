@@ -1,8 +1,8 @@
 {
-  "id": "ose",
-  "title": "Old-School Essentials - Gygax75",
+  "id": "ose-dev",
+  "title": "Old-School Essentials Development Build",
   "description": "Simple, robust rules compatible with decades of Basic/Expert material",
-  "version": "2.1.2_1-gygax75",
+  "version": "AUTOMATICALLY REPLACED BY GITHUB WORKFLOW ACTION",
   "compatibility": {
     "minimum": "13",
     "verified": "13"
@@ -103,10 +103,10 @@
     "distance": 5,
     "units": "ft"
   },
-  "url": "https://github.com/JustinFreitas/ose-foundry-core",
-  "manifest": "",
-  "download": "",
-  "bugs": "",
+  "url": "AUTOMATICALLY REPLACED BY GITHUB WORKFLOW ACTION",
+  "manifest": "AUTOMATICALLY REPLACED BY GITHUB WORKFLOW ACTION",
+  "download": "AUTOMATICALLY REPLACED BY GITHUB WORKFLOW ACTION",
+  "bugs": "https://github.com/JustinFreitas/ose-foundry-core-gygax75/issues",
   "media": [
     {
       "type": "cover",

@@ -3,7 +3,7 @@ import { OSECombat } from "./combat";
 import { OSECombatant } from "./combatant";
 
 
-export default class OSECombatTracker extends foundry.applications.sidebar.tabs.CombatTracker {
+export default class OSECombatTracker extends foundry.applications.sidebar.tabs {
   /** @inheritDoc */
   static DEFAULT_OPTIONS = {
     ...foundry.applications.sidebar.tabs.CombatTracker.DEFAULT_OPTIONS,

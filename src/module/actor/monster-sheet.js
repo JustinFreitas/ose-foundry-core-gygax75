@@ -18,7 +18,7 @@ export default class OseActorSheetMonster extends OseActorSheet {
     return foundry.utils.mergeObject(super.defaultOptions, {
       classes: ["ose", "sheet", "monster", "actor"],
       template: `${OSE.systemPath()}/templates/actors/monster-sheet.html`,
-      width: 450,
+      width: 675, // gygax75 - give room for menu items so window can be dragged
       height: 560,
       resizable: true,
       tabs: [

@@ -41,12 +41,12 @@ import "./e2e";
 /* -------------------------------------------- */
 
 Hooks.once("init", async () => {
+  CONFIG.OSE = OSE;
+
   // Give modules a chance to add encumbrance schemes
   // They can do so by adding their encumbrance schemes
   // to CONFIG.OSE.encumbranceOptions
   Hooks.call("ose-setup-encumbrance");
-
-  CONFIG.OSE = OSE;
 
   if (game.system.id === "ose-dev") {
     CONFIG.debug = {
@@ -203,7 +203,12 @@ Hooks.on("renderCombatTracker", (app, html) =>
 );
 /** @param {OSECombatant} combatant */
 Hooks.on("createCombatant", (combatant) => {
-  if (game.settings.get(game.system.id, "initiative") !== "group") return;
+  if (
+    game.settings.get(game.system.id, "initiative") !== "group" ||
+    !game.user.isGM
+  ) {
+    return;
+  }
   combatant.assignGroup();
 });
 

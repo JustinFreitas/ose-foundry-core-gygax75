@@ -347,29 +347,27 @@ export default class OseActor extends Actor {
     const actorData = this.system;
 
     const label = game.i18n.localize(`OSE.roll.hd`);
+    const level = +actorData.details.level || +1;
     let rollParts;
-    if (options.hdRollType === "single" && actorType === "character") {
+    if (options.hdRollType === "single") {
         const parts = /^\d+d(\d+)$/.exec(actorData.hp.hd);
         const singleHd = parts ? "1d" + parts[1] || 0 : "1d0";
         rollParts = [singleHd];
     } else {
         const parts = /^\d+d(\d+)$/.exec(actorData.hp.hd);
-        const level = +actorData.details.level || +1;
         const allHd = parts ? level + "d" + parts[1] || 0 : level + "d0";
         rollParts = [allHd];
     };
     
-    if (actorType === "character") {
-      // A character always gains at least 1 hit point per Hit Die,
-      // regardless of CON modifier.
-      rollParts = [
-        `max(${actorData.hp.hd} + ${
-          options?.hdRollType === "single"
-          ? actorData.scores.con.mod
-          : actorData.scores.con.mod * actorData.details.level
-        }, ${actorData.hp.hd[0]})`,
-      ];
-    }
+    // A character always gains at least 1 hit point per Hit Die,
+    // regardless of CON modifier.
+    rollParts = [
+        `max(${rollParts[0]} + ${
+            options?.hdRollType === "single"
+            ? actorData.scores.con.mod
+            : actorData.scores.con.mod * level
+        }, ${level})`,
+    ];
 
     const data = {
       actor: this,
@@ -391,6 +389,35 @@ export default class OseActor extends Actor {
   }
 
   rollHitDice(options = {}) {
+    if (actorType !== "character") {
+        // Gygax75 - Roll monster HD like normal.
+        const actorType = this.type;
+
+        const actorData = this.system;
+
+        const label = game.i18n.localize(`OSE.roll.hd`);
+        const rollParts = [actorData.hp.hd];
+        
+        const data = {
+        actor: this,
+        roll: {
+            type: "hitdice",
+        },
+        };
+
+        // Roll and return
+        return OseDice.Roll({
+            event: options.event,
+            parts: rollParts,
+            data,
+            skipDialog: true,
+            speaker: ChatMessage.getSpeaker({ actor: this }),
+            flavor: label,
+            title: label,
+        });
+    }
+
+    // Gygax75 - Roll character HD from single/all dialog.
     const formHtml = [];
     formHtml.push('<form>');
     formHtml.push('<p>Choose to roll a single level worth of hit dice to the chat or roll all levels of hit dice to the chat.</p>');

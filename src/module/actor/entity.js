@@ -389,10 +389,9 @@ export default class OseActor extends Actor {
   }
 
   rollHitDice(options = {}) {
+    const actorType = this.type;
+    // Gygax75 - Roll monster HD like normal.
     if (actorType !== "character") {
-        // Gygax75 - Roll monster HD like normal.
-        const actorType = this.type;
-
         const actorData = this.system;
 
         const label = game.i18n.localize(`OSE.roll.hd`);

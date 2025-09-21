@@ -23,9 +23,9 @@ export default class OseDataModelCharacterEncumbrance
   static baseEncumbranceCap = 2400;   // Gygax75 specific change, DO NOT COMMIT TO main
   // Default encumbrance steps used by the 'complete' and 'detailed' encumbrance variants
   static encumbranceSteps = {
-    quarter: 25,
-    threeEighths: 37.5,
-    half: 50
+    quarter: (1 / 4) * 100,
+    threeEighths: (3 / 8) * 100,
+    half: (1 / 2) * 100,
   };
 
   #encumbranceVariant;
@@ -43,7 +43,7 @@ export default class OseDataModelCharacterEncumbrance
    */
   constructor(
     variant = "disabled",
-    max = OseDataModelCharacterEncumbrance.baseEncumbranceCap,
+    max = OseDataModelCharacterEncumbrance.baseEncumbranceCap
   ) {
     this.#encumbranceVariant = variant;
     this.#max = max;
@@ -60,7 +60,10 @@ export default class OseDataModelCharacterEncumbrance
       pct: new NumberField({ integer: false, initial: 0, min: 0, max: 100 }),
       steps: new ArrayField(new NumberField()),
       value: new NumberField({ integer: false }),
-      max: new NumberField({ integer: false }),
+      max: new NumberField({
+        integer: false,
+        initial: OseDataModelCharacterEncumbrance.baseEncumbranceCap,
+      }),
       atFirstBreakpoint: new BooleanField({ initial: false }),
       atSecondBreakpoint: new BooleanField({ initial: false }),
       atThirdBreakpoint: new BooleanField({ initial: false }),
@@ -76,7 +79,7 @@ export default class OseDataModelCharacterEncumbrance
   }
 
   get pct() {
-    return Math.clamp((100 * this.value) / this.max, 0, 100);
+    return Math.clamp((this.value / this.max) * 100, 0, 100);
   }
 
   get encumbered() {
@@ -105,29 +108,26 @@ export default class OseDataModelCharacterEncumbrance
   }
 
   get atThirdBreakpoint() {
-    return (
-      this.value >
-      this.max *
-        (OseDataModelCharacterEncumbrance.encumbranceSteps.half / 100) +
-        (this.#delta || 0)
-    );
+    return this.pct > OseDataModelCharacterEncumbrance.encumbranceSteps.half;
   }
 
   get atSecondBreakpoint() {
     return (
-      this.value >
-      this.max *
-        (OseDataModelCharacterEncumbrance.encumbranceSteps.threeEighths / 100) +
-        (this.#delta || 0)
+      this.pct > OseDataModelCharacterEncumbrance.encumbranceSteps.threeEighths
     );
   }
 
   get atFirstBreakpoint() {
-    return (
-      this.value >
-      this.max *
-        (OseDataModelCharacterEncumbrance.encumbranceSteps.quarter / 100) +
-        (this.#delta || 0)
-    );
+    return this.pct > OseDataModelCharacterEncumbrance.encumbranceSteps.quarter;
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  get defaultMax() {
+    return (this.constructor as typeof OseDataModelCharacterEncumbrance)
+      .baseEncumbranceCap;
+  }
+
+  get alternateMax() {
+    return this.defaultMax;
   }
 }

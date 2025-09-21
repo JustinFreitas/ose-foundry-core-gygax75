@@ -349,7 +349,8 @@ export default class OseActor extends Actor {
     const label = game.i18n.localize(`OSE.roll.hd`);
     const level = +actorData.details.level || +1;
     let rollParts;
-    if (options.hdRollType === "single") {
+    const single = options.hdRollType === "single";
+    if (single) {
         const parts = /^\d+d(\d+)$/.exec(actorData.hp.hd);
         const singleHd = parts ? "1d" + parts[1] || 0 : "1d0";
         rollParts = [singleHd];
@@ -363,10 +364,10 @@ export default class OseActor extends Actor {
     // regardless of CON modifier.
     rollParts = [
         `max(${rollParts[0]} + ${
-            options?.hdRollType === "single"
+            single
             ? actorData.scores.con.mod
             : actorData.scores.con.mod * level
-        }, ${level})`,
+        }, ${single ? 1 : level})`,
     ];
 
     const data = {

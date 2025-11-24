@@ -364,6 +364,54 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
   }
 
   // eslint-disable-next-line no-underscore-dangle
+  async _handleCrossActorContainerDrop(sourceItem, event) {
+    const sourceActor = sourceItem.actor;
+    const contentIds = sourceItem.system.itemIds || [];
+    const contentItems = contentIds
+      .map((id) => sourceActor.items.get(id))
+      .filter((i) => i);
+
+    // Prepare data
+    const containerData = sourceItem.toObject();
+    containerData.system.itemIds = []; // Clear for now
+    delete containerData._id; // Ensure new ID
+
+    // Create container
+    const [newContainer] = await this.actor.createEmbeddedDocuments("Item", [
+      containerData,
+    ]);
+
+    // Prepare contents
+    const contentData = contentItems.map((i) => {
+      const d = i.toObject();
+      d.system.containerId = newContainer.id;
+      delete d._id; // Ensure new ID
+      return d;
+    });
+
+    // Create contents
+    const newContents = await this.actor.createEmbeddedDocuments(
+      "Item",
+      contentData
+    );
+
+    // Update container with new IDs
+    await newContainer.update({
+      "system.itemIds": newContents.map((i) => i.id),
+    });
+
+    // Handle Move (Delete Source)
+    if (!event.ctrlKey) {
+      // Delete source contents first
+      await sourceActor.deleteEmbeddedDocuments("Item", contentIds);
+      // Delete source container
+      await sourceItem.delete();
+    }
+
+    return [newContainer, ...newContents];
+  }
+
+  // eslint-disable-next-line no-underscore-dangle
   async _onDropItem(event, data) {
     const targetId = event.target.closest(".item")?.dataset?.itemId;
     const targetItem = this.actor.items.get(targetId);
@@ -380,15 +428,35 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
     // Issue: https://github.com/vttred/ose/issues/357
     if (item.id === targetId) return;
 
-    if (!exists && !targetIsContainer)
+    if (!exists && !targetIsContainer) {
+      if (
+        item.type === "container" &&
+        item.actor &&
+        item.actor.id !== this.actor.id
+      ) {
+        // eslint-disable-next-line no-underscore-dangle
+        return this._handleCrossActorContainerDrop(item, event);
+      }
+
       // eslint-disable-next-line no-underscore-dangle
-      return this._onDropItemCreate([itemData]);
+      const result = await this._onDropItemCreate([itemData]);
+      if (item.actor && item.actor.id !== this.actor.id && !event.ctrlKey) {
+        await item.delete();
+      }
+      return result;
+    }
 
     // eslint-disable-next-line no-underscore-dangle
     if (isContainer) return this._onContainerItemRemove(item, isContainer);
 
     // eslint-disable-next-line no-underscore-dangle
-    if (targetIsContainer) return this._onContainerItemAdd(item, targetItem);
+    if (targetIsContainer) {
+      const result = await this._onContainerItemAdd(item, targetItem);
+      if (item.actor && item.actor.id !== this.actor.id && !event.ctrlKey) {
+        await item.delete();
+      }
+      return result;
+    }
   }
 
   async _onContainerItemRemove(item, container) {
@@ -485,7 +553,7 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
             action: "cancel",
             icon: "fas fa-times",
             label: game.i18n.localize("OSE.Cancel"),
-            callback: () => {},
+            callback: () => { },
           },
         ],
       }).render(true);
@@ -573,9 +641,8 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
       const container = editor.closest(".resizable-editor");
       if (container) {
         const heightDelta = this.position.height - this.options.height;
-        editor.style.height = `${
-          heightDelta + parseInt(container.dataset.editorSize)
-        }px`;
+        editor.style.height = `${heightDelta + parseInt(container.dataset.editorSize)
+          }px`;
       }
     });
   }

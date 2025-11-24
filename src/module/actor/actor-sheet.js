@@ -280,6 +280,12 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
       (target?.type === "container" || target?.data?.type === "container") &&
       targetData.containerId === ""
     ) {
+      if (source.type === "container") {
+        return ui.notifications.warn(
+          game.i18n.localize("OSE.warn.noNestedContainers") ||
+          "You cannot nest containers."
+        );
+      }
       this.actor.updateEmbeddedDocuments("Item", [
         { _id: source.id, "system.containerId": target.id },
       ]);
@@ -451,6 +457,9 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
 
     // eslint-disable-next-line no-underscore-dangle
     if (targetIsContainer) {
+      if (item.type === "container") {
+        return ui.notifications.warn("You cannot nest containers.");
+      }
       const result = await this._onContainerItemAdd(item, targetItem);
       if (item.actor && item.actor.id !== this.actor.id && !event.ctrlKey) {
         await item.delete();

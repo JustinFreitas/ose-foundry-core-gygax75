@@ -138,13 +138,18 @@ export class OSECombat extends foundry.documents.Combat {
       return this;
     }
 
-    await this.updateEmbeddedDocuments("CombatantGroup", updates);
-    // Create multiple chat messages
     await foundry.documents.ChatMessage.implementation.create(messages);
+    await this.updateEmbeddedDocuments("CombatantGroup", updates);
 
+    return this;
+  }
+
+  /**
+   * Handle updating a combatant group.
+   */
+  async onUpdateCombatantGroup() {
     this.setupTurns();
     await ui.combat.render(true);
-    return this;
   }
 
   /** @override */
@@ -226,8 +231,6 @@ export class OSECombat extends foundry.documents.Combat {
 
       if (groupUpdates.length > 0) {
         await this.updateEmbeddedDocuments("CombatantGroup", groupUpdates);
-        this.setupTurns();
-        await ui.combat.render(true);
       }
     }
   }

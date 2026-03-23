@@ -1,7 +1,10 @@
 import OseItem from "../item/entity";
 
+
+
 import skipRollDialogCheck from "../helpers-behaviour";
 import OseDice from "../helpers-dice";
+
 
 /**
  * Used in the rollAttack function to remove zeroes from rollParts arrays
@@ -205,7 +208,8 @@ export default class OseActor extends Actor {
       roll: {
         type: "above",
         target: actorData.saves[save].value,
-        magic: actorType === "character" ? actorData.scores.wis.mod : 0,
+        magic: actorType === "character" ? actorData.scores.wis.mod + actorData.details.magic.bonus: 0,
+        poison: actorType === "character" ? actorData.details.magic.bonus: 0,
       },
       details: game.i18n.format("OSE.roll.details.save", { save: label }),
     };

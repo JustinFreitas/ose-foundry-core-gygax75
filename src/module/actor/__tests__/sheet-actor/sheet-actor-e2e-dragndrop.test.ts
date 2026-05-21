@@ -2,7 +2,7 @@
  * @file Contains tests for dragging and dropping items to and from Actor Sheet.
  */
 // eslint-disable-next-line prettier/prettier
-import { QuenchMethods } from "../../../../e2e";
+import type { QuenchMethods } from "../../../../e2e";
 import {
   cleanUpActorsByKey,
   cleanUpCompendium,
@@ -12,10 +12,11 @@ import {
   createMockCompendium,
   createWorldTestItem,
   itemTypes,
+  waitForElement,
   waitForInput, // eslint-disable-next-line prettier/prettier
 } from "../../../../e2e/testUtils";
-import OseItem from "../../../item/entity";
-import OseActor from "../../entity";
+import type OseItem from "../../../item/entity";
+import type OseActor from "../../entity";
 
 export const key = "ose.actor.sheet.e2e.dragndrop";
 export const options = {
@@ -38,7 +39,7 @@ type DragNDropItems = {
 
 type DragNDropDocuments = {
   actor: StoredDocument<Actor> | undefined;
-  compendium: CompendiumCollection<any> | undefined;
+  compendium: CompendiumCollection<CompendiumCollection.Metadata> | undefined;
 };
 
 /* --------------------------------------------- */
@@ -70,32 +71,18 @@ const executeDragNDrop = async (items: DragNDropItems) => {
   items.target.itemElement?.dispatchEvent(mockDropEvent);
 };
 
-export default ({
-  describe,
-  it,
-  expect,
-  after,
-  afterEach,
-  beforeEach,
-}: QuenchMethods) => {
+export default ({ describe, it, expect, after, beforeEach }: QuenchMethods) => {
   describe("_onDragStart(event)", () => {
     it("populates dataTransfer correctly", async () => {
-      const actor = (await createMockActorKey(
-        "character",
-        {},
-        key
-      )) as OseActor;
+      const actor = (await createMockActorKey("character", {}, key)) as OseActor;
       expect(actor).not.undefined;
 
       await actor.sheet?.render(true);
 
       const [item] = await createActorTestItem(actor, "weapon");
       expect(item).not.undefined;
-      await waitForInput();
 
-      const itemElement = document.querySelector(
-        `.sheet .inventory li.item[data-item-id="${item?.id}"]`
-      );
+      const itemElement = await waitForElement(`.sheet .inventory li.item[data-item-id="${item?.id}"]`);
       expect(itemElement).not.null;
 
       const event = executeDrag(itemElement);
@@ -115,10 +102,7 @@ export default ({
     /* --------------------------------------------- */
     /* Check Test Helper functions                   */
     /* --------------------------------------------- */
-    const dragNDropSanityChecks = (
-      documents: DragNDropDocuments,
-      items: DragNDropItems
-    ) => {
+    const dragNDropSanityChecks = (documents: DragNDropDocuments, items: DragNDropItems) => {
       // Check Actor constructed properly
       expect(documents.actor).not.undefined;
       expect(documents.actor?.documentName).equal("Actor");
@@ -137,10 +121,7 @@ export default ({
       expect(items.target.itemElement?.constructor.name).equal("HTMLLIElement");
     };
 
-    const dragNDropCasePreflightCheck = (
-      sourceItemName: string,
-      items: DragNDropItems
-    ) => {
+    const dragNDropCasePreflightCheck = (sourceItemName: string, items: DragNDropItems) => {
       expect(items.source.item).not.undefined;
       expect(items.source.item?.documentName).equal("Item");
       expect(items.source.item?.name).equal(sourceItemName);
@@ -153,22 +134,14 @@ export default ({
       expect(items.target.item?.system.itemIds.length).equal(0);
     };
 
-    const dragNDropCasePostflightCheck = (
-      documents: DragNDropDocuments,
-      items: DragNDropItems
-    ) => {
+    const dragNDropCasePostflightCheck = (documents: DragNDropDocuments, items: DragNDropItems) => {
       // Check item data
       expect(items.target.item?.system.itemIds.length).equal(1);
       expect(items.target.item?.system.itemIds).contain(items.source.item?.id);
-      expect(items.source.item?.system.containerId).equal(
-        items.target.item?.id
-      );
+      expect(items.source.item?.system.containerId).equal(items.target.item?.id);
 
       // Check getters
-      const getter =
-        items.source.item?.type === "armor"
-          ? items.source.item?.type
-          : `${items.source.item?.type}s`;
+      const getter = items.source.item?.type === "armor" ? items.source.item?.type : `${items.source.item?.type}s`;
       const amount = getter === "containers" ? 1 : 0;
       expect(documents.actor?.system[getter].length).equal(amount);
     };
@@ -185,23 +158,17 @@ export default ({
 
       // Setup actor & items
       const actor = await createMockActorKey("character", {}, key);
-      [items.target.item] = await createActorTestItem(
-        actor,
-        "container",
-        "TargetContainer"
-      );
+      [items.target.item] = await createActorTestItem(actor, "container", "TargetContainer");
       [items.source.item] = await createActorTestItem(actor, "weapon");
 
       // Render UI elements
       actor?.sheet?.render(true);
-      await waitForInput();
 
-      // Set the DOM elements
-      items.source.itemElement = document.querySelector(
-        `.sheet .inventory li.item[data-item-id="${items.source?.item?.id}"]`
+      items.source.itemElement = await waitForElement(
+        `.sheet .inventory li.item[data-item-id="${items.source?.item?.id}"]`,
       );
-      items.target.itemElement = document.querySelector(
-        `.sheet .inventory li.item[data-item-id="${items.target?.item?.id}"]`
+      items.target.itemElement = await waitForElement(
+        `.sheet .inventory li.item[data-item-id="${items.target?.item?.id}"]`,
       );
 
       // Execute drag'n'drop of stored item
@@ -212,9 +179,7 @@ export default ({
       // Check items
       expect(items.target.item?.system.itemIds.length).equal(1);
       expect(items.target.item?.system.itemIds).contain(items.source.item?.id);
-      expect(items.source.item?.system.containerId).equal(
-        items.target.item?.id
-      );
+      expect(items.source.item?.system.containerId).equal(items.target.item?.id);
 
       // Re-form the source item to use the target container
       items.source.itemElement = items.target.itemElement;
@@ -225,9 +190,7 @@ export default ({
       await waitForInput();
 
       // Verify that the target container is still present
-      const finalElement = document.querySelector(
-        `.sheet .inventory li.item[data-item-id="${items.target?.item?.id}"]`
-      );
+      const finalElement = await waitForElement(`.sheet .inventory li.item[data-item-id="${items.target?.item?.id}"]`);
       expect(finalElement).not.null;
     });
 
@@ -258,26 +221,19 @@ export default ({
           documents.compendium = await createMockCompendium("Item");
 
           // Create target container
-          [items.target.item] = await createActorTestItem(
-            documents.actor,
-            "container",
-            "TargetContainer"
-          );
+          [items.target.item] = await createActorTestItem(documents.actor, "container", "TargetContainer");
 
           // Render UI elements
           documents.actor?.sheet?.render(true);
           documents.compendium?.render(true);
-          await waitForInput();
-          document
-            .querySelector(
-              `#OseActorSheetCharacter-Actor-${documents.actor.id} nav.sheet-tabs a[data-tab="inventory"]`
-            )
-            ?.click();
-          await waitForInput();
 
-          // Record Target DOM
-          items.target.itemElement = document.querySelector(
-            `#OseActorSheetCharacter-Actor-${documents.actor.id} .inventory li.item[data-item-id="${items.target.item?.id}"]`
+          const inventoryTab = await waitForElement<HTMLElement>(
+            `#OseActorSheetCharacter-Actor-${documents.actor.id} nav.sheet-tabs a[data-tab="inventory"]`,
+          );
+          inventoryTab?.click();
+
+          items.target.itemElement = await waitForElement(
+            `#OseActorSheetCharacter-Actor-${documents.actor.id} .inventory li.item[data-item-id="${items.target.item?.id}"]`,
           );
         });
 
@@ -285,23 +241,16 @@ export default ({
           dragNDropSanityChecks(documents, items);
 
           // Create item in actor sheet
-          [items.source.item] = await createActorTestItem(
-            documents.actor,
-            itemType
-          );
+          [items.source.item] = await createActorTestItem(documents.actor, itemType);
 
-          // Wait for UI to keep up
-          await waitForInput();
-
-          // Create DOM element
-          items.source.itemElement = document.querySelector(
-            `#OseActorSheetCharacter-Actor-${documents.actor.id} .inventory li.item[data-item-id="${items.source.item?.id}"]`
+          items.source.itemElement = await waitForElement(
+            `#OseActorSheetCharacter-Actor-${documents.actor.id} .inventory li.item[data-item-id="${items.source.item?.id}"]`,
           );
 
           if (!items.target.itemElement?.isConnected) {
-            // Reallocate the target item element
-            items.target.itemElement = document.querySelector(
-              `#OseActorSheetCharacter-Actor-${documents.actor.id} .inventory li.item[data-item-id="${items.target.item?.id}"]`
+            // Reallocate the target item element after the re-render.
+            items.target.itemElement = await waitForElement(
+              `#OseActorSheetCharacter-Actor-${documents.actor.id} .inventory li.item[data-item-id="${items.target.item?.id}"]`,
             );
           }
 
@@ -323,13 +272,7 @@ export default ({
           // Create item in sidebar
           items.source.item = (await createWorldTestItem(itemType)) as OseItem;
 
-          // Wait for UI to keep up
-          await waitForInput();
-
-          // Create DOM element
-          items.source.itemElement = document.querySelector(
-            `#items li.item[data-entry-id="${items.source.item?.id}"]`
-          );
+          items.source.itemElement = await waitForElement(`#items li.item[data-entry-id="${items.source.item?.id}"]`);
 
           // Perform pre-flight checks
           const sourceItemName = `New World Test ${itemType.capitalize()}`;
@@ -340,9 +283,7 @@ export default ({
           await waitForInput();
 
           // Store new item as it recreates in the character sheet
-          items.source.item = documents.actor?.items.getName(
-            items.source.item?.name
-          ) as OseItem;
+          items.source.item = documents.actor?.items.getName(items.source.item?.name) as OseItem;
 
           // Perform post-flight checks
           dragNDropCasePostflightCheck(documents, items);
@@ -353,16 +294,10 @@ export default ({
 
           // Create item in compendium
           const worldItem = (await createWorldTestItem(itemType)) as OseItem;
-          items.source.item = await documents.compendium?.importDocument(
-            worldItem
-          );
+          items.source.item = await documents.compendium?.importDocument(worldItem);
 
-          // Wait for UI to keep up
-          await waitForInput();
-
-          // Create DOM element
-          items.source.itemElement = document.querySelector(
-            `.compendium-directory li.item[data-entry-id="${items.source.item?.id}"]`
+          items.source.itemElement = await waitForElement(
+            `.compendium-directory li.item[data-entry-id="${items.source.item?.id}"]`,
           );
 
           // Perform pre-flight checks
@@ -374,9 +309,7 @@ export default ({
           await waitForInput();
 
           // Store new item as it recreates in the character sheet
-          items.source.item = documents.actor?.items.getName(
-            items.source.item?.name
-          ) as OseItem;
+          items.source.item = documents.actor?.items.getName(items.source.item?.name) as OseItem;
 
           // Perform post-flight checks
           dragNDropCasePostflightCheck(documents, items);

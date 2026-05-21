@@ -7,6 +7,8 @@ import OseDataModelCharacterEncumbranceDetailed from "./actor/data-model-classes
 import OseDataModelCharacterEncumbranceDisabled from "./actor/data-model-classes/data-model-character-encumbrance-disabled";
 import OseDataModelCharacterEncumbranceItemBased from "./actor/data-model-classes/data-model-character-encumbrance-item-based";
 
+import { CLASSIC_FANTASY_CLASSES } from "./classes/classic-fantasy-classes";
+
 export type OseConfig = typeof OSE;
 
 export type Attribute = keyof OseConfig["scores"];
@@ -35,6 +37,9 @@ export const OSE = {
   get encumbrance() {
     const variant = game.settings.get(game.system.id, "encumbranceOption");
     return this.encumbranceOptions[variant] || this.encumbranceOptions.disabled;
+  },
+  classes: {
+    classic: CLASSIC_FANTASY_CLASSES,
   },
   encumbranceOptions: {
     basic: OseDataModelCharacterEncumbranceBasic,
@@ -216,7 +221,7 @@ export const OSE = {
       return `${CONFIG.OSE.assetsPath}/melee.png`;
     },
     get missile() {
-      return `fa-bow-arrow`;
+      return "fa-bow-arrow";
     },
     get slow() {
       return `${CONFIG.OSE.assetsPath}/slow.png`;

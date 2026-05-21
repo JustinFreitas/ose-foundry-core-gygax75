@@ -2,6 +2,7 @@
  * @file Helpful methods for dealing with OSE-specific dice logic
  */
 import OSE from "./config";
+import { getRollMode, getRollModes } from "./helpers-message-mode";
 
 const OseDice = {
   async sendRoll({
@@ -28,7 +29,7 @@ const OseDice = {
     };
 
     // Optionally include a situational bonus
-    if (form !== null && form.bonus.value) {
+    if (form?.bonus.value) {
       parts.push(form.bonus.value);
     }
 
@@ -36,7 +37,7 @@ const OseDice = {
     await roll.evaluate({ allowStrings: true });
 
     // Convert the roll to a chat message and return the roll
-    let rollMode = game.settings.get("core", "rollMode");
+    let rollMode = getRollMode();
     rollMode = form ? form.rollMode.value : rollMode;
 
     // Force blind roll (ability formulas)
@@ -44,8 +45,7 @@ const OseDice = {
       rollMode = game.user.isGM ? "selfroll" : "blindroll";
     }
 
-    if (["gmroll", "blindroll"].includes(rollMode))
-      chatData.whisper = ChatMessage.getWhisperRecipients("GM");
+    if (["gmroll", "blindroll"].includes(rollMode)) chatData.whisper = ChatMessage.getWhisperRecipients("GM");
     if (rollMode === "selfroll") chatData.whisper = [game.user._id];
     if (rollMode === "blindroll") {
       chatData.blind = true;
@@ -61,18 +61,10 @@ const OseDice = {
           chatData.content = content;
           // Dice So Nice
           if (game.dice3d) {
-            game.dice3d
-              .showForRoll(
-                roll,
-                game.user,
-                true,
-                chatData.whisper,
-                chatData.blind
-              )
-              .then(() => {
-                if (chatMessage !== false) ChatMessage.create(chatData);
-                resolve(roll);
-              });
+            game.dice3d.showForRoll(roll, game.user, true, chatData.whisper, chatData.blind).then(() => {
+              if (chatMessage !== false) ChatMessage.create(chatData);
+              resolve(roll);
+            });
           } else {
             chatData.sound = CONFIG.sounds.dice;
             if (chatMessage !== false) ChatMessage.create(chatData);
@@ -215,30 +207,18 @@ const OseDice = {
 
     if (game.settings.get(game.system.id, "ascendingAC")) {
       const attackBonus = 0; // Attack bonus is already included in the roll
-      if (
-        this.attackIsSuccess(roll, targetAac, attackBonus) ||
-        result.victim == null
-      ) {
-        result.details = game.i18n.format(
-          "OSE.messages.AttackAscendingSuccess",
-          {
-            result: roll.total,
-          }
-        );
+      if (this.attackIsSuccess(roll, targetAac, attackBonus) || result.victim == null) {
+        result.details = game.i18n.format("OSE.messages.AttackAscendingSuccess", {
+          result: roll.total,
+        });
         result.isSuccess = true;
       } else {
-        result.details = game.i18n.format(
-          "OSE.messages.AttackAscendingFailure",
-          {
-            bonus: result.target,
-          }
-        );
+        result.details = game.i18n.format("OSE.messages.AttackAscendingFailure", {
+          bonus: result.target,
+        });
         result.isFailure = true;
       }
-    } else if (
-      this.attackIsSuccess(roll, result.target, targetAc) ||
-      result.victim == null
-    ) {
+    } else if (this.attackIsSuccess(roll, result.target, targetAc) || result.victim == null) {
       // Show result in chat card
       const value = result.target - roll.total;
       result.details = game.i18n.format("OSE.messages.AttackSuccess", {
@@ -286,9 +266,7 @@ const OseDice = {
       /**
        * @todo should this error be localized?
        */
-      ui.notifications.error(
-        "Attack has no damage dice terms; be sure to set the attack's damage"
-      );
+      ui.notifications.error("Attack has no damage dice terms; be sure to set the attack's damage");
       return;
     }
     const template = `${OSE.systemPath()}/templates/chat/roll-attack.html`;
@@ -306,7 +284,7 @@ const OseDice = {
     };
 
     // Optionally include a situational bonus
-    if (form !== null && form.bonus.value) parts.push(form.bonus.value);
+    if (form?.bonus.value) parts.push(form.bonus.value);
 
     const roll = new Roll(parts.join("+"), data);
     await roll.evaluate();
@@ -314,7 +292,7 @@ const OseDice = {
     await dmgRoll.evaluate();
 
     // Convert the roll to a chat message and return the roll
-    let rollMode = game.settings.get("core", "rollMode");
+    let rollMode = getRollMode();
     rollMode = form ? form.rollMode.value : rollMode;
 
     // Force blind roll (ability formulas)
@@ -322,8 +300,7 @@ const OseDice = {
       rollMode = game.user.isGM ? "selfroll" : "blindroll";
     }
 
-    if (["gmroll", "blindroll"].includes(rollMode))
-      chatData.whisper = ChatMessage.getWhisperRecipients("GM");
+    if (["gmroll", "blindroll"].includes(rollMode)) chatData.whisper = ChatMessage.getWhisperRecipients("GM");
     if (rollMode === "selfroll") chatData.whisper = [game.user._id];
     if (rollMode === "blindroll") {
       chatData.blind = true;
@@ -341,34 +318,18 @@ const OseDice = {
             chatData.content = content;
             // 2 Step Dice So Nice
             if (game.dice3d) {
-              game.dice3d
-                .showForRoll(
-                  roll,
-                  game.user,
-                  true,
-                  chatData.whisper,
-                  chatData.blind
-                )
-                .then(() => {
-                  if (templateData.result.isSuccess) {
-                    templateData.result.dmg = dmgRoll.total;
-                    game.dice3d
-                      .showForRoll(
-                        dmgRoll,
-                        game.user,
-                        true,
-                        chatData.whisper,
-                        chatData.blind
-                      )
-                      .then(() => {
-                        ChatMessage.create(chatData);
-                        resolve(roll);
-                      });
-                  } else {
+              game.dice3d.showForRoll(roll, game.user, true, chatData.whisper, chatData.blind).then(() => {
+                if (templateData.result.isSuccess) {
+                  templateData.result.dmg = dmgRoll.total;
+                  game.dice3d.showForRoll(dmgRoll, game.user, true, chatData.whisper, chatData.blind).then(() => {
                     ChatMessage.create(chatData);
                     resolve(roll);
-                  }
-                });
+                  });
+                } else {
+                  ChatMessage.create(chatData);
+                  resolve(roll);
+                }
+              });
             } else {
               chatData.sound = CONFIG.sounds.dice;
               ChatMessage.create(chatData);
@@ -394,8 +355,8 @@ const OseDice = {
     const dialogData = {
       formula: parts.join(" "),
       data,
-      rollMode: game.settings.get("core", "rollMode"),
-      rollModes: CONFIG.Dice.rollModes,
+      rollMode: getRollMode(),
+      rollModes: getRollModes(),
     };
 
     const rollData = {
@@ -417,7 +378,7 @@ const OseDice = {
         action: "ok",
         label: game.i18n.localize("OSE.Roll"),
         icon: "fas fa-dice-d20",
-        callback: (event, button) => {
+        callback: (_event, button) => {
           rolled = true;
           rollData.form = button.form;
           roll = OseDice.sendRoll(rollData);
@@ -427,13 +388,11 @@ const OseDice = {
         action: "magic",
         label: game.i18n.localize("OSE.saves.magic.short"),
         icon: "fas fa-magic",
-        callback: (event, button) => {
+        callback: (_event, button) => {
           rolled = true;
           rollData.form = button.form;
           rollData.parts.push(`${rollData.data.roll.magic}`);
-          rollData.title += ` ${game.i18n.localize("OSE.saves.magic.short")} (${
-            rollData.data.roll.magic
-          })`;
+          rollData.title += ` ${game.i18n.localize("OSE.saves.magic.short")} (${rollData.data.roll.magic})`;
           roll = OseDice.sendRoll(rollData);
         },
       },
@@ -445,9 +404,7 @@ const OseDice = {
           rolled = true;
           rollData.form = button.form;
           rollData.parts.push(`${rollData.data.roll.poison}`);
-          rollData.title += ` ${game.i18n.localize("OSE.saves.poison.short")} (${
-            rollData.data.roll.poison
-          })`;
+          rollData.title += ` ${game.i18n.localize("OSE.saves.poison.short")} (${rollData.data.roll.poison})`;
           roll = OseDice.sendRoll(rollData);
         },
       },
@@ -459,15 +416,12 @@ const OseDice = {
       },
     ];
 
-    const html = await foundry.applications.handlebars.renderTemplate(
-      template,
-      dialogData
-    );
+    const html = await foundry.applications.handlebars.renderTemplate(template, dialogData);
 
     // Create Dialog window
     return new Promise((resolve) => {
       new foundry.applications.api.DialogV2({
-        window: { title },
+        window: { title: title || "" },
         content: html,
         buttons,
         default: "ok",
@@ -493,10 +447,8 @@ const OseDice = {
     const dialogData = {
       formula: parts.join(" "),
       data,
-      rollMode: data.roll.blindroll
-        ? "blindroll"
-        : game.settings.get("core", "rollMode"),
-      rollModes: CONFIG.Dice.rollModes,
+      rollMode: data.roll.blindroll ? "blindroll" : getRollMode(),
+      rollModes: getRollModes(),
     };
     const rollData = {
       parts,
@@ -520,7 +472,7 @@ const OseDice = {
         action: "ok",
         label: game.i18n.localize("OSE.Roll"),
         icon: "fas fa-dice-d20",
-        callback: (event, button) => {
+        callback: (_event, button) => {
           rolled = true;
           rollData.form = button.form;
           roll = ["melee", "missile", "attack"].includes(data.roll.type)
@@ -542,7 +494,7 @@ const OseDice = {
     // Create Dialog window
     return new Promise((resolve) => {
       new foundry.applications.api.DialogV2({
-        window: { title },
+        window: { title: title || "" },
         content: html,
         buttons,
         submit: () => {

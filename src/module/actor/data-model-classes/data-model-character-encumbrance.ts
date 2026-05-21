@@ -17,10 +17,8 @@ export interface CharacterEncumbrance {
 /**
  * A class to handle character encumbrance.
  */
-export default class OseDataModelCharacterEncumbrance
-  implements CharacterEncumbrance
-{
-  static baseEncumbranceCap = 2400;   // Gygax75 specific change, DO NOT COMMIT TO main
+export default class OseDataModelCharacterEncumbrance implements CharacterEncumbrance {
+  static baseEncumbranceCap = 2400; // Gygax75 specific change, DO NOT COMMIT TO main
   // Default encumbrance steps used by the 'complete' and 'detailed' encumbrance variants
   static encumbranceSteps = {
     quarter: (1 / 4) * 100,
@@ -41,17 +39,13 @@ export default class OseDataModelCharacterEncumbrance
    * @param {number} max - The max weight this character can carry
    * @param {Item[]} items - The items this character is carrying. Note: we're not using this in the base class.
    */
-  constructor(
-    variant = "disabled",
-    max = OseDataModelCharacterEncumbrance.baseEncumbranceCap
-  ) {
+  constructor(variant = "disabled", max = OseDataModelCharacterEncumbrance.baseEncumbranceCap) {
     this.#encumbranceVariant = variant;
     this.#max = max;
   }
 
   static defineSchema() {
-    const { ArrayField, BooleanField, NumberField, SchemaField, StringField } =
-      foundry.data.fields;
+    const { ArrayField, BooleanField, NumberField, SchemaField, StringField } = foundry.data.fields;
 
     return new SchemaField({
       variant: new StringField({ initial: "disabled" }),
@@ -112,9 +106,7 @@ export default class OseDataModelCharacterEncumbrance
   }
 
   get atSecondBreakpoint() {
-    return (
-      this.pct > OseDataModelCharacterEncumbrance.encumbranceSteps.threeEighths
-    );
+    return this.pct > OseDataModelCharacterEncumbrance.encumbranceSteps.threeEighths;
   }
 
   get atFirstBreakpoint() {
@@ -123,8 +115,7 @@ export default class OseDataModelCharacterEncumbrance
 
   // eslint-disable-next-line class-methods-use-this
   get defaultMax() {
-    return (this.constructor as typeof OseDataModelCharacterEncumbrance)
-      .baseEncumbranceCap;
+    return (this.constructor as typeof OseDataModelCharacterEncumbrance).baseEncumbranceCap;
   }
 
   get alternateMax() {

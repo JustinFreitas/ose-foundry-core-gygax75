@@ -2,6 +2,7 @@
  * @file System-level modifications to the way combat works
  */
 import { OSE } from "../config";
+import { getRollMode } from "../helpers-message-mode";
 import OSECombatGroupSelector from "./combat-set-groups";
 import { OSECombatant } from "./combatant";
 
@@ -62,24 +63,15 @@ export class OSECombat extends foundry.documents.Combat {
    * keep the turn on the same Combatant.
    * @private
    */
-  async #rollAbsolutelyEveryone({
-    excludeAlreadyRolled = false,
-    updateTurn = false,
-  } = {}) {
-    const formula = this.isGroupInitiative
-      ? OSECombat.GROUP_FORMULA
-      : OSECombat.FORMULA;
+  async #rollAbsolutelyEveryone({ excludeAlreadyRolled = false, updateTurn = false } = {}) {
+    const formula = this.isGroupInitiative ? OSECombat.GROUP_FORMULA : OSECombat.FORMULA;
 
     await this.rollInitiative(
-      this.combatants
-        .filter(
-          (c) => !c.defeated && (!excludeAlreadyRolled || c.initiative === null)
-        )
-        .map((c) => c.id),
+      this.combatants.filter((c) => !c.defeated && (!excludeAlreadyRolled || c.initiative === null)).map((c) => c.id),
       {
         formula,
         updateTurn,
-      }
+      },
     );
   }
 
@@ -92,10 +84,7 @@ export class OSECombat extends foundry.documents.Combat {
    * @param {boolean} [options.updateTurn=false] - Update the Combat turn after adding new initiative scores to
    * keep the turn on the same Combatant.
    */
-  async smartRerollInitiative({
-    excludeAlreadyRolled = false,
-    updateTurn = false,
-  } = {}) {
+  async smartRerollInitiative({ excludeAlreadyRolled = false, updateTurn = false } = {}) {
     if (!this.isGroupInitiative) {
       return this.#rollAbsolutelyEveryone({ excludeAlreadyRolled, updateTurn });
     }
@@ -115,7 +104,7 @@ export class OSECombat extends foundry.documents.Combat {
       await roll.evaluate();
       updates.push({ _id: group.id, initiative: roll.total });
 
-      const rollMode = game.settings.get("core", "rollMode");
+      const rollMode = getRollMode();
 
       // Construct chat message data
       const messageData = {
@@ -200,20 +189,16 @@ export class OSECombat extends foundry.documents.Combat {
     if (context?.round) {
       // Further processing when rounds other than round 0 end (start combat).
       switch (this.#rerollBehavior) {
-        case "reset": {
-          await this.resetAll();
+        case "reset":
+          await this.resetAll({ updateTurn: false });
           break;
-        }
 
-        case "reroll": {
+        case "reroll":
           await this.smartRerollInitiative();
           break;
-        }
 
-        case "keep":
-        default: {
+        default:
           break;
-        }
       }
       await this.resetActions();
     }
@@ -262,9 +247,7 @@ export class OSECombat extends foundry.documents.Combat {
     if (this.#combatantGroups.has(groupName)) {
       await this.#combatantGroups.get(groupName);
     } else {
-      const groupCreation = this.createEmbeddedDocuments("CombatantGroup", [
-        { name: groupName, initiative: null },
-      ]);
+      const groupCreation = this.createEmbeddedDocuments("CombatantGroup", [{ name: groupName, initiative: null }]);
       this.#combatantGroups.set(groupName, groupCreation);
       await groupCreation;
     }

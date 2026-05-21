@@ -269,8 +269,7 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
       this.actor.updateEmbeddedDocuments("Item", [{ _id: source.id, "system.containerId": target.id }]);
       return;
     }
-      return;
-    }
+
     if (source?.system.containerId !== "") {
       this.actor.updateEmbeddedDocuments("Item", [{ _id: source.id, "system.containerId": "" }]);
     }

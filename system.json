@@ -5,7 +5,7 @@
   "version": "AUTOMATICALLY REPLACED BY GITHUB WORKFLOW ACTION",
   "compatibility": {
     "minimum": "13",
-    "verified": "13"
+    "verified": "14"
   },
   "authors": [
     {
@@ -30,8 +30,12 @@
       "url": "https://github.com/NecroticGnome/ose-foundry-core#contributors-"
     }
   ],
-  "esmodules": ["dist/ose.js"],
-  "styles": ["dist/ose.css"],
+  "esmodules": [
+    "dist/ose.js"
+  ],
+  "styles": [
+    "dist/ose.css"
+  ],
   "packs": [],
   "languages": [
     {
@@ -120,9 +124,12 @@
     "allowBugReporter": true
   },
   "hotReload": {
-    "extensions": ["css"],
-    "paths": ["dist/"]
+    "extensions": [
+      "css"
+    ],
+    "paths": [
+      "dist/"
+    ]
   },
-  "relationships": {
-  }
+  "relationships": {}
 }

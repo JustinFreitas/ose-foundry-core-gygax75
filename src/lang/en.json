@@ -339,8 +339,11 @@
   "OSE.warn.macrosOnlyForOwnedItems": "Only Items owned by Actor may be used to create macros.",
   "OSE.warn.macrosNoTokenOwnedInScene": "No controlled token in scene",
   "OSE.warn.macrosNotAnItem": "Unable to create macro, not an item.",
+  "OSE.warn.noNestedContainers": "You cannot nest containers.",
+  "OSE.warn.invalidHitDice": "Cannot roll Hit Dice: invalid HD formula \"{hd}\".",
 
   "OSE.error.macrosOnlyForOwnedItems": "You can only create macro buttons for owned Items",
+  "OSE.error.containerMoveFailed": "Failed to move the container; nothing was changed.",
   "OSE.error.noRollTableWithUuId": "RollTable with uuid, {uuid} did not or no longer exists in this world.",
   "OSE.error.noItemWithName": "Your controlled Actor {actorName} does not have an item named {itemName}.",
   "OSE.error.notEnoughGP": "This Actor doesn't have enough GP to pay for its inventory.",

@@ -345,23 +345,27 @@ export default class OseActor extends Actor {
 
     const label = game.i18n.localize("OSE.roll.hd");
     const level = +actorData.details.level || 1;
-    let rollParts;
     const single = options.hdRollType === "single";
-    if (single) {
-      const parts = /^\d+d(\d+)$/.exec(actorData.hp.hd);
-      const singleHd = parts ? `1d${parts[1] || 0}` : "1d0";
-      rollParts = [singleHd];
-    } else {
-      const parts = /^\d+d(\d+)$/.exec(actorData.hp.hd);
-      const allHd = parts ? `${level}d${parts[1] || 0}` : `${level}d0`;
-      rollParts = [allHd];
+
+    // Parse the die size out of the HD formula (e.g. "3d8" -> 8). If the HD is
+    // malformed/empty, warn and bail rather than silently rolling a d0.
+    const parts = /^\d+d(\d+)$/.exec(actorData.hp.hd);
+    if (!parts) {
+      ui.notifications.warn(
+        game.i18n.format("OSE.warn.invalidHitDice", { hd: actorData.hp.hd ?? "" }) ||
+          `Cannot roll Hit Dice: invalid HD formula "${actorData.hp.hd ?? ""}".`
+      );
+      return;
     }
+    const dieSize = parts[1];
+
+    // Number of dice and the CON bonus scale with how many levels we're rolling.
+    const numDice = single ? 1 : level;
+    const conBonus = single ? actorData.scores.con.mod : actorData.scores.con.mod * level;
 
     // A character always gains at least 1 hit point per Hit Die,
-    // regardless of CON modifier.
-    rollParts = [
-      `max(${rollParts[0]} + ${single ? actorData.scores.con.mod : actorData.scores.con.mod * level}, ${single ? 1 : level})`,
-    ];
+    // regardless of CON modifier (so the floor is the number of dice rolled).
+    const rollParts = [`max(${numDice}d${dieSize} + ${conBonus}, ${numDice})`];
 
     const data = {
       actor: this,

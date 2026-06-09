@@ -359,31 +359,47 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
     containerData.system.itemIds = []; // Clear for now
     delete containerData._id; // Ensure new ID
 
-    // Create container
-    const [newContainer] = await this.actor.createEmbeddedDocuments("Item", [
-      containerData,
-    ]);
+    let newContainer;
+    let newContents;
+    try {
+      // Create container
+      [newContainer] = await this.actor.createEmbeddedDocuments("Item", [
+        containerData,
+      ]);
 
-    // Prepare contents
-    const contentData = contentItems.map((i) => {
-      const d = i.toObject();
-      d.system.containerId = newContainer.id;
-      delete d._id; // Ensure new ID
-      return d;
-    });
+      // Prepare contents
+      const contentData = contentItems.map((i) => {
+        const d = i.toObject();
+        d.system.containerId = newContainer.id;
+        delete d._id; // Ensure new ID
+        return d;
+      });
 
-    // Create contents
-    const newContents = await this.actor.createEmbeddedDocuments(
-      "Item",
-      contentData
-    );
+      // Create contents
+      newContents = await this.actor.createEmbeddedDocuments(
+        "Item",
+        contentData
+      );
 
-    // Update container with new IDs
-    await newContainer.update({
-      "system.itemIds": newContents.map((i) => i.id),
-    });
+      // Update container with new IDs
+      await newContainer.update({
+        "system.itemIds": newContents.map((i) => i.id),
+      });
+    } catch (err) {
+      // The copy onto the target actor failed partway through. Roll back any
+      // partial copy and leave the source untouched so nothing is lost.
+      if (newContainer) {
+        const cleanup = [newContainer.id, ...(newContents || []).map((i) => i.id)];
+        await this.actor.deleteEmbeddedDocuments("Item", cleanup).catch(() => {});
+      }
+      ui.notifications.error(
+        game.i18n.localize("OSE.error.containerMoveFailed") ||
+          "Failed to move the container; nothing was changed."
+      );
+      throw err;
+    }
 
-    // Handle Move (Delete Source)
+    // Handle Move (Delete Source) only after the copy fully succeeded.
     if (!event.ctrlKey) {
       // Delete source contents first
       await sourceActor.deleteEmbeddedDocuments("Item", contentIds);
@@ -435,7 +451,10 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
     // eslint-disable-next-line no-underscore-dangle
     if (targetIsContainer) {
       if (item.type === "container") {
-        return ui.notifications.warn("You cannot nest containers.");
+        return ui.notifications.warn(
+          game.i18n.localize("OSE.warn.noNestedContainers") ||
+            "You cannot nest containers."
+        );
       }
       const result = await this._onContainerItemAdd(item, targetItem);
       if (item.actor && item.actor.id !== this.actor.id && !event.ctrlKey) {

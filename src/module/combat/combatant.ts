@@ -12,7 +12,7 @@ export class OSECombatant extends Combatant {
   }
 
   set isCasting(value) {
-    this.setFlag(game.system.id, 'prepareSpell', value);
+    this.setFlag(game.system.id, "prepareSpell", value);
   }
 
   get isSlow() {
@@ -26,9 +26,12 @@ export class OSECombatant extends Combatant {
   }
 
   get isFast() {
-    return !this.isSlow
-        && !this.isDefeated
-        && (this.actor?.system?.config?.fastCombat || ['Halfling'].includes(this.actor?.system?.details?.class));
+    if (this.isSlow || this.isDefeated) return false;
+    if (this.actor?.system?.config?.fastCombat) return true;
+    // Auto-detect halflings (case-insensitive, tolerant of values like
+    // "Halfling (Thief)" or localized capitalization).
+    const actorClass = this.actor?.system?.details?.class;
+    return typeof actorClass === "string" && actorClass.toLowerCase().includes("halfling");
   }
 
   // ===========================================================================

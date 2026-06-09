@@ -18,7 +18,10 @@ export interface CharacterEncumbrance {
  * A class to handle character encumbrance.
  */
 export default class OseDataModelCharacterEncumbrance implements CharacterEncumbrance {
-  static baseEncumbranceCap = 2400; // Gygax75 specific change, DO NOT COMMIT TO main
+  // Gygax75 customization: BECMI / Rules Compendium encumbrance cap (2400) instead
+  // of the B/X default of 1600. Kept in sync with template.json and the tests.
+  static baseEncumbranceCap = 2400;
+
   // Default encumbrance steps used by the 'complete' and 'detailed' encumbrance variants
   static encumbranceSteps = {
     quarter: (1 / 4) * 100,

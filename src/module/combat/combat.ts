@@ -4,7 +4,7 @@
 import { OSE } from "../config";
 import { getRollMode } from "../helpers-message-mode";
 import OSECombatGroupSelector from "./combat-set-groups";
-import { OSECombatant } from "./combatant";
+import type { OSECombatant } from "./combatant";
 
 
 export const actionGroups = {
@@ -95,7 +95,7 @@ export class OSECombat extends foundry.documents.Combat {
       if (
         group.members.size === 0 ||
         (excludeAlreadyRolled && group.initiative !== null) ||
-        group.name.match("^slow|fast$")
+        ["slow", "fast"].includes(group.name)
       ) {
         continue;
       }
@@ -274,7 +274,7 @@ export class OSECombat extends foundry.documents.Combat {
       await this.assignGroup(combatant, key);
     }
 
-    return this.groups.sort((a, b) => {});
+    return this.groups;
   }
 
   /**
@@ -295,13 +295,11 @@ export class OSECombat extends foundry.documents.Combat {
 
     // If still tied, sort by group name if available
     if (a.group?.name && b.group?.name && a.group?.name !== b.group?.name) {
-      if (a.group?.name === "Fast" || b.group?.name === "Slow") {
-        return -1;
-      }
-
-      if (a.group?.name === "Slow" || b.group?.name === "Fast") {
-        return 1;
-      }
+      // Fast groups always sort first, slow groups always sort last.
+      // Use an explicit rank so the comparator stays transitive.
+      const groupRank = (name: string) => (name === "fast" ? -1 : name === "slow" ? 1 : 0);
+      const rankDiff = groupRank(a.group.name) - groupRank(b.group.name);
+      if (rankDiff !== 0) return rankDiff;
 
       const colorsKeys = Object.keys(OSECombat.GROUPS);
       const indexA = colorsKeys.indexOf(a.group.name);
@@ -350,10 +348,9 @@ export class OSECombat extends foundry.documents.Combat {
   }
 
   private static getInitiativeForCombatant(combatant: OSECombatant) {
-    return combatant.isFast
-      ? Infinity
-      : Number.isNaN(combatant.initiative)
-      ? -Infinity
-      : combatant.initiative;
+    if (combatant.isFast) return Number.POSITIVE_INFINITY;
+    // Foundry stores `initiative` as a string (or null when not yet rolled).
+    const init = Number(combatant.initiative);
+    return Number.isNaN(init) ? Number.NEGATIVE_INFINITY : init;
   }
 }

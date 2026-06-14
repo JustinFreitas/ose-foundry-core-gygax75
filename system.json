@@ -123,13 +123,19 @@
   "flags": {
     "allowBugReporter": true
   },
-  "hotReload": {
-    "extensions": [
-      "css"
-    ],
-    "paths": [
-      "dist/"
-    ]
+  "documentTypes": {
+    "Actor": {
+      "character": {},
+      "monster": {}
+    },
+    "Item": {
+      "item": {},
+      "weapon": {},
+      "armor": {},
+      "spell": {},
+      "ability": {},
+      "container": {}
+    }
   },
   "relationships": {}
 }

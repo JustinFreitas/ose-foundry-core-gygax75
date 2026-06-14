@@ -49,7 +49,7 @@ jobs:
       # Create a zip file with all files required by the module to add to the release
       - name: Create zip file
         # Remember to update the below line when there's a change in repository files/directories
-        run: zip -r ./system.zip system.json template.json dist/ assets/ LICENSE.OGL LICENSE.GPL LICENSE.OTHER.OSE_THIRD_PARTY_V1_5 AUTHORS
+        run: zip -r ./system.zip system.json dist/ assets/ LICENSE.OGL LICENSE.GPL LICENSE.OTHER.OSE_THIRD_PARTY_V1_5 AUTHORS
 
       # Create a release for this specific version
       - name: Update Release with Files

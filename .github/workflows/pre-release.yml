@@ -16,10 +16,10 @@ jobs:
     steps:
       # Standard required steps for a Node.js package
       - name: Checkout repository to add to workspace
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js version 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: 'npm'
@@ -36,16 +36,26 @@ jobs:
       # Doing it this way works for forks as well
       - name: Insert release-specific values in manifest file
         id: sub_manifest_link_version
-        uses: microsoft/variable-substitution@v1
-        with:
-          files: "system.json"
         env:
-          id: ose
-          title: "Old-School Essentials"
-          version: ${{github.ref_name}}
-          url: https://github.com/${{github.repository}}
-          manifest: https://github.com/${{github.repository}}/releases/download/${{github.ref_name}}/system.json
-          download: https://github.com/${{github.repository}}/releases/download/${{github.ref_name}}/system.zip
+          ID: ose
+          TITLE: "Old-School Essentials"
+          VERSION: ${{github.ref_name}}
+          URL: https://github.com/${{github.repository}}
+          MANIFEST: https://github.com/${{github.repository}}/releases/download/${{github.ref_name}}/system.json
+          DOWNLOAD: https://github.com/${{github.repository}}/releases/download/${{github.ref_name}}/system.zip
+        run: |
+          node -e '
+            const fs = require("fs");
+            const f = "system.json";
+            const m = JSON.parse(fs.readFileSync(f, "utf8"));
+            m.id = process.env.ID;
+            m.title = process.env.TITLE;
+            m.version = process.env.VERSION;
+            m.url = process.env.URL;
+            m.manifest = process.env.MANIFEST;
+            m.download = process.env.DOWNLOAD;
+            fs.writeFileSync(f, JSON.stringify(m, null, 2) + "\n");
+          '
 
       # Replace "ose-dev" with "ose" in all files inside the dist folder
       - name: Replace 'ose-dev' with 'ose' in dist folder

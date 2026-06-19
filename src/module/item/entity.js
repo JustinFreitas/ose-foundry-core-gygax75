@@ -536,7 +536,7 @@ export default class OseItem extends Item {
       if (!scene) return null;
       const tokenData = scene.getEmbeddedDocument("Token", tokenId);
       if (!tokenData) return null;
-      const token = new Token(tokenData);
+      const token = new foundry.canvas.placeables.Token(tokenData);
       return token.actor;
     }
 

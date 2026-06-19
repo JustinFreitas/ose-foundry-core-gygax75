@@ -8,7 +8,9 @@ name: Build and Release (Pre-Release)
 on:
   push:
     tags:
-      - '[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+'  # Pre-release tags
+      # Tag filters are globs, not regex (e.g. '\.' and '+' are literals here).
+      # Match any -rc.N pre-release tag, e.g. 2.2.2-rc.1.
+      - '*-rc.*'
 
 jobs:
   build:

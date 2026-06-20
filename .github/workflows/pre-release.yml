@@ -85,6 +85,7 @@ jobs:
           name: "Pre-Release ${{ github.ref_name }}"
           draft: false
           prerelease: true
+          make_latest: false
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
             ./system.json

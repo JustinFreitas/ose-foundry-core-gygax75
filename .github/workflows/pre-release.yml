@@ -80,13 +80,14 @@ jobs:
           echo "https://github.com/${{github.repository}}/releases/download/${{github.ref_name}}/system.json" >> release_notes.txt
 
       - name: Create GitHub pre-release
-        uses: ncipollo/release-action@v1
+        uses: softprops/action-gh-release@v3
         with:
-          allowUpdates: true
           name: "Pre-Release ${{ github.ref_name }}"
           draft: false
           prerelease: true
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: "./system.json, ./system.zip"
-          tag: ${{ github.ref_name }}
-          bodyfile: release_notes.txt
+          files: |
+            ./system.json
+            ./system.zip
+          tag_name: ${{ github.ref_name }}
+          body_path: release_notes.txt

@@ -64,13 +64,14 @@ jobs:
       # Create a release for this specific version
       - name: Update Release with Files
         id: create_version_release
-        uses: ncipollo/release-action@v1
+        uses: softprops/action-gh-release@v3
         with:
-          allowUpdates: true # Set this to false if you want to prevent updating existing releases
           name: ${{ github.event.release.name }}
           draft: false
           prerelease: false
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: "./system.json, ./system.zip"
-          tag: ${{ github.event.release.tag_name }}
+          files: |
+            ./system.json
+            ./system.zip
+          tag_name: ${{ github.event.release.tag_name }}
           body: ${{ github.event.release.body }}

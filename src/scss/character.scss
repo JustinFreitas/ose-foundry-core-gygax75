@@ -1,4 +1,4 @@
-@import "./variables.scss";
+@use "variables.scss";
 
 /* ----------------------------------------- */
 /*  Basic Structure                          */
@@ -16,7 +16,7 @@
     .xp-bonus {
       top: -15px;
       right: 3px;
-      color: $colorTan;
+      color: variables.$colorTan;
       font-size: 10px;
       position: absolute;
     }
@@ -30,13 +30,13 @@
         width: 140px;
         padding: 2px 5px;
         color: whitesmoke;
-        background: $colorDark;
+        background: variables.$colorDark;
       }
       &:hover .modifiers-btn {
         opacity: 1;
       }
       &:hover .profile-img {
-        box-shadow: 0 0 2px $colorDark;
+        box-shadow: 0 0 2px variables.$colorDark;
       }
     }
   }
@@ -187,8 +187,8 @@
   }
   .encumbrance {
     height: 12px;
-    background: $darkBackground;
-    border: 1px solid $colorDark;
+    background: variables.$darkBackground;
+    border: 1px solid variables.$colorDark;
     border-radius: 3px;
     position: relative;
 
@@ -211,7 +211,7 @@
       height: 0;
       border-left: 4px solid transparent;
       border-right: 4px solid transparent;
-      border-bottom: 4px solid $colorFaint;
+      border-bottom: 4px solid variables.$colorFaint;
     }
 
     .arrow-down {
@@ -220,15 +220,15 @@
       height: 0;
       border-left: 4px solid transparent;
       border-right: 4px solid transparent;
-      border-top: 4px solid $colorFaint;
+      border-top: 4px solid variables.$colorFaint;
     }
 
     &.encumbered {
       .arrow-up {
-        border-bottom: 4px solid $colorDark;
+        border-bottom: 4px solid variables.$colorDark;
       }
       .arrow-down {
-        border-top: 4px solid $colorDark;
+        border-top: 4px solid variables.$colorDark;
       }
     }
   }

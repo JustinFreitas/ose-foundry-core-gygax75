@@ -1,4 +1,4 @@
-@import "./variables.scss";
+@use "variables.scss";
 
 @keyframes notify {
   from {
@@ -17,17 +17,17 @@
   }
   ::-webkit-scrollbar-thumb {
     border-radius: 2px;
-    border: 1px solid $colorTan;
+    border: 1px solid variables.$colorTan;
   }
   ::-webkit-scrollbar-track {
     border-radius: 2px;
-    background: $colorDark;
+    background: variables.$colorDark;
   }
   .panel {
-    border: 1px solid $colorDark;
+    border: 1px solid variables.$colorDark;
     .panel-title {
       color: whitesmoke;
-      background: $darkBackground;
+      background: variables.$darkBackground;
       line-height: 12px;
       height: 20px;
       text-align: left;
@@ -80,13 +80,13 @@
       margin: 2px 0;
       padding: 0;
       line-height: 30px;
-      color: $colorOlive;
+      color: variables.$colorOlive;
       position: relative;
       label {
         line-height: 10px;
         position: absolute;
         font-size: 10px;
-        color: $colorOlive;
+        color: variables.$colorOlive;
         bottom: 0;
         left: 12px;
       }
@@ -122,7 +122,7 @@
       border-top-right-radius: 4px;
       border-top-left-radius: 80px;
       border-bottom: 1px solid rgba(0, 0, 0, 0.15);
-      box-shadow: 0 0 6px 1px $colorDark;
+      box-shadow: 0 0 6px 1px variables.$colorDark;
       font-size: var(--font-size-12);
       filter: brightness(0.9);
       &.active {
@@ -146,14 +146,14 @@
       justify-content: space-evenly;
       .attribute {
         position: relative;
-        border: 1px solid $colorTan;
-        box-shadow: 0 0 2px $colorTan;
+        border: 1px solid variables.$colorTan;
+        box-shadow: 0 0 2px variables.$colorTan;
         .attribute-name {
           color: whitesmoke;
           padding: 2px;
           margin: 0;
-          border: 1px solid $colorDark;
-          background: $darkBackground;
+          border: 1px solid variables.$colorDark;
+          background: variables.$darkBackground;
           text-align: center;
         }
         &.ability-score {
@@ -214,12 +214,12 @@
       .item-category-title {
         text-align: center;
         padding: 4px 0;
-        border: 1px solid $colorDark;
-        box-shadow: 0 0 5px $colorDark;
+        border: 1px solid variables.$colorDark;
+        box-shadow: 0 0 5px variables.$colorDark;
         line-height: 1.2;
         font-weight: 300;
         font-size: var(--font-size-13);
-        background: $darkBackground;
+        background: variables.$darkBackground;
         color: white;
         cursor: pointer;
         input {
@@ -255,7 +255,7 @@
           font-size: var(--font-size-13);
           padding: 0 4px;
           line-height: 1.2;
-          border-bottom: 1px solid $colorTan;
+          border-bottom: 1px solid variables.$colorTan;
           div > p {
             padding: 0.5em 0;
             margin: 0;
@@ -269,14 +269,14 @@
             flex-wrap: wrap;
             .tag {
               margin: 1px 2px;
-              border: 1px solid $colorFaint;
+              border: 1px solid variables.$colorFaint;
               font-size: var(--font-size-11);
               line-height: 1.4;
-              background: $colorOlive;
+              background: variables.$colorOlive;
               padding: 1px 4px;
               color: whitesmoke;
               border-radius: 3px;
-              box-shadow: 0 0 1px $colorFaint;
+              box-shadow: 0 0 1px variables.$colorFaint;
             }
           }
         }
@@ -306,7 +306,7 @@
           }
         }
         .item-entry {
-          box-shadow: inset 1px 0 0 0 $colorTan;
+          box-shadow: inset 1px 0 0 0 variables.$colorTan;
           line-height: 1.9rem;
           &:nth-child(even) {
             .item-header {
@@ -336,7 +336,7 @@
           label {
             flex: 0 30px;
             font-size: 11px;
-            color: $colorDark;
+            color: variables.$colorDark;
             text-indent: 3px;
           }
           .full-mark,
@@ -344,14 +344,14 @@
             cursor: pointer;
             flex: 0 8px;
             margin: 1px;
-            box-shadow: inset 0 0 2px $colorTan;
+            box-shadow: inset 0 0 2px variables.$colorTan;
             &:hover {
-              background: $colorTan;
+              background: variables.$colorTan;
             }
           }
           .full-mark {
-            background: $colorOlive;
-            border: 1px inset $colorTan;
+            background: variables.$colorOlive;
+            border: 1px inset variables.$colorTan;
           }
         }
       }
@@ -417,9 +417,9 @@
           color: rgba(0, 0, 0, 0.2);
         }
         a:hover {
-          color: $colorCrimson;
-          text-shadow: 0 0 5px $colorFaint, 1px 0 5px $colorFaint,
-            0 1px 5px $colorFaint, 1px 1px 5px $colorFaint;
+          color: variables.$colorCrimson;
+          text-shadow: 0 0 5px variables.$colorFaint, 1px 0 5px variables.$colorFaint,
+            0 1px 5px variables.$colorFaint, 1px 1px 5px variables.$colorFaint;
         }
       }
       &.spells {

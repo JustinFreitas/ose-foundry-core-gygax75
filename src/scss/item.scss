@@ -1,3 +1,5 @@
+@use "variables";
+
 .ose.sheet.item {
   .sheet-header {
     .header-col {
@@ -28,17 +30,17 @@
       display: flex;
       flex-wrap: wrap;
       .tag {
-        background: $colorOlive;
+        background: variables.$colorOlive;
         border-radius: 5px;
         color: whitesmoke;
         padding: 1px 5px;
         height: 18px;
-        box-shadow: 0 0 3px $colorFaint;
+        box-shadow: 0 0 3px variables.$colorFaint;
         margin: 0 2px;
         i {
           font-size: 8px;
           vertical-align: top;
-          color: $colorFaint;
+          color: variables.$colorFaint;
         }
       }
     }
@@ -64,7 +66,7 @@
           &.range {
             .sep {
               flex: 0 0 1px;
-              background: $colorTan;
+              background: variables.$colorTan;
               margin: 4px 0;
             }
           }
@@ -74,10 +76,10 @@
           padding: 2px;
           font-size: var(--font-size-15);
           a {
-            color: $colorInactive;
+            color: variables.$colorInactive;
             &.active,
             :hover {
-              color: $colorDark;
+              color: variables.$colorDark;
             }
           }
         }

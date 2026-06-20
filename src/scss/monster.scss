@@ -1,3 +1,5 @@
+@use "variables";
+
 .ose.actor.monster {
   min-height: 565px;
   min-width: 460px;
@@ -19,7 +21,7 @@
           position: absolute;
           font-size: var(--font-size-12);
           &:hover {
-            color: $colorDark;
+            color: variables.$colorDark;
           }
         }
       }
@@ -63,7 +65,7 @@
         position: absolute;
         right: 5px;
         top: 5px;
-        color: $colorFaint;
+        color: variables.$colorFaint;
         &:hover {
           color: white;
         }
@@ -76,7 +78,7 @@
       padding: 0;
       text-align: center;
       label {
-        color: $colorTan;
+        color: variables.$colorTan;
         font-size: 10px;
       }
     }

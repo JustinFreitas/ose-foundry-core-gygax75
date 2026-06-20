@@ -1,3 +1,5 @@
+@use "variables";
+
 .ose.roll-dialog {
   .roll-details {
     font-weight: bold;
@@ -39,7 +41,7 @@
     flex: 0 0 65px;
     padding: 5px;
     margin-left: 4px;
-    border-left: 1px solid $colorTan;
+    border-left: 1px solid variables.$colorTan;
 
     .form-group {
       .form-fields {
@@ -107,12 +109,12 @@
     .share-tag {
       flex: 0 35px;
       text-align: center;
-      border: 1px solid $colorFaint;
-      background: $colorOlive;
+      border: 1px solid variables.$colorFaint;
+      background: variables.$colorOlive;
       font-size: var(--font-size-10);
       color: whitesmoke;
       border-radius: 3px;
-      box-shadow: 0 0 1px $colorFaint;
+      box-shadow: 0 0 1px variables.$colorFaint;
       padding: 1px 4px;
     }
   }
@@ -140,7 +142,7 @@
 
   .header {
     color: whitesmoke;
-    background: $darkBackground;
+    background: variables.$darkBackground;
     padding: 4px 0;
     line-height: 20px;
     text-align: left;
@@ -174,7 +176,7 @@
     p {
       text-align: center;
       width: 90%;
-      color: $colorTan;
+      color: variables.$colorTan;
     }
   }
 
@@ -185,8 +187,8 @@
     padding: 0;
 
     .actor {
-      border-bottom: 1px solid $colorTan;
-      border-top: 1px solid $colorTan;
+      border-bottom: 1px solid variables.$colorTan;
+      border-top: 1px solid variables.$colorTan;
 
       .fas {
         padding: 0 2px;
@@ -236,10 +238,10 @@
             width: 14px;
             line-height: 13px;
             margin: 0 1px;
-            border: 1px solid $colorOlive;
+            border: 1px solid variables.$colorOlive;
             padding: 2px;
-            background: $colorFaint;
-            box-shadow: inset 0 0px 3px $colorTan;
+            background: variables.$colorFaint;
+            box-shadow: inset 0 0px 3px variables.$colorTan;
           }
         }
       }
@@ -341,7 +343,7 @@
   .chat-header {
     height: 46px;
     margin: 4px 0;
-    background: $darkBackground;
+    background: variables.$darkBackground;
     border: 1px solid black;
     border-radius: 3px;
     color: white;
@@ -444,7 +446,7 @@
       flex: 1;
       margin: 0;
       line-height: 36px;
-      color: $colorOlive;
+      color: variables.$colorOlive;
 
       &:hover {
         color: #111;
@@ -498,15 +500,15 @@
             display: flex;
             flex-wrap: wrap;
             .tag {
-              background: $colorOlive;
+              background: variables.$colorOlive;
               border-radius: 5px;
               color: whitesmoke;
               padding: 1px 5px;
-              box-shadow: 0 0 3px $colorFaint;
+              box-shadow: 0 0 3px variables.$colorFaint;
               margin: 0 2px;
               i {
                 font-size: 8px;
-                color: $colorFaint;
+                color: variables.$colorFaint;
               }
             }
           }
@@ -574,7 +576,7 @@
       display: block;
       line-height: 28px;
       text-align: center;
-      border: 1px solid $colorTan;
+      border: 1px solid variables.$colorTan;
     }
 
     button {
@@ -644,11 +646,11 @@
       margin: 1px;
       font-size: var(--font-size-10);
       line-height: 12px;
-      background: $colorOlive;
+      background: variables.$colorOlive;
       padding: 1px 3px;
       color: whitesmoke;
       border-radius: 3px;
-      box-shadow: 0 0 1px $colorFaint;
+      box-shadow: 0 0 1px variables.$colorFaint;
     }
   }
 }
@@ -673,7 +675,7 @@
         margin: 0 1px;
         font-size: var(--font-size-10);
         line-height: 12px;
-        background: $colorOlive;
+        background: variables.$colorOlive;
         padding: 1px 3px;
         color: whitesmoke;
         border-radius: 3px;

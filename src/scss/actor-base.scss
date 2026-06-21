@@ -430,6 +430,37 @@
           flex: 0 0 2.7rem;
         }
       }
+      &.effects {
+        .item-controls {
+          flex: 0 0 4rem;
+        }
+        .effect-source {
+          flex: 1 1 auto;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          text-align: right;
+          padding-right: 6px;
+          font-size: var(--font-size-12);
+          font-style: italic;
+          line-height: 1.9rem;
+          color: variables.$colorTan;
+        }
+        .effect-control {
+          .fa-toggle-on {
+            color: variables.$colorCrimson;
+          }
+          .fa-toggle-off {
+            color: variables.$colorInactive;
+          }
+        }
+        .item-entry[data-effect-type="inactive"] {
+          .item-name,
+          .item-image {
+            opacity: 0.5;
+          }
+        }
+      }
       #context-menu {
         width: fit-content;
       }

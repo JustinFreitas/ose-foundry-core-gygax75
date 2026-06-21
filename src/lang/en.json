@@ -180,6 +180,15 @@
   "OSE.category.languages": "Languages",
   "OSE.category.description": "Description",
   "OSE.category.equipment": "Equipment",
+  "OSE.category.effects": "Effects",
+
+  "OSE.effect.temporary": "Temporary Effects",
+  "OSE.effect.passive": "Passive Effects",
+  "OSE.effect.inactive": "Inactive Effects",
+  "OSE.effect.fromItems": "Granted by Items",
+  "OSE.effect.new": "New Effect",
+  "OSE.effect.toggle": "Toggle Effect",
+  "OSE.effect.source": "Open Source Item",
 
   "OSE.Setting.Initiative": "Initiative",
   "OSE.Setting.InitiativeHint": "Grouped or individual initiative.",

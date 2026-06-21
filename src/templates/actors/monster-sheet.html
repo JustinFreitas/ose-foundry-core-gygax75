@@ -17,6 +17,9 @@
       {{/if}} {{#if system.spells.enabled}}
       <a class="item" data-tab="spells"> {{localize "OSE.category.spells"}} </a>
       {{/if}}
+      <a class="item" data-tab="effects">
+        {{localize "OSE.category.effects"}}
+      </a>
     {{/if}}
     <a class="item" data-tab="notes"> {{localize "OSE.category.notes"}} </a>
   </nav>
@@ -35,6 +38,9 @@
       {{> (path "/templates/actors/partials/character-spells-tab.html") }}
     </div>
     {{/if}}
+    <div class="tab" data-group="primary" data-tab="effects">
+      {{> (path "/templates/actors/partials/effects-tab.html") }}
+    </div>
     <div class="tab" data-group="primary" data-tab="notes">
       <div class="inventory">
         <div class="item-category-title">{{localize "OSE.category.notes"}}</div>

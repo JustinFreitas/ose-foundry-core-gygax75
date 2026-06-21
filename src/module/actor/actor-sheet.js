@@ -40,7 +40,99 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
       OSE.encumbrance?.templateEncumbranceBar ||
       `${OSE.systemPath()}/templates/actors/partials/character-encumbrance.html`;
 
+    // Active Effects, grouped for the Effects tab
+    data.effects = this._prepareActiveEffectCategories();
+
     return data;
+  }
+
+  /**
+   * Group the actor's own Active Effects into temporary / passive / inactive
+   * buckets for display on the Effects tab.
+   *
+   * @returns {object} Categories keyed by type, each with a label and effects array.
+   * @protected
+   */
+  _prepareActiveEffectCategories() {
+    const categories = {
+      temporary: {
+        type: "temporary",
+        label: "OSE.effect.temporary",
+        effects: [],
+      },
+      passive: {
+        type: "passive",
+        label: "OSE.effect.passive",
+        effects: [],
+      },
+      inactive: {
+        type: "inactive",
+        label: "OSE.effect.inactive",
+        effects: [],
+      },
+    };
+
+    for (const effect of this.actor.effects) {
+      if (effect.disabled) categories.inactive.effects.push(effect);
+      else if (effect.isTemporary) categories.temporary.effects.push(effect);
+      else categories.passive.effects.push(effect);
+    }
+
+    // Read-only group: effects granted by the actor's items (transferred).
+    const fromItems = [];
+    for (const item of this.actor.items) {
+      for (const effect of item.effects) {
+        if (effect.transfer !== false) fromItems.push(effect);
+      }
+    }
+    if (fromItems.length > 0) {
+      categories.managed = {
+        type: "managed",
+        label: "OSE.effect.fromItems",
+        effects: fromItems,
+        readonly: true,
+      };
+    }
+
+    return categories;
+  }
+
+  /**
+   * Handle create/edit/delete/toggle actions from the Effects tab controls.
+   *
+   * @param {Event} event - The originating click event.
+   * @returns {Promise|null}
+   * @protected
+   */
+  async _onManageActiveEffect(event) {
+    event.preventDefault();
+    const a = event.currentTarget;
+    const li = a.closest("li");
+    const effect = li?.dataset.effectId
+      ? this.actor.effects.get(li.dataset.effectId)
+      : null;
+
+    switch (a.dataset.action) {
+      case "create": {
+        const created = await this.actor.createEmbeddedDocuments("ActiveEffect", [
+          {
+            name: game.i18n.localize("OSE.effect.new"),
+            img: "icons/svg/aura.svg",
+            origin: this.actor.uuid,
+            disabled: a.dataset.effectType === "inactive",
+          },
+        ]);
+        return created[0]?.sheet.render(true);
+      }
+      case "edit":
+        return effect?.sheet.render(true);
+      case "delete":
+        return effect?.delete();
+      case "toggle":
+        return effect?.update({ disabled: !effect.disabled });
+      default:
+        return null;
+    }
   }
 
   activateEditor(name, options, initialContent) {
@@ -716,6 +808,18 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
 
     // Everything below here is only needed if the sheet is editable
     if (!this.options.editable) return;
+
+    // Active Effects
+    html.find(".effect-control").click((event) => {
+      this._onManageActiveEffect(event);
+    });
+
+    // Open the source item for a read-only (item-granted) effect
+    html.find(".effect-source-link").click((event) => {
+      const li = event.currentTarget.closest("li");
+      const item = this.actor.items.get(li?.dataset.itemId);
+      item?.sheet.render(true);
+    });
 
     // Item Management
     html.find(".item-create").click((event) => {

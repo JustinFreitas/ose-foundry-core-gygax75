@@ -839,6 +839,43 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       expect(game.messages?.size).equal(1);
       await actor.delete();
     });
+
+    it("If missile attack, damage.mod.missile is added to the damage roll", async () => {
+      // Ensure the dice roll is a 10 to make sure the attack is successful so
+      // damage is actually rolled and rendered.
+      const existingRandomFunction = CONFIG.Dice.randomUniform;
+      CONFIG.Dice.randomUniform = () => rollSpecificNumber(10, 20);
+
+      const actor = (await createMockActor("character")) as OseActor;
+      await actor.update({ system: { damage: { mod: { missile: 2 } } } });
+      expect(game.messages?.size).equal(0);
+      await actor.rollAttack({ roll: {} }, { type: "missile", skipDialog: true });
+      await waitForInput();
+      expect(game.messages?.size).equal(1);
+      expect(game.messages?.contents[0].content).contain(game.i18n.localize("OSE.messages.InflictsDamage"));
+      expect(game.messages?.contents[0].content).contain("1d6 + 2");
+      await actor.delete();
+
+      CONFIG.Dice.randomUniform = existingRandomFunction;
+    });
+
+    it("If missile attack without the lever, damage gets no bonus (dex mod stays out of damage)", async () => {
+      const existingRandomFunction = CONFIG.Dice.randomUniform;
+      CONFIG.Dice.randomUniform = () => rollSpecificNumber(10, 20);
+
+      const actor = (await createMockActor("character")) as OseActor;
+      expect(game.messages?.size).equal(0);
+      await actor.rollAttack({ roll: {} }, { type: "missile", skipDialog: true });
+      await waitForInput();
+      expect(game.messages?.size).equal(1);
+      // Plain weapon damage only — no +/- from dex.mod or any missile damage mod.
+      expect(game.messages?.contents[0].content).contain("1d6");
+      expect(game.messages?.contents[0].content).not.contain("1d6 +");
+      expect(game.messages?.contents[0].content).not.contain("1d6 -");
+      await actor.delete();
+
+      CONFIG.Dice.randomUniform = existingRandomFunction;
+    });
   });
 
   describe("applyDamage(amount, multiplier)", () => {

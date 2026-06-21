@@ -613,8 +613,13 @@ export default class OseActor extends Actor {
 
     dmgParts.push(...removeFalsyElements(attackMods));
 
-    // Add missile mod to attack roll only (missile attacks don't get bonus damage)
-    if (options.type === "missile") attackMods = [data.scores.dex.mod, data.thac0.mod.missile];
+    // Missile: dex.mod + thac0.mod.missile go to the attack roll only (RAW: missile
+    // attacks get no inherent bonus damage). An explicit damage.mod.missile lever
+    // (e.g. from Bless) does add to missile damage.
+    if (options.type === "missile") {
+      attackMods = [data.scores.dex.mod, data.thac0.mod.missile];
+      if (data.damage?.mod?.missile) dmgParts.push(data.damage.mod.missile);
+    }
 
     // Add weapon bonus to attack roll only (already added to dmgParts)
     if (attData.item) attackMods.push(attData.item?.system?.bonus);

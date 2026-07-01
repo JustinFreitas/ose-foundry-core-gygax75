@@ -336,12 +336,43 @@ export default class OsePartySheet extends FormApplication {
     }).render(true);
   }
 
+  async _clearParty(event) {
+    event.preventDefault();
+    if (OseParty.currentParty.length === 0) {
+      ui.notifications.info(game.i18n.localize("OSE.dialog.party.warnAlreadyEmpty"));
+      return;
+    }
+
+    foundry.applications.api.DialogV2.confirm({
+      window: {
+        title: game.i18n.localize("OSE.dialog.party.clearTitle"),
+      },
+      content: `<p>${game.i18n.format("OSE.dialog.party.confirmClear", { count: OseParty.currentParty.length })}</p>`,
+      yes: {
+        callback: async () => {
+          const updates = OseParty.currentParty.map((actor) => ({
+            _id: actor.id,
+            [`flags.${game.system.id}.party`]: false,
+            [`flags.${game.system.id}.-=marchingOrder`]: null,
+          }));
+          if (updates.length > 0) {
+            await Actor.updateDocuments(updates);
+          }
+          ui.notifications.info(game.i18n.localize("OSE.dialog.party.infoCleared"));
+          this.render(true);
+        },
+      },
+      defaultYes: false,
+    });
+  }
+
   /** @override */
   activateListeners(html) {
     super.activateListeners(html);
 
     html.find(".header #deal-xp").click(this._dealXP.bind(this));
     html.find(".header #save-party").click(this._saveParty.bind(this));
+    html.find(".header #clear-party").click(this._clearParty.bind(this));
     html.find(".header #load-party").change(this._loadParty.bind(this));
     html.find(".header #delete-party").click(this._deleteParty.bind(this));
 

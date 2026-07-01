@@ -180,6 +180,8 @@
 
       select {
         flex: 1;
+        min-width: 0;
+        max-width: 90px;
         height: 20px;
         font-size: var(--font-size-11);
         background: rgba(255, 255, 240, 0.8);

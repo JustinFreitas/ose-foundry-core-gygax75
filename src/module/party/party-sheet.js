@@ -81,6 +81,25 @@ export default class OsePartySheet extends FormApplication {
     await actor.setFlag(game.system.id, "party", false);
   }
 
+  /**
+   * Prune actor IDs that no longer resolve to an existing actor from all saved parties.
+   *
+   * @param {string} deletedActorId
+   */
+  static async _pruneDeletedActorFromSavedParties(deletedActorId) {
+    const savedParties = { ...game.settings.get(game.system.id, "savedParties") };
+    let changed = false;
+    for (const [name, actorIds] of Object.entries(savedParties)) {
+      if (actorIds.includes(deletedActorId)) {
+        savedParties[name] = actorIds.filter((id) => id !== deletedActorId);
+        changed = true;
+      }
+    }
+    if (changed) {
+      await game.settings.set(game.system.id, "savedParties", savedParties);
+    }
+  }
+
   /* ---------------------- */
   /* --Drag&Drop Behavior-- */
   /* ---------------------- */
@@ -155,6 +174,8 @@ export default class OsePartySheet extends FormApplication {
 
   async _saveParty(event) {
     event.preventDefault();
+    if (!game.user.isGM) return;
+
     const currentPartyIds = OseParty.currentParty.map((actor) => actor.id);
     if (currentPartyIds.length === 0) {
       ui.notifications.warn(game.i18n.localize("OSE.dialog.party.warnEmpty"));
@@ -189,16 +210,21 @@ export default class OsePartySheet extends FormApplication {
               return false;
             }
             const clearAfterSave = !!formData.clearAfterSave;
-            const savedParties = { ...game.settings.get(game.system.id, "savedParties") };
             if (["__proto__", "constructor", "prototype"].includes(name)) {
               ui.notifications.error(game.i18n.localize("OSE.dialog.party.warnInvalidName"));
               return false;
             }
 
+            const existingParties = game.settings.get(game.system.id, "savedParties") || {};
+
             const doSave = async () => {
+              // Re-fetch immediately before writing to keep the read-modify-write window as small as possible.
+              const savedParties = { ...(game.settings.get(game.system.id, "savedParties") || {}) };
               savedParties[name] = currentPartyIds;
               await game.settings.set(game.system.id, "savedParties", savedParties);
-              ui.notifications.info(game.i18n.format("OSE.dialog.party.infoSaved", { name }));
+              ui.notifications.info(
+                game.i18n.format("OSE.dialog.party.infoSaved", { name: foundry.utils.escapeHTML(name) })
+              );
 
               if (clearAfterSave) {
                 const updates = OseParty.currentParty.map((actor) => ({
@@ -215,12 +241,14 @@ export default class OsePartySheet extends FormApplication {
               this.render(true);
             };
 
-            if (savedParties[name]) {
+            if (existingParties[name]) {
               const confirm = await foundry.applications.api.DialogV2.confirm({
                 window: {
                   title: game.i18n.localize("OSE.dialog.party.overwriteTitle"),
                 },
-                content: `<p>${game.i18n.format("OSE.dialog.party.confirmOverwrite", { name })}</p>`,
+                content: `<p>${game.i18n.format("OSE.dialog.party.confirmOverwrite", {
+                  name: foundry.utils.escapeHTML(name),
+                })}</p>`,
               });
               if (!confirm) return false;
             }
@@ -237,6 +265,8 @@ export default class OsePartySheet extends FormApplication {
   }
 
   async _loadParty(event) {
+    if (!game.user.isGM) return;
+
     const name = event.currentTarget.value;
     if (!name) return;
 
@@ -247,32 +277,40 @@ export default class OsePartySheet extends FormApplication {
     // Reset dropdown value immediately so it shows "Load Party..." again
     event.currentTarget.value = "";
 
-    const updates = game.actors.reduce((acc, actor) => {
+    const changes = game.actors.reduce((acc, actor) => {
       if (actor.type !== "character") return acc;
       const inParty = partyActorIds.includes(actor.id);
       const isCurrentlyInParty = actor.getFlag(game.system.id, "party") === true;
       if (inParty !== isCurrentlyInParty) {
-        acc.push({
-          _id: actor.id,
-          [`flags.${game.system.id}.party`]: inParty,
-        });
+        acc.push(inParty ? this._addActorToParty(actor) : this._removeActorFromParty(actor));
       }
       return acc;
     }, []);
 
-    if (updates.length > 0) {
-      await Actor.updateDocuments(updates);
+    if (changes.length > 0) {
+      await Promise.all(changes);
     }
 
-    ui.notifications.info(game.i18n.format("OSE.dialog.party.infoLoaded", { name }));
+    ui.notifications.info(game.i18n.format("OSE.dialog.party.infoLoaded", { name: foundry.utils.escapeHTML(name) }));
     this.render(true);
   }
 
   async _deleteParty(event) {
     event.preventDefault();
-    const savedParties = { ...game.settings.get(game.system.id, "savedParties") };
+    if (!game.user.isGM) return;
+
+    const savedParties = game.settings.get(game.system.id, "savedParties") || {};
     const partyNames = Object.keys(savedParties);
     if (partyNames.length === 0) return;
+
+    const doDelete = async (name) => {
+      // Re-fetch immediately before writing to keep the read-modify-write window as small as possible.
+      const latestSavedParties = { ...(game.settings.get(game.system.id, "savedParties") || {}) };
+      delete latestSavedParties[name];
+      await game.settings.set(game.system.id, "savedParties", latestSavedParties);
+      ui.notifications.info(game.i18n.format("OSE.dialog.party.infoDeleted", { name: foundry.utils.escapeHTML(name) }));
+      this.render(true);
+    };
 
     if (partyNames.length === 1) {
       const name = partyNames[0];
@@ -280,14 +318,11 @@ export default class OsePartySheet extends FormApplication {
         window: {
           title: game.i18n.localize("OSE.dialog.party.deleteTitle"),
         },
-        content: `<p>${game.i18n.format("OSE.dialog.party.confirmDelete", { name })}</p>`,
+        content: `<p>${game.i18n.format("OSE.dialog.party.confirmDelete", {
+          name: foundry.utils.escapeHTML(name),
+        })}</p>`,
         yes: {
-          callback: async () => {
-            delete savedParties[name];
-            await game.settings.set(game.system.id, "savedParties", savedParties);
-            ui.notifications.info(game.i18n.format("OSE.dialog.party.infoDeleted", { name }));
-            this.render(true);
-          },
+          callback: () => doDelete(name),
         },
         defaultYes: false,
       });
@@ -296,7 +331,8 @@ export default class OsePartySheet extends FormApplication {
 
     let optionsHtml = "";
     for (const name of partyNames) {
-      optionsHtml += `<option value="${name}">${name}</option>`;
+      const escapedName = foundry.utils.escapeHTML(name);
+      optionsHtml += `<option value="${escapedName}">${escapedName}</option>`;
     }
 
     new foundry.applications.api.DialogV2({
@@ -320,11 +356,7 @@ export default class OsePartySheet extends FormApplication {
             const formData = new foundry.applications.ux.FormDataExtended(button.form).object;
             const name = formData.partyToDelete;
             if (!name) return;
-
-            delete savedParties[name];
-            await game.settings.set(game.system.id, "savedParties", savedParties);
-            ui.notifications.info(game.i18n.format("OSE.dialog.party.infoDeleted", { name }));
-            this.render(true);
+            await doDelete(name);
           },
         },
         {
@@ -338,6 +370,7 @@ export default class OsePartySheet extends FormApplication {
 
   async _clearParty(event) {
     event.preventDefault();
+    if (!game.user.isGM) return;
     if (OseParty.currentParty.length === 0) {
       ui.notifications.info(game.i18n.localize("OSE.dialog.party.warnAlreadyEmpty"));
       return;

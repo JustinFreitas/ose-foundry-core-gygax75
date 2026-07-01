@@ -186,6 +186,7 @@ export default class OsePartySheet extends FormApplication {
       window: {
         title: game.i18n.localize("OSE.dialog.party.saveTitle"),
       },
+      classes: ["ose", "dialog", "party-config"],
       content: `
         <div class="form-group">
           <label>${game.i18n.localize("OSE.dialog.party.nameLabel")}</label>
@@ -339,6 +340,7 @@ export default class OsePartySheet extends FormApplication {
       window: {
         title: game.i18n.localize("OSE.dialog.party.deleteTitle"),
       },
+      classes: ["ose", "dialog", "party-config"],
       content: `
         <div class="form-group">
           <label>${game.i18n.localize("OSE.dialog.party.deleteSelectLabel")}</label>

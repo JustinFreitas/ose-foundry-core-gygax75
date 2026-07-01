@@ -127,6 +127,19 @@
   }
 }
 
+.ose.dialog.party-config {
+  .form-group {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+
+    label {
+      white-space: nowrap;
+      flex: 0 0 auto;
+    }
+  }
+}
+
 .ose.dialog.party-sheet {
   min-width: 250px;
   min-height: 250px;

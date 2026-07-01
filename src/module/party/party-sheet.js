@@ -183,7 +183,6 @@ export default class OsePartySheet extends FormApplication {
     }
 
     new foundry.applications.api.DialogV2({
-      classes: ["ose", "dialog"],
       position: { width: 400, height: "auto" },
       window: {
         title: game.i18n.localize("OSE.dialog.party.saveTitle"),

@@ -170,6 +170,10 @@ export default class OsePartySheet extends FormApplication {
           <label>${game.i18n.localize("OSE.dialog.party.nameLabel")}</label>
           <input type="text" name="partyName" placeholder="e.g. Delving Group" autofocus />
         </div>
+        <div class="form-group">
+          <label>${game.i18n.localize("OSE.dialog.party.clearLabel")}</label>
+          <input type="checkbox" name="clearAfterSave" />
+        </div>
       `,
       buttons: [
         {
@@ -184,6 +188,7 @@ export default class OsePartySheet extends FormApplication {
               ui.notifications.warn(game.i18n.localize("OSE.dialog.party.warnNoName"));
               return false;
             }
+            const clearAfterSave = !!formData.clearAfterSave;
             const savedParties = { ...game.settings.get(game.system.id, "savedParties") };
             if (["__proto__", "constructor", "prototype"].includes(name)) {
               ui.notifications.error(game.i18n.localize("OSE.dialog.party.warnInvalidName"));
@@ -194,6 +199,19 @@ export default class OsePartySheet extends FormApplication {
               savedParties[name] = currentPartyIds;
               await game.settings.set(game.system.id, "savedParties", savedParties);
               ui.notifications.info(game.i18n.format("OSE.dialog.party.infoSaved", { name }));
+
+              if (clearAfterSave) {
+                const updates = OseParty.currentParty.map((actor) => ({
+                  _id: actor.id,
+                  [`flags.${game.system.id}.party`]: false,
+                  [`flags.${game.system.id}.-=marchingOrder`]: null,
+                }));
+                if (updates.length > 0) {
+                  await Actor.updateDocuments(updates);
+                }
+                ui.notifications.info(game.i18n.localize("OSE.dialog.party.infoCleared"));
+              }
+
               this.render(true);
             };
 

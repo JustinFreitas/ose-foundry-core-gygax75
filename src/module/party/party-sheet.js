@@ -192,9 +192,9 @@ export default class OsePartySheet extends FormApplication {
           <label>${game.i18n.localize("OSE.dialog.party.nameLabel")}</label>
           <input type="text" name="partyName" placeholder="e.g. Delving Group" autofocus />
         </div>
-        <div class="form-group">
-          <label>${game.i18n.localize("OSE.dialog.party.clearLabel")}</label>
-          <input type="checkbox" name="clearAfterSave" />
+        <div class="form-group checkbox">
+          <input type="checkbox" name="clearAfterSave" id="clear-after-save" />
+          <label for="clear-after-save">${game.i18n.localize("OSE.dialog.party.clearLabel")}</label>
         </div>
       `,
       buttons: [

@@ -137,6 +137,19 @@
       white-space: nowrap;
       flex: 0 0 auto;
     }
+
+    &.checkbox {
+      flex-direction: row;
+      align-items: center;
+
+      input[type="checkbox"] {
+        flex: 0 0 auto;
+      }
+
+      label {
+        white-space: normal;
+      }
+    }
   }
 }
 

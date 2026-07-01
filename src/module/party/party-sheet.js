@@ -183,6 +183,8 @@ export default class OsePartySheet extends FormApplication {
     }
 
     new foundry.applications.api.DialogV2({
+      classes: ["ose", "dialog"],
+      position: { width: 400, height: "auto" },
       window: {
         title: game.i18n.localize("OSE.dialog.party.saveTitle"),
       },
@@ -244,6 +246,8 @@ export default class OsePartySheet extends FormApplication {
 
             if (existingParties[name]) {
               const confirm = await foundry.applications.api.DialogV2.confirm({
+      classes: ["ose", "dialog"],
+      position: { width: 400, height: "auto" },
                 window: {
                   title: game.i18n.localize("OSE.dialog.party.overwriteTitle"),
                 },
@@ -316,6 +320,8 @@ export default class OsePartySheet extends FormApplication {
     if (partyNames.length === 1) {
       const name = partyNames[0];
       foundry.applications.api.DialogV2.confirm({
+      classes: ["ose", "dialog"],
+      position: { width: 400, height: "auto" },
         window: {
           title: game.i18n.localize("OSE.dialog.party.deleteTitle"),
         },
@@ -337,6 +343,8 @@ export default class OsePartySheet extends FormApplication {
     }
 
     new foundry.applications.api.DialogV2({
+      classes: ["ose", "dialog"],
+      position: { width: 400, height: "auto" },
       window: {
         title: game.i18n.localize("OSE.dialog.party.deleteTitle"),
       },
@@ -379,6 +387,8 @@ export default class OsePartySheet extends FormApplication {
     }
 
     foundry.applications.api.DialogV2.confirm({
+      classes: ["ose", "dialog"],
+      position: { width: 400, height: "auto" },
       window: {
         title: game.i18n.localize("OSE.dialog.party.clearTitle"),
       },

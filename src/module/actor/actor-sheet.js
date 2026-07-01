@@ -212,9 +212,11 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
 
   async _promptRemoveItemFromActor(item) {
     return foundry.applications.api.DialogV2.confirm({
+      classes: ["ose", "dialog"],
       window: {
         title: game.i18n.localize("OSE.dialog.deleteItem"),
       },
+      position: { width: 400, height: "auto" },
       content: game.i18n.format("OSE.dialog.confirmDeleteItem", {
         name: item.name,
       }),
@@ -625,7 +627,9 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
     // Create Dialog window
     return new Promise((resolve) => {
       new foundry.applications.api.DialogV2({
+      classes: ["ose", "dialog"],
         window: { title: game.i18n.localize("OSE.dialog.createItem") },
+      position: { width: 400, height: "auto" },
         content: dlg,
         buttons: [
           {

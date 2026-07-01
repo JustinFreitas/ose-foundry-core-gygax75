@@ -93,6 +93,7 @@ export default class OseActorSheetMonster extends OseActorSheet {
     );
     // Create Dialog window
     return new foundry.applications.api.DialogV2({
+      classes: ["ose", "dialog"],
       window: { title: game.i18n.localize("OSE.dialog.generateSaves") },
       position: {
         width: 250,

@@ -1,6 +1,35 @@
 <form autocomplete="off" id="party-sheet">
   <div class="actor header flexrow item-controls">
+    {{#if user.isGM}}
+    <div id="party-controls" class="flexrow">
+      <button
+        id="save-party"
+        class="item-control"
+        type="button"
+        title="{{localize 'OSE.dialog.party.save'}}"
+      >
+        <i class="fas fa-save"></i>
+      </button>
+      <select id="load-party" class="item-control">
+        <option value="">{{localize 'OSE.dialog.party.load'}}</option>
+        {{#each savedParties as |ids name|}}
+        <option value="{{name}}">{{name}}</option>
+        {{/each}}
+      </select>
+      {{#if hasSavedParties}}
+      <button
+        id="delete-party"
+        class="item-control"
+        type="button"
+        title="{{localize 'OSE.dialog.party.delete'}}"
+      >
+        <i class="fas fa-trash"></i>
+      </button>
+      {{/if}}
+    </div>
+    {{else}}
     <div id="empty"></div>
+    {{/if}}
     {{#if user.isGM}}
     <button
       id="deal-xp"

@@ -128,6 +128,11 @@ const registerSettings = () => {
     scope: "world",
     type: Boolean,
   });
+  game.settings.register(game.system.id, "savedParties", {
+    default: {},
+    scope: "world",
+    type: Object,
+  });
 };
 
 declare global {
@@ -143,6 +148,7 @@ declare global {
       "ose.languages": string;
       "ose.applyDamageOption": ApplyDamageOption;
       "ose.ignoreAttackBonusOnDamageRoll": boolean;
+      "ose.savedParties": Record<string, string[]>;
     }
   }
 }

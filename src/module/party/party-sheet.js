@@ -56,9 +56,12 @@ export default class OsePartySheet extends FormApplication {
     const settings = {
       ascending: game.settings.get(game.system.id, "ascendingAC"),
     };
+    const savedParties = game.settings.get(game.system.id, "savedParties") || {};
 
     return {
       partyActors: OseParty.currentParty,
+      savedParties,
+      hasSavedParties: Object.keys(savedParties).length > 0,
       // data: this.object,
       config: CONFIG.OSE,
       user: game.user,
@@ -150,11 +153,179 @@ export default class OsePartySheet extends FormApplication {
     new OsePartyXP(this.object, {}).render(true);
   }
 
+  async _saveParty(event) {
+    event.preventDefault();
+    const currentPartyIds = OseParty.currentParty.map((actor) => actor.id);
+    if (currentPartyIds.length === 0) {
+      ui.notifications.warn(game.i18n.localize("OSE.dialog.party.warnEmpty"));
+      return;
+    }
+
+    new foundry.applications.api.DialogV2({
+      window: {
+        title: game.i18n.localize("OSE.dialog.party.saveTitle"),
+      },
+      content: `
+        <div class="form-group">
+          <label>${game.i18n.localize("OSE.dialog.party.nameLabel")}</label>
+          <input type="text" name="partyName" placeholder="e.g. Delving Group" autofocus />
+        </div>
+      `,
+      buttons: [
+        {
+          action: "save",
+          label: game.i18n.localize("OSE.dialog.party.saveButton"),
+          icon: "fas fa-save",
+          default: true,
+          callback: async (event, button) => {
+            const formData = new foundry.applications.ux.FormDataExtended(button.form).object;
+            const name = formData.partyName?.trim();
+            if (!name) {
+              ui.notifications.warn(game.i18n.localize("OSE.dialog.party.warnNoName"));
+              return false;
+            }
+            const savedParties = { ...game.settings.get(game.system.id, "savedParties") };
+            if (["__proto__", "constructor", "prototype"].includes(name)) {
+              ui.notifications.error(game.i18n.localize("OSE.dialog.party.warnInvalidName"));
+              return false;
+            }
+
+            const doSave = async () => {
+              savedParties[name] = currentPartyIds;
+              await game.settings.set(game.system.id, "savedParties", savedParties);
+              ui.notifications.info(game.i18n.format("OSE.dialog.party.infoSaved", { name }));
+              this.render(true);
+            };
+
+            if (savedParties[name]) {
+              const confirm = await foundry.applications.api.DialogV2.confirm({
+                window: {
+                  title: game.i18n.localize("OSE.dialog.party.overwriteTitle"),
+                },
+                content: `<p>${game.i18n.format("OSE.dialog.party.confirmOverwrite", { name })}</p>`,
+              });
+              if (!confirm) return false;
+            }
+            await doSave();
+          },
+        },
+        {
+          action: "cancel",
+          label: game.i18n.localize("OSE.Cancel"),
+          icon: "fas fa-times",
+        },
+      ],
+    }).render(true);
+  }
+
+  async _loadParty(event) {
+    const name = event.currentTarget.value;
+    if (!name) return;
+
+    const savedParties = game.settings.get(game.system.id, "savedParties") || {};
+    const partyActorIds = savedParties[name];
+    if (!partyActorIds) return;
+
+    // Reset dropdown value immediately so it shows "Load Party..." again
+    event.currentTarget.value = "";
+
+    const updates = game.actors.reduce((acc, actor) => {
+      if (actor.type !== "character") return acc;
+      const inParty = partyActorIds.includes(actor.id);
+      const isCurrentlyInParty = actor.getFlag(game.system.id, "party") === true;
+      if (inParty !== isCurrentlyInParty) {
+        acc.push({
+          _id: actor.id,
+          [`flags.${game.system.id}.party`]: inParty,
+        });
+      }
+      return acc;
+    }, []);
+
+    if (updates.length > 0) {
+      await Actor.updateDocuments(updates);
+    }
+
+    ui.notifications.info(game.i18n.format("OSE.dialog.party.infoLoaded", { name }));
+    this.render(true);
+  }
+
+  async _deleteParty(event) {
+    event.preventDefault();
+    const savedParties = { ...game.settings.get(game.system.id, "savedParties") };
+    const partyNames = Object.keys(savedParties);
+    if (partyNames.length === 0) return;
+
+    if (partyNames.length === 1) {
+      const name = partyNames[0];
+      foundry.applications.api.DialogV2.confirm({
+        window: {
+          title: game.i18n.localize("OSE.dialog.party.deleteTitle"),
+        },
+        content: `<p>${game.i18n.format("OSE.dialog.party.confirmDelete", { name })}</p>`,
+        yes: {
+          callback: async () => {
+            delete savedParties[name];
+            await game.settings.set(game.system.id, "savedParties", savedParties);
+            ui.notifications.info(game.i18n.format("OSE.dialog.party.infoDeleted", { name }));
+            this.render(true);
+          },
+        },
+        defaultYes: false,
+      });
+      return;
+    }
+
+    let optionsHtml = "";
+    for (const name of partyNames) {
+      optionsHtml += `<option value="${name}">${name}</option>`;
+    }
+
+    new foundry.applications.api.DialogV2({
+      window: {
+        title: game.i18n.localize("OSE.dialog.party.deleteTitle"),
+      },
+      content: `
+        <div class="form-group">
+          <label>${game.i18n.localize("OSE.dialog.party.deleteSelectLabel")}</label>
+          <select name="partyToDelete">
+            ${optionsHtml}
+          </select>
+        </div>
+      `,
+      buttons: [
+        {
+          action: "delete",
+          label: game.i18n.localize("OSE.Delete"),
+          icon: "fas fa-trash",
+          callback: async (event, button) => {
+            const formData = new foundry.applications.ux.FormDataExtended(button.form).object;
+            const name = formData.partyToDelete;
+            if (!name) return;
+
+            delete savedParties[name];
+            await game.settings.set(game.system.id, "savedParties", savedParties);
+            ui.notifications.info(game.i18n.format("OSE.dialog.party.infoDeleted", { name }));
+            this.render(true);
+          },
+        },
+        {
+          action: "cancel",
+          label: game.i18n.localize("OSE.Cancel"),
+          icon: "fas fa-times",
+        },
+      ],
+    }).render(true);
+  }
+
   /** @override */
   activateListeners(html) {
     super.activateListeners(html);
 
     html.find(".header #deal-xp").click(this._dealXP.bind(this));
+    html.find(".header #save-party").click(this._saveParty.bind(this));
+    html.find(".header #load-party").change(this._loadParty.bind(this));
+    html.find(".header #delete-party").click(this._deleteParty.bind(this));
 
     // Actor buttons
     const getActor = (event) => {

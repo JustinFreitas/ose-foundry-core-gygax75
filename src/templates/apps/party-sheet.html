@@ -3,37 +3,13 @@
     {{#if user.isGM}}
     <div id="party-controls" class="flexrow">
       <button
-        id="save-party"
+        id="manage-parties"
         class="item-control"
         type="button"
-        title="{{localize 'OSE.dialog.party.save'}}"
+        title="{{localize 'OSE.dialog.party.manage'}}"
       >
-        <i class="fas fa-save"></i>
+        <i class="fas fa-users-gear"></i>
       </button>
-      <button
-        id="clear-party"
-        class="item-control"
-        type="button"
-        title="{{localize 'OSE.dialog.party.clear'}}"
-      >
-        <i class="fas fa-broom"></i>
-      </button>
-      <select id="load-party" class="item-control">
-        <option value="">{{localize 'OSE.dialog.party.load'}}</option>
-        {{#each savedParties as |ids name|}}
-        <option value="{{name}}">{{name}}</option>
-        {{/each}}
-      </select>
-      {{#if hasSavedParties}}
-      <button
-        id="delete-party"
-        class="item-control"
-        type="button"
-        title="{{localize 'OSE.dialog.party.delete'}}"
-      >
-        <i class="fas fa-trash"></i>
-      </button>
-      {{/if}}
     </div>
     {{else}}
     <div id="empty"></div>

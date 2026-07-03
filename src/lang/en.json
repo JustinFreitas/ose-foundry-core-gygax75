@@ -43,6 +43,7 @@
   "OSE.dialog.party.manageTitle": "Manage Party",
   "OSE.dialog.party.loadSelectLabel": "Select Party to Load:",
   "OSE.dialog.party.loadButton": "Load",
+  "OSE.dialog.party.clearButton": "Clear",
   "OSE.dialog.party.infoLoaded": "Loaded party configuration \"{name}\".",
   "OSE.dialog.hitDice.title": "Roll HD to Chat",
   "OSE.dialog.hitDice.prompt": "Choose to roll a single level worth of hit dice to the chat or roll all levels of hit dice to the chat.",

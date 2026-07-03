@@ -421,9 +421,9 @@ const OseDice = {
     // Create Dialog window
     return new Promise((resolve) => {
       new foundry.applications.api.DialogV2({
-      classes: ["ose", "dialog"],
+        classes: ["ose", "dialog"],
         window: { title: title || "" },
-      position: { width: 400, height: "auto" },
+        position: { width: 400, height: "auto" },
         content: html,
         buttons,
         default: "ok",
@@ -496,9 +496,9 @@ const OseDice = {
     // Create Dialog window
     return new Promise((resolve) => {
       new foundry.applications.api.DialogV2({
-      classes: ["ose", "dialog"],
+        classes: ["ose", "dialog"],
         window: { title: title || "" },
-      position: { width: 400, height: "auto" },
+        position: { width: 400, height: "auto" },
         content: html,
         buttons,
         submit: () => {

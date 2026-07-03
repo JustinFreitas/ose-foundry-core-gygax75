@@ -81,8 +81,18 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
     // Read-only group: effects granted by the actor's items (transferred).
     const fromItems = [];
     for (const item of this.actor.items) {
+      const suppressed = Object.hasOwn(item.system, "equipped") ? !item.system.equipped : false;
       for (const effect of item.effects) {
-        if (effect.transfer !== false) fromItems.push(effect);
+        if (effect.transfer !== false) {
+          fromItems.push({
+            id: effect.id,
+            name: effect.name,
+            img: effect.img,
+            itemId: item.id,
+            itemName: item.name,
+            suppressed,
+          });
+        }
       }
     }
     if (fromItems.length > 0) {
@@ -114,12 +124,14 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
 
     switch (a.dataset.action) {
       case "create": {
+        const isTemporary = a.dataset.effectType === "temporary";
         const created = await this.actor.createEmbeddedDocuments("ActiveEffect", [
           {
             name: game.i18n.localize("OSE.effect.new"),
             img: "icons/svg/aura.svg",
             origin: this.actor.uuid,
             disabled: a.dataset.effectType === "inactive",
+            duration: isTemporary ? { rounds: 1 } : {},
           },
         ]);
         return created[0]?.sheet.render(true);
@@ -195,7 +207,8 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
   _toggleItemSummary(event) {
     event.preventDefault();
     const item = event.currentTarget.closest(".item-entry.item");
-    const itemSummary = item.querySelector(".item-summary");
+    const itemSummary = item?.querySelector(".item-summary");
+    if (!itemSummary) return;
     if (itemSummary.classList.contains("expanded")) {
       this._expanded.delete(item.dataset.itemId);
     } else {
@@ -390,18 +403,20 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
       }
     }
 
+    // Active Effect
+    if (li.dataset.effectId) {
+      const effect = this.actor.effects.get(li.dataset.effectId);
+      dragData = effect.toDragData();
+      dragData.type = "ActiveEffect";
+    }
+
+    if (!dragData) return;
+
     // Create drag data
     dragData.actorId = this.actor.id;
     dragData.sceneId = this.actor.isToken ? canvas.scene?.id : null;
     dragData.tokenId = this.actor.isToken ? this.actor.token.id : null;
     dragData.pack = this.actor.pack;
-
-    // Active Effect
-    if (li.dataset.effectId) {
-      const effect = this.actor.effects.get(li.dataset.effectId);
-      dragData.type = "ActiveEffect";
-      dragData.data = effect.data;
-    }
 
     // Set data transfer
     event.dataTransfer.setData(
@@ -627,9 +642,9 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
     // Create Dialog window
     return new Promise((resolve) => {
       new foundry.applications.api.DialogV2({
-      classes: ["ose", "dialog"],
+        classes: ["ose", "dialog"],
         window: { title: game.i18n.localize("OSE.dialog.createItem") },
-      position: { width: 400, height: "auto" },
+        position: { width: 400, height: "auto" },
         content: dlg,
         buttons: [
           {

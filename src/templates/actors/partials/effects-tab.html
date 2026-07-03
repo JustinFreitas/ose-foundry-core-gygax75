@@ -6,7 +6,7 @@
     {{#unless category.readonly}}
     <div class="item-controls">
       <a
-        class="item-control effect-control item-create"
+        class="item-control effect-control"
         data-action="create"
         data-effect-type="{{category.type}}"
         title="{{localize 'OSE.Add'}}"
@@ -19,15 +19,22 @@
   <ol class="item-list">
     {{#each category.effects as |effect|}}
     {{#if category.readonly}}
-    <li class="item-entry item" data-item-id="{{effect.parent.id}}">
+    <li
+      class="item-entry"
+      data-item-id="{{effect.itemId}}"
+      data-effect-suppressed="{{effect.suppressed}}"
+    >
       <div class="item-header flexrow">
         <div
           class="item-image"
           style="background-image: url({{effect.img}})"
         ></div>
         <h4 class="item-name" title="{{effect.name}}">{{effect.name}}</h4>
-        <div class="effect-source" title="{{effect.parent.name}}">
-          {{effect.parent.name}}
+        <div class="effect-source" title="{{effect.itemName}}">
+          {{effect.itemName}}
+          {{#if effect.suppressed}}
+          <span title="{{localize 'OSE.effect.suppressedHint'}}">({{localize 'OSE.effect.unequipped'}})</span>
+          {{/if}}
         </div>
         {{#if @root.owner}}
         <div class="item-controls">

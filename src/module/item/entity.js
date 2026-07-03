@@ -111,9 +111,9 @@ export default class OseItem extends Item {
     if (itemData.missile && itemData.melee && !isNPC) {
       // Dialog
       new foundry.applications.api.DialogV2({
-      classes: ["ose", "dialog"],
+        classes: ["ose", "dialog"],
         window: { title: "Choose Attack Range" },
-      position: { width: 400, height: "auto" },
+        position: { width: 400, height: "auto" },
         content: "",
         buttons: [
           {

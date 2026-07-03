@@ -454,7 +454,8 @@
             color: variables.$colorInactive;
           }
         }
-        .item-entry[data-effect-type="inactive"] {
+        .item-entry[data-effect-type="inactive"],
+        .item-entry[data-effect-suppressed="true"] {
           .item-name,
           .item-image {
             opacity: 0.5;

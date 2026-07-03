@@ -415,34 +415,36 @@ export default class OseActor extends Actor {
     }
 
     // Gygax75 - Roll character HD from single/all dialog.
-    const formHtml = [];
-    formHtml.push('<form>');
-    formHtml.push('<p>Choose to roll a single level worth of hit dice to the chat or roll all levels of hit dice to the chat.</p>');
-    formHtml.push('</form>');
-
-    new Dialog({
-        title: "Roll HD to Chat",
-        content: formHtml.join('\n'),
-        buttons: {
-            single: {
-                label: "Single Level",
-                callback: (html) => {
-                    options['hdRollType'] = 'single';
-                    this.selectSingleOrAllHitDiceRoll(options);
-                }
-            },
-            all: {
-                label: "All Levels",
-                callback: (html) => {
-                    options['hdRollType'] = 'all';
-                    this.selectSingleOrAllHitDiceRoll(options);
-                }
-            },
-            close: {
-                label: "Close"
-            }
+    new foundry.applications.api.DialogV2({
+      classes: ["ose", "dialog"],
+      position: { width: 400, height: "auto" },
+      window: {
+        title: game.i18n.localize("OSE.dialog.hitDice.title"),
+      },
+      content: `<form><p>${game.i18n.localize("OSE.dialog.hitDice.prompt")}</p></form>`,
+      buttons: [
+        {
+          action: "single",
+          label: game.i18n.localize("OSE.dialog.hitDice.single"),
+          callback: () => {
+            options.hdRollType = "single";
+            this.selectSingleOrAllHitDiceRoll(options);
+          },
         },
-        default: "close"
+        {
+          action: "all",
+          label: game.i18n.localize("OSE.dialog.hitDice.all"),
+          callback: () => {
+            options.hdRollType = "all";
+            this.selectSingleOrAllHitDiceRoll(options);
+          },
+        },
+        {
+          action: "close",
+          label: game.i18n.localize("OSE.Close"),
+          default: true,
+        },
+      ],
     }).render(true);
   }
 

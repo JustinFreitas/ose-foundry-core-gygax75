@@ -64,4 +64,79 @@ describe("Offline Actor Entity Hit Dice tests", () => {
       warnSpy.mockRestore();
     }
   });
+
+  describe("rollAttack", () => {
+    it("handles missile attacks and applies gygax75 damage.mod.missile bonus damage", async () => {
+      let rollOptions: { parts: string[]; data: { roll: { dmg: string[] } } } | null = null;
+      const originalRoll = OseDice.Roll;
+      OseDice.Roll = (async (options: { parts: string[]; data: { roll: { dmg: string[] } } }) => {
+        rollOptions = options;
+        return null;
+      }) as unknown as typeof OseDice.Roll;
+
+      const actor = new OseActor({
+        id: "actor-1",
+        system: {
+          scores: {
+            str: { mod: 0 },
+            dex: { mod: 0 },
+          },
+          thac0: {
+            value: 19,
+            mod: {
+              melee: 0,
+              missile: 0,
+            },
+          },
+          damage: {
+            mod: {
+              missile: 2, // gygax75 custom missile damage modifier
+            },
+          },
+        },
+      } as unknown as Actor);
+
+      const attData = {
+        item: {
+          _id: "weapon-1",
+          name: "Shortbow",
+          system: {
+            damage: "1d6",
+            bonus: 0,
+          },
+        },
+        roll: {
+          save: "",
+          target: "",
+        },
+      };
+
+      const settingsSpy = vi.spyOn(game.settings, "get").mockImplementation((_scope, key) => {
+        if (key === "ignoreAttackBonusOnDamageRoll") return false;
+        if (key === "ascendingAC") return false;
+        return false;
+      });
+
+      try {
+        // 1. Test Melee Attack (should not apply missile damage modifier)
+        await actor.rollAttack(attData as unknown as Parameters<typeof actor.rollAttack>[0], { type: "melee" });
+        expect(rollOptions).not.toBeNull();
+        if (rollOptions) {
+          expect(rollOptions.data.roll.dmg).toContain("1d6");
+          expect(rollOptions.data.roll.dmg).not.toContain(2); // no missile mod
+        }
+
+        // 2. Test Missile Attack (should apply gygax75 damage.mod.missile to damage roll)
+        await actor.rollAttack(attData as unknown as Parameters<typeof actor.rollAttack>[0], { type: "missile" });
+        expect(rollOptions).not.toBeNull();
+        if (rollOptions) {
+          expect(rollOptions.data.roll.dmg).toContain("1d6");
+          expect(rollOptions.data.roll.dmg).toContain(2); // gygax75 damage.mod.missile applied!
+        }
+      } finally {
+        OseDice.Roll = originalRoll;
+        settingsSpy.mockRestore();
+      }
+    });
+  });
 });

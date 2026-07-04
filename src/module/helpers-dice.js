@@ -350,7 +350,6 @@ const OseDice = {
     title = null,
     chatMessage = true,
   } = {}) {
-    let rolled = false;
     const template = `${OSE.systemPath()}/templates/chat/roll-dialog.html`;
     const dialogData = {
       formula: parts.join(" "),
@@ -371,17 +370,14 @@ const OseDice = {
       return OseDice.sendRoll(rollData);
     }
 
-    let roll;
-
     const buttons = [
       {
         action: "ok",
         label: game.i18n.localize("OSE.Roll"),
         icon: "fas fa-dice-d20",
         callback: (_event, button) => {
-          rolled = true;
           rollData.form = button.form;
-          roll = OseDice.sendRoll(rollData);
+          return OseDice.sendRoll(rollData);
         },
       },
       {
@@ -389,11 +385,10 @@ const OseDice = {
         label: game.i18n.localize("OSE.saves.magic.short"),
         icon: "fas fa-magic",
         callback: (_event, button) => {
-          rolled = true;
           rollData.form = button.form;
           rollData.parts.push(`${rollData.data.roll.magic}`);
           rollData.title += ` ${game.i18n.localize("OSE.saves.magic.short")} (${rollData.data.roll.magic})`;
-          roll = OseDice.sendRoll(rollData);
+          return OseDice.sendRoll(rollData);
         },
       },
       {
@@ -401,37 +396,33 @@ const OseDice = {
         label: game.i18n.localize("OSE.saves.poison.short"),
         icon: "fas fa-skull",
         callback: (event, button) => {
-          rolled = true;
           rollData.form = button.form;
           rollData.parts.push(`${rollData.data.roll.poison}`);
           rollData.title += ` ${game.i18n.localize("OSE.saves.poison.short")} (${rollData.data.roll.poison})`;
-          roll = OseDice.sendRoll(rollData);
+          return OseDice.sendRoll(rollData);
         },
       },
       {
         action: "cancel",
         icon: "fas fa-times",
         label: game.i18n.localize("OSE.Cancel"),
-        callback: () => {},
+        callback: () => false,
       },
     ];
 
     const html = await foundry.applications.handlebars.renderTemplate(template, dialogData);
 
-    // Create Dialog window
-    return new Promise((resolve) => {
-      new foundry.applications.api.DialogV2({
-        classes: ["ose", "dialog"],
-        window: { title: title || "" },
-        position: { width: 400, height: "auto" },
-        content: html,
-        buttons,
-        default: "ok",
-        submit: () => {
-          resolve(rolled ? roll : false);
-        },
-      }).render(true);
+    // Create Dialog window and wait for resolution
+    const result = await foundry.applications.api.DialogV2.wait({
+      classes: ["ose", "dialog"],
+      window: { title: title || "" },
+      position: { width: 400, height: "auto" },
+      content: html,
+      buttons,
+      default: "ok",
+      rejectClose: false,
     });
+    return result || false;
   },
 
   async Roll({
@@ -444,7 +435,6 @@ const OseDice = {
     chatMessage = true,
     flags = {},
   } = {}) {
-    let rolled = false;
     const template = `${OSE.systemPath()}/templates/chat/roll-dialog.html`;
     const dialogData = {
       formula: parts.join(" "),
@@ -467,17 +457,14 @@ const OseDice = {
         : OseDice.sendRoll(rollData);
     }
 
-    let roll;
-
     const buttons = [
       {
         action: "ok",
         label: game.i18n.localize("OSE.Roll"),
         icon: "fas fa-dice-d20",
         callback: (_event, button) => {
-          rolled = true;
           rollData.form = button.form;
-          roll = ["melee", "missile", "attack"].includes(data.roll.type)
+          return ["melee", "missile", "attack"].includes(data.roll.type)
             ? OseDice.sendAttackRoll(rollData)
             : OseDice.sendRoll(rollData);
         },
@@ -487,25 +474,22 @@ const OseDice = {
         action: "cancel",
         icon: "fas fa-times",
         label: game.i18n.localize("OSE.Cancel"),
-        callback: () => {},
+        callback: () => false,
       },
     ];
 
     const html = await foundry.applications.handlebars.renderTemplate(template, dialogData);
 
-    // Create Dialog window
-    return new Promise((resolve) => {
-      new foundry.applications.api.DialogV2({
-        classes: ["ose", "dialog"],
-        window: { title: title || "" },
-        position: { width: 400, height: "auto" },
-        content: html,
-        buttons,
-        submit: () => {
-          resolve(rolled ? roll : false);
-        },
-      }).render(true);
+    // Create Dialog window and wait for resolution
+    const result = await foundry.applications.api.DialogV2.wait({
+      classes: ["ose", "dialog"],
+      window: { title: title || "" },
+      position: { width: 400, height: "auto" },
+      content: html,
+      buttons,
+      rejectClose: false,
     });
+    return result || false;
   },
 };
 

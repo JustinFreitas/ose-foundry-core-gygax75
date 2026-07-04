@@ -173,13 +173,14 @@ export class OSECombat extends foundry.documents.Combat {
     return this;
   }
 
-  /**
-   * Reset the actions of all combatants in the combat.
-   */
   async resetActions() {
-    for (const combatant of this.combatants) {
-      await combatant.setFlag(game.system.id, "prepareSpell", false);
-      await combatant.setFlag(game.system.id, "moveInCombat", false);
+    const updates = this.combatants.map((c) => ({
+      _id: c.id,
+      [`flags.${game.system.id}.prepareSpell`]: false,
+      [`flags.${game.system.id}.moveInCombat`]: false,
+    }));
+    if (updates.length > 0) {
+      await this.updateEmbeddedDocuments("Combatant", updates);
     }
   }
 

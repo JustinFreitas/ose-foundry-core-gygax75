@@ -67,21 +67,20 @@ export const augmentTable = (table, html) => {
   });
 };
 
-/**
- *
- * @param table
- * @param data
- */
-async function drawTreasure(table, data) {
-  const percent = async (chance) => {
-    const roll = new Roll("1d100");
-    await roll.evaluate();
-    return roll.total <= chance;
+async function drawTreasure(table, data, visited = new Set()) {
+  if (visited.has(table.uuid)) {
+    console.warn(`Circular dependency detected on RollTable "${table.name}" (${table.uuid})`);
+    return data;
+  }
+  visited.add(table.uuid);
+
+  const percent = (chance) => {
+    return (Math.floor(Math.random() * 100) + 1) <= chance;
   };
   data.treasure = {};
   if (table.getFlag(game.system.id, "treasure")) {
     for (const r of table.results) {
-      if (await percent(r.weight)) {
+      if (percent(r.weight)) {
         const text = await r.getHTML();
         data.treasure[r.id] = {
           img: r.img,
@@ -91,7 +90,7 @@ async function drawTreasure(table, data) {
         const documentCollection = parsedUuid?.collection?.metadata?.id ?? parsedUuid?.documentType ?? "";
         if (r.type === CONST.TABLE_RESULT_TYPES.DOCUMENT && documentCollection === "RollTable") {
           const embeddedTable = await fromUuid(r.documentUuid);
-          await drawTreasure(embeddedTable, data.treasure[r.id]);
+          await drawTreasure(embeddedTable, data.treasure[r.id], visited);
         }
       }
     }

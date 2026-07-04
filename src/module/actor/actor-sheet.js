@@ -267,7 +267,7 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
     }
 
     // eslint-disable-next-line no-underscore-dangle
-    this.actor.deleteEmbeddedDocuments("Item", [item._id]);
+    await this.actor.deleteEmbeddedDocuments("Item", [item._id]);
   }
 
   /**
@@ -639,31 +639,30 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
       `${OSE.systemPath()}/templates/items/entity-create.html`,
       templateData,
     );
-    // Create Dialog window
-    return new Promise((resolve) => {
-      new foundry.applications.api.DialogV2({
-        classes: ["ose", "dialog"],
-        window: { title: game.i18n.localize("OSE.dialog.createItem") },
-        position: { width: 400, height: "auto" },
-        content: dlg,
-        buttons: [
-          {
-            action: "ok",
-            label: game.i18n.localize("OSE.Ok"),
-            icon: "fas fa-check",
-            default: true,
-            callback: (_event, button, _html) => {
-              resolve(new foundry.applications.ux.FormDataExtended(button.form).object);
-            },
+    // Create Dialog window and wait for resolution
+    return foundry.applications.api.DialogV2.wait({
+      classes: ["ose", "dialog"],
+      window: { title: game.i18n.localize("OSE.dialog.createItem") },
+      position: { width: 400, height: "auto" },
+      content: dlg,
+      buttons: [
+        {
+          action: "ok",
+          label: game.i18n.localize("OSE.Ok"),
+          icon: "fas fa-check",
+          default: true,
+          callback: (_event, button) => {
+            return new foundry.applications.ux.FormDataExtended(button.form).object;
           },
-          {
-            action: "cancel",
-            icon: "fas fa-times",
-            label: game.i18n.localize("OSE.Cancel"),
-            callback: () => { },
-          },
-        ],
-      }).render(true);
+        },
+        {
+          action: "cancel",
+          icon: "fas fa-times",
+          label: game.i18n.localize("OSE.Cancel"),
+          callback: () => null,
+        },
+      ],
+      rejectClose: false,
     });
   }
 
@@ -681,6 +680,7 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
     if (type === "choice") {
       const choices = header.dataset.choices.split(",");
       this._chooseItemType(choices).then((dialogInput) => {
+        if (!dialogInput || !dialogInput.type) return;
         const itemData = createItem(dialogInput.type, dialogInput.name);
         this.actor.createEmbeddedDocuments("Item", [itemData], {});
       });

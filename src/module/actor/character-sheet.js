@@ -104,47 +104,50 @@ export default class OseActorSheetCharacter extends OseActorSheet {
       templateData,
     );
     // Create Dialog window
-    return new Promise((resolve) => {
-      new foundry.applications.api.DialogV2({
-        classes: ["ose", "dialog"],
-        window: { title: "" },
-        position: { width: 400, height: "auto" },
-        content: dlg,
-        buttons: [
-          {
-            action: "ok",
-            label: game.i18n.localize("OSE.Ok"),
-            icon: "fas fa-check",
-            default: true,
-            callback: (_event, button, _html) => {
-              resolve(new foundry.applications.ux.FormDataExtended(button.form).object);
-            },
+    return foundry.applications.api.DialogV2.wait({
+      classes: ["ose", "dialog"],
+      window: { title: "" },
+      position: { width: 400, height: "auto" },
+      content: dlg,
+      buttons: [
+        {
+          action: "ok",
+          label: game.i18n.localize("OSE.Ok"),
+          icon: "fas fa-check",
+          default: true,
+          callback: (_event, button, _html) => {
+            return new foundry.applications.ux.FormDataExtended(button.form).object;
           },
-          {
-            action: "cancel",
-            icon: "fas fa-times",
-            label: game.i18n.localize("OSE.Cancel"),
-            callback: () => {},
-          },
-        ],
-      }).render(true);
+        },
+        {
+          action: "cancel",
+          icon: "fas fa-times",
+          label: game.i18n.localize("OSE.Cancel"),
+          callback: () => null,
+        },
+      ],
+      rejectClose: false,
     });
   }
 
   _pushLang(table) {
     const data = this.actor.system;
-    let update = data[table]; // V10 compatibility
+    const update = data[table]; // V10 compatibility
     this._chooseLang().then((dialogInput) => {
+      if (!dialogInput || dialogInput.choice === undefined) return;
       const name = CONFIG.OSE.languages[dialogInput.choice];
-      if (update.value) {
-        update.value.push(name);
-      } else {
-        update = { value: [name] };
+      const currentValues = Array.isArray(update?.value) ? [...update.value] : [];
+      if (!currentValues.includes(name)) {
+        currentValues.push(name);
       }
 
-      const newData = {};
-      newData[table] = update;
-      return this.actor.update({ system: newData });
+      return this.actor.update({
+        system: {
+          [table]: {
+            value: currentValues,
+          },
+        },
+      });
     });
   }
 

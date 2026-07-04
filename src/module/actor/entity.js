@@ -349,7 +349,7 @@ export default class OseActor extends Actor {
 
     // Parse the die size out of the HD formula (e.g. "3d8" -> 8). If the HD is
     // malformed/empty, warn and bail rather than silently rolling a d0.
-    const parts = /^\d+d(\d+)$/.exec(actorData.hp.hd);
+    const parts = /^\d+d(\d+)/.exec(actorData.hp.hd);
     if (!parts) {
       ui.notifications.warn(
         game.i18n.format("OSE.warn.invalidHitDice", { hd: actorData.hp.hd ?? "" }) ||

@@ -24,6 +24,7 @@ import {
 // eslint-disable-next-line import/no-cycle
 import OseItem from "../../item/entity";
 import OseActor from "../entity";
+import OseDice from "../../helpers-dice";
 
 export const key = "ose.actor.entity";
 export const options = {
@@ -958,6 +959,34 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       await actor.applyDamage(4, -3);
       expect(actor.system.hp.value).equal(10);
       await actor.delete();
+    });
+  });
+
+  describe("selectSingleOrAllHitDiceRoll(options)", () => {
+    it("selectSingleOrAllHitDiceRoll parses standard and modified HD formulas correctly", async () => {
+      const actor = (await createMockActor("character")) as OseActor;
+      
+      const originalRoll = OseDice.Roll;
+      let rolledParts: string[] = [];
+      OseDice.Roll = async (options: any) => {
+        rolledParts = options.parts;
+        return null;
+      };
+
+      try {
+        // Standard formula
+        await actor.update({ system: { hp: { hd: "1d8" }, details: { level: 2 }, scores: { con: { mod: 2 } } } });
+        actor.selectSingleOrAllHitDiceRoll({ hdRollType: "single" });
+        expect(rolledParts[0]).to.equal("max(1d8 + 2, 1)");
+
+        // Formula with static modifiers (e.g. 1d8+1)
+        await actor.update({ system: { hp: { hd: "1d8+1" } } });
+        actor.selectSingleOrAllHitDiceRoll({ hdRollType: "all" });
+        expect(rolledParts[0]).to.equal("max(2d8 + 4, 2)");
+      } finally {
+        OseDice.Roll = originalRoll;
+        await actor.delete();
+      }
     });
   });
 };

@@ -101,6 +101,36 @@ export default ({ describe, it, expect, after }: QuenchMethods) => {
       const resultKey = Object.keys(data.treasure)[0];
       expect(data.treasure[resultKey].text).to.include("100% Chance");
     });
+
+    it("Aborts recursion when a circular RollTable dependency is encountered", async () => {
+      const table = await createMockTreasureTable();
+      await table.createEmbeddedDocuments("TableResult", [
+        {
+          type: CONST.TABLE_RESULT_TYPES.DOCUMENT,
+          documentCollection: "RollTable",
+          documentUuid: table.uuid,
+          range: [1, 1],
+          weight: 100,
+        },
+      ]);
+
+      const consoleWarnSpy = console.warn;
+      let warningLogged = false;
+      console.warn = (msg) => {
+        if (typeof msg === "string" && msg.includes("Circular dependency detected")) {
+          warningLogged = true;
+        }
+      };
+
+      try {
+        const data = await drawTreasure(table, {});
+        expect(warningLogged).to.be.true;
+        expect(data.treasure).is.not.undefined;
+      } finally {
+        console.warn = consoleWarnSpy;
+        await table.delete();
+      }
+    });
   });
 
   describe("rollTreasure(table, options)", () => {

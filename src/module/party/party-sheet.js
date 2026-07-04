@@ -129,24 +129,44 @@ export default class OsePartySheet extends FormApplication {
     }
 
     const droppedActor = await fromUuid(data.uuid);
-
-    this._addActorToParty(droppedActor);
+    if (droppedActor) {
+      await this._addActorToParty(droppedActor);
+    }
   }
 
-  _recursiveAddFolder(folder) {
+  _gatherActorsFromFolder(folder, actors = []) {
     for (const actor of folder.contents) {
-      this._addActorToParty(actor);
+      if (actor.type === "character") {
+        actors.push(actor);
+      }
     }
     for (const child of folder.children) {
-      this._recursiveAddFolder(child.folder);
+      if (child.folder) {
+        this._gatherActorsFromFolder(child.folder, actors);
+      }
     }
+    return actors;
   }
 
   async _onDropFolder(_event, data) {
     const folder = await fromUuid(data.uuid);
     if (folder?.type !== "Actor") return;
 
-    this._recursiveAddFolder(folder);
+    const actors = this._gatherActorsFromFolder(folder);
+    const updates = actors.reduce((acc, actor) => {
+      const isCurrentlyInParty = actor.getFlag(game.system.id, "party") === true;
+      if (!isCurrentlyInParty) {
+        acc.push({
+          _id: actor.id,
+          [`flags.${game.system.id}.party`]: true,
+        });
+      }
+      return acc;
+    }, []);
+
+    if (updates.length > 0) {
+      await Actor.updateDocuments(updates);
+    }
   }
 
   /* - Dragging from the Party Sheet - */
@@ -296,17 +316,20 @@ export default class OsePartySheet extends FormApplication {
                   const partyActorIds = savedParties[name];
                   if (!partyActorIds) return false;
 
-                  const changes = game.actors.reduce((acc, actor) => {
+                  const updates = game.actors.reduce((acc, actor) => {
                     if (actor.type !== "character") return acc;
                     const inParty = partyActorIds.includes(actor.id);
                     const isCurrentlyInParty = actor.getFlag(game.system.id, "party") === true;
                     if (inParty !== isCurrentlyInParty) {
-                      acc.push(inParty ? this._addActorToParty(actor) : this._removeActorFromParty(actor));
+                      acc.push({
+                        _id: actor.id,
+                        [`flags.${game.system.id}.party`]: inParty,
+                      });
                     }
                     return acc;
                   }, []);
-                  if (changes.length > 0) {
-                    await Promise.all(changes);
+                  if (updates.length > 0) {
+                    await Actor.updateDocuments(updates);
                   }
 
                   ui.notifications.info(

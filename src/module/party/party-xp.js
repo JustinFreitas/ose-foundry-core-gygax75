@@ -60,9 +60,9 @@ export default class OsePartyXP extends FormApplication {
   /* -------------------------------------------- */
 
   // eslint-disable-next-line no-underscore-dangle
-  _updateObject(event) {
+  async _updateObject(event) {
     // eslint-disable-next-line no-underscore-dangle
-    this._dealXP(event);
+    await this._dealXP(event);
   }
 
   // eslint-disable-next-line no-underscore-dangle
@@ -81,18 +81,20 @@ export default class OsePartyXP extends FormApplication {
   }
 
   // eslint-disable-next-line no-underscore-dangle
-  _dealXP() {
+  async _dealXP() {
     const html = $(this.form);
     const rows = html.find(".actor");
+    const promises = [];
     rows.each((_, row) => {
       const qRow = $(row);
       const value = qRow.find("input").val();
       const id = qRow.data("actorId");
       const actor = OseParty.currentParty.find((e) => e.id === id);
-      if (value) {
-        actor.getExperience(Math.floor(Number.parseInt(value, 10)));
+      if (value && actor) {
+        promises.push(actor.getExperience(Math.floor(Number.parseInt(value, 10))));
       }
     });
+    await Promise.all(promises);
   }
 
   activateListeners(html) {

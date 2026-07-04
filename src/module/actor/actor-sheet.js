@@ -118,9 +118,7 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
     event.preventDefault();
     const a = event.currentTarget;
     const li = a.closest("li");
-    const effect = li?.dataset.effectId
-      ? this.actor.effects.get(li.dataset.effectId)
-      : null;
+    const effect = li?.dataset.effectId ? this.actor.effects.get(li.dataset.effectId) : null;
 
     switch (a.dataset.action) {
       case "create": {
@@ -364,13 +362,10 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
     const targetData = target?.system;
 
     // Dragging items into a container
-    if (
-      (target?.type === "container" || target?.data?.type === "container") &&
-      targetData.containerId === ""
-    ) {
+    if ((target?.type === "container" || target?.data?.type === "container") && targetData.containerId === "") {
       if (source.type === "container") {
         return ui.notifications.warn(
-          game.i18n.localize("OSE.warn.noNestedContainers") || "You cannot nest containers."
+          game.i18n.localize("OSE.warn.noNestedContainers") || "You cannot nest containers.",
         );
       }
       this.actor.updateEmbeddedDocuments("Item", [{ _id: source.id, "system.containerId": target.id }]);
@@ -459,9 +454,7 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
   async _handleCrossActorContainerDrop(sourceItem, event) {
     const sourceActor = sourceItem.actor;
     const contentIds = sourceItem.system.itemIds || [];
-    const contentItems = contentIds
-      .map((id) => sourceActor.items.get(id))
-      .filter((i) => i);
+    const contentItems = contentIds.map((id) => sourceActor.items.get(id)).filter((i) => i);
 
     // Prepare data
     const containerData = sourceItem.toObject();
@@ -472,9 +465,7 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
     let newContents;
     try {
       // Create container
-      [newContainer] = await this.actor.createEmbeddedDocuments("Item", [
-        containerData,
-      ]);
+      [newContainer] = await this.actor.createEmbeddedDocuments("Item", [containerData]);
 
       // Prepare contents
       const contentData = contentItems.map((i) => {
@@ -485,10 +476,7 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
       });
 
       // Create contents
-      newContents = await this.actor.createEmbeddedDocuments(
-        "Item",
-        contentData
-      );
+      newContents = await this.actor.createEmbeddedDocuments("Item", contentData);
 
       // Update container with new IDs
       await newContainer.update({
@@ -502,8 +490,7 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
         await this.actor.deleteEmbeddedDocuments("Item", cleanup).catch(() => {});
       }
       ui.notifications.error(
-        game.i18n.localize("OSE.error.containerMoveFailed") ||
-          "Failed to move the container; nothing was changed."
+        game.i18n.localize("OSE.error.containerMoveFailed") || "Failed to move the container; nothing was changed.",
       );
       throw err;
     }
@@ -537,11 +524,7 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
     if (item.id === targetId) return;
 
     if (!exists && !targetIsContainer) {
-      if (
-        item.type === "container" &&
-        item.actor &&
-        item.actor.id !== this.actor.id
-      ) {
+      if (item.type === "container" && item.actor && item.actor.id !== this.actor.id) {
         // eslint-disable-next-line no-underscore-dangle
         return this._handleCrossActorContainerDrop(item, event);
       }
@@ -561,8 +544,7 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
     if (targetIsContainer) {
       if (item.type === "container") {
         return ui.notifications.warn(
-          game.i18n.localize("OSE.warn.noNestedContainers") ||
-            "You cannot nest containers."
+          game.i18n.localize("OSE.warn.noNestedContainers") || "You cannot nest containers.",
         );
       }
       const result = await this._onContainerItemAdd(item, targetItem);

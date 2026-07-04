@@ -18,13 +18,13 @@ import {
   trashChat,
   waitForInput,
 } from "../../../e2e/testUtils";
+import OseDice from "../../helpers-dice";
 /**
  * @file Contains tests for Actor Entity.
  */
 // eslint-disable-next-line import/no-cycle
 import OseItem from "../../item/entity";
 import OseActor from "../entity";
-import OseDice from "../../helpers-dice";
 
 export const key = "ose.actor.entity";
 export const options = {
@@ -965,13 +965,16 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
   describe("selectSingleOrAllHitDiceRoll(options)", () => {
     it("selectSingleOrAllHitDiceRoll parses standard and modified HD formulas correctly", async () => {
       const actor = (await createMockActor("character")) as OseActor;
-      
+
       const originalRoll = OseDice.Roll;
       let rolledParts: string[] = [];
+      // biome-ignore lint/suspicious/noExplicitAny: mocked for testing
       OseDice.Roll = async (options: any) => {
         rolledParts = options.parts;
         return null;
       };
+      as;
+      any;
 
       try {
         // Standard formula

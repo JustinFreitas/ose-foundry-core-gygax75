@@ -96,9 +96,9 @@ export class OSECombatant extends Combatant {
       case 0:
         return "purple"; // neutral
       case 1:
-        return "green";  // friendly
+        return "green"; // friendly
       default:
-        return "white";  // secret
+        return "white"; // secret
     }
   }
 }

@@ -292,7 +292,7 @@ export default class OsePartySheet extends FormApplication {
             latestSavedParties[name] = currentPartyIds;
             await game.settings.set(game.system.id, "savedParties", latestSavedParties);
             ui.notifications.info(
-              game.i18n.format("OSE.dialog.party.infoSaved", { name: foundry.utils.escapeHTML(name) })
+              game.i18n.format("OSE.dialog.party.infoSaved", { name: foundry.utils.escapeHTML(name) }),
             );
 
             if (formData.clearAfterSave) {
@@ -333,7 +333,7 @@ export default class OsePartySheet extends FormApplication {
                   }
 
                   ui.notifications.info(
-                    game.i18n.format("OSE.dialog.party.infoLoaded", { name: foundry.utils.escapeHTML(name) })
+                    game.i18n.format("OSE.dialog.party.infoLoaded", { name: foundry.utils.escapeHTML(name) }),
                   );
                   this.render(true);
                 },
@@ -364,7 +364,7 @@ export default class OsePartySheet extends FormApplication {
                   delete latestSavedParties[name];
                   await game.settings.set(game.system.id, "savedParties", latestSavedParties);
                   ui.notifications.info(
-                    game.i18n.format("OSE.dialog.party.infoDeleted", { name: foundry.utils.escapeHTML(name) })
+                    game.i18n.format("OSE.dialog.party.infoDeleted", { name: foundry.utils.escapeHTML(name) }),
                   );
                   this.render(true);
                 },

@@ -6,7 +6,6 @@ import { getRollMode } from "../helpers-message-mode";
 import OSECombatGroupSelector from "./combat-set-groups";
 import type { OSECombatant } from "./combatant";
 
-
 export const actionGroups = {
   slow: "OSE.items.Slow",
   cast: "OSE.spells.Cast",
@@ -15,7 +14,7 @@ export const actionGroups = {
 
 /**
  * An extension of Foundry's Combat class that implements initiative for individual combatants.
- * 
+ *
  * @todo Use a single chat card for rolling group initiative
  */
 export class OSECombat extends foundry.documents.Combat {
@@ -43,7 +42,7 @@ export class OSECombat extends foundry.documents.Combat {
 
   /**
    * Returns whether the combat is using group initiative.
-   * 
+   *
    * @returns {boolean} True if the combat is using group initiative, false otherwise.
    */
   get isGroupInitiative(): boolean {
@@ -56,7 +55,7 @@ export class OSECombat extends foundry.documents.Combat {
 
   /**
    * Roll initiative for all combatants.
-   * 
+   *
    * @param {object} [options={}] - Additional options which modify how initiative rolls are created or presented.
    * @param {boolean} [options.excludeAlreadyRolled=false] - If true, exclude combatants that have already rolled initiative.
    * @param {boolean} [options.updateTurn=false] - Update the Combat turn after adding new initiative scores to
@@ -78,7 +77,7 @@ export class OSECombat extends foundry.documents.Combat {
   /**
    * Reroll initiative for all combatants.
    * If the initiative type is set to "group", reroll initiative for each group.
-   * 
+   *
    * @param {object} [options={}] - Additional options which modify how initiative rolls are created or presented.
    * @param {boolean} [options.excludeAlreadyRolled=false] - If true, exclude combatants that have already rolled initiative.
    * @param {boolean} [options.updateTurn=false] - Update the Combat turn after adding new initiative scores to
@@ -223,7 +222,7 @@ export class OSECombat extends foundry.documents.Combat {
 
   /**
    * Activate the given combatant within the combat.
-   * 
+   *
    * @param {number} turn - The turn number of the combatant to activate.
    */
   async activateCombatant(turn: number) {
@@ -236,7 +235,7 @@ export class OSECombat extends foundry.documents.Combat {
    * Assign a combatant to a group, creating the group if it doesn't exist.
    * This method prevents multiple groups being created due to the async nature
    * of Foundry VTT.
-   * 
+   *
    * @param {OSECombatant} combatant - The combatant to assign to the group.
    * @param {string} groupName - The name of the group to assign the combatant to.
    */
@@ -262,7 +261,7 @@ export class OSECombat extends foundry.documents.Combat {
 
   /**
    * Determine which group each combatant should be added to, or if a new group should be created.
-   * 
+   *
    * @returns {Map<string, { combatants: OSECombatant[], expanded: boolean }>}
    */
   async createGroups() {

@@ -209,8 +209,8 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
     }
   }
 
-  private static getDispositionFromColor(label) {
-    let groupName;
+  private static getDispositionFromColor(label: string) {
+    let groupName: string | undefined;
     switch (label) {
       case "fast":
         groupName = "Fast";

@@ -75,7 +75,7 @@ async function drawTreasure(table, data, visited = new Set()) {
   visited.add(table.uuid);
 
   const percent = (chance) => {
-    return (Math.floor(Math.random() * 100) + 1) <= chance;
+    return Math.floor(Math.random() * 100) + 1 <= chance;
   };
   data.treasure = {};
   if (table.getFlag(game.system.id, "treasure")) {

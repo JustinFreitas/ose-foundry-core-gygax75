@@ -3,14 +3,7 @@
  */
 import type { Attribute } from "../config";
 
-export type ClassicClassName =
-  | "Cleric"
-  | "Dwarf"
-  | "Elf"
-  | "Fighter"
-  | "Halfling"
-  | "Magic-User"
-  | "Thief";
+export type ClassicClassName = "Cleric" | "Dwarf" | "Elf" | "Fighter" | "Halfling" | "Magic-User" | "Thief";
 
 export type OseClass = {
   name: string;

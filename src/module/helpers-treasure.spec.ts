@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { functionsForTesting } from "./helpers-treasure";
 
 const { drawTreasure } = functionsForTesting;
@@ -21,7 +21,7 @@ describe("Offline drawTreasure tests", () => {
       ],
     };
 
-    const data = await drawTreasure(mockTable as any, {});
+    const data = await drawTreasure(mockTable as unknown as RollTable, {});
     expect(data.treasure).toBeDefined();
     expect(data.treasure["result-1"]).toBeDefined();
     expect(data.treasure["result-1"].img).toBe("icons/gem.svg");
@@ -43,36 +43,35 @@ describe("Offline drawTreasure tests", () => {
       ],
     };
 
-    const data = await drawTreasure(mockTable as any, {});
+    const data = await drawTreasure(mockTable as unknown as RollTable, {});
     expect(data.treasure).toBeDefined();
     expect(Object.keys(data.treasure).length).toBe(0);
   });
 
   it("handles circular table references gracefully without crashing", async () => {
     // Set up circular reference: Table A results point to Table A (itself)
-    const mockTable: any = {
+    const mockTable = {
       uuid: "RollTable.circular",
       name: "Circular Table",
       getFlag: () => true,
-    };
-
-    mockTable.results = [
-      {
-        id: "result-circular",
-        weight: 100,
-        img: "icons/loop.svg",
-        getHTML: async () => "<p>Circular Reference</p>",
-        type: "DOCUMENT", // CONST.TABLE_RESULT_TYPES.DOCUMENT
-        documentUuid: "RollTable.circular",
-      },
-    ];
+      results: [
+        {
+          id: "result-circular",
+          weight: 100,
+          img: "icons/loop.svg",
+          getHTML: async () => "<p>Circular Reference</p>",
+          type: "DOCUMENT", // CONST.TABLE_RESULT_TYPES.DOCUMENT
+          documentUuid: "RollTable.circular",
+        },
+      ],
+    } as unknown as RollTable;
 
     // Mock fromUuid to return the same table to simulate recursive loading
     const originalFromUuid = global.fromUuid;
-    global.fromUuid = async (uuid) => {
+    global.fromUuid = (async (uuid: string) => {
       if (uuid === "RollTable.circular") return mockTable;
       return null;
-    };
+    }) as unknown as typeof global.fromUuid;
 
     // Spy on console.warn
     const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -81,7 +80,7 @@ describe("Offline drawTreasure tests", () => {
       const data = await drawTreasure(mockTable, {});
       expect(data.treasure).toBeDefined();
       expect(consoleWarnSpy).toHaveBeenCalled();
-      
+
       const firstArg = consoleWarnSpy.mock.calls[0]?.[0];
       expect(firstArg).toContain("Circular dependency detected");
     } finally {

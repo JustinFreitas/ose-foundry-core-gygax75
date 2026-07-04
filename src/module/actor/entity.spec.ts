@@ -1,16 +1,16 @@
-import { describe, it, expect, vi } from "vitest";
-import OseActor from "./entity";
+import { describe, expect, it, vi } from "vitest";
 import OseDice from "../helpers-dice";
+import OseActor from "./entity";
 
 describe("Offline Actor Entity Hit Dice tests", () => {
   it("parses standard and modified HD formulas correctly in selectSingleOrAllHitDiceRoll", async () => {
     // Mock the OseDice.Roll function to inspect the parts argument
     let rolledParts: string[] = [];
     const originalRoll = OseDice.Roll;
-    OseDice.Roll = (async (options: any) => {
+    OseDice.Roll = (async (options: { parts: string[] }) => {
       rolledParts = options.parts;
       return null;
-    }) as any;
+    }) as unknown as typeof OseDice.Roll;
 
     try {
       // 1. Test standard 1d8 formula at Level 2 with +2 CON mod, Single HD roll
@@ -21,7 +21,7 @@ describe("Offline Actor Entity Hit Dice tests", () => {
           details: { level: 2 },
           scores: { con: { mod: 2 } },
         },
-      });
+      } as unknown as Actor);
 
       actor1.selectSingleOrAllHitDiceRoll({ hdRollType: "single" });
       expect(rolledParts[0]).toBe("max(1d8 + 2, 1)");
@@ -34,7 +34,7 @@ describe("Offline Actor Entity Hit Dice tests", () => {
           details: { level: 3 },
           scores: { con: { mod: 2 } },
         },
-      });
+      } as unknown as Actor);
 
       actor2.selectSingleOrAllHitDiceRoll({ hdRollType: "all" });
       expect(rolledParts[0]).toBe("max(3d8 + 6, 3)");
@@ -51,7 +51,7 @@ describe("Offline Actor Entity Hit Dice tests", () => {
         hp: { hd: "invalid-formula" },
         details: { level: 1 },
       },
-    });
+    } as unknown as Actor);
 
     const warnSpy = vi.spyOn(ui.notifications, "warn").mockImplementation(() => {});
 

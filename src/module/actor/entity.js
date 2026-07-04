@@ -353,7 +353,7 @@ export default class OseActor extends Actor {
     if (!parts) {
       ui.notifications.warn(
         game.i18n.format("OSE.warn.invalidHitDice", { hd: actorData.hp.hd ?? "" }) ||
-          `Cannot roll Hit Dice: invalid HD formula "${actorData.hp.hd ?? ""}".`
+          `Cannot roll Hit Dice: invalid HD formula "${actorData.hp.hd ?? ""}".`,
       );
       return;
     }
@@ -390,28 +390,28 @@ export default class OseActor extends Actor {
     const actorType = this.type;
     // Gygax75 - Roll monster HD like normal.
     if (actorType !== "character") {
-        const actorData = this.system;
+      const actorData = this.system;
 
-        const label = game.i18n.localize(`OSE.roll.hd`);
-        const rollParts = [actorData.hp.hd];
-        
-        const data = {
+      const label = game.i18n.localize("OSE.roll.hd");
+      const rollParts = [actorData.hp.hd];
+
+      const data = {
         actor: this,
         roll: {
-            type: "hitdice",
+          type: "hitdice",
         },
-        };
+      };
 
-        // Roll and return
-        return OseDice.Roll({
-            event: options.event,
-            parts: rollParts,
-            data,
-            skipDialog: true,
-            speaker: ChatMessage.getSpeaker({ actor: this }),
-            flavor: label,
-            title: label,
-        });
+      // Roll and return
+      return OseDice.Roll({
+        event: options.event,
+        parts: rollParts,
+        data,
+        skipDialog: true,
+        speaker: ChatMessage.getSpeaker({ actor: this }),
+        flavor: label,
+        title: label,
+      });
     }
 
     // Gygax75 - Roll character HD from single/all dialog.

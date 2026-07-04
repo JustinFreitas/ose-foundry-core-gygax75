@@ -1,5 +1,8 @@
 import { vi } from "vitest";
 
+// Define Math.clamp globally as in Foundry environment
+Math.clamp = (val: number, min: number, max: number) => Math.min(Math.max(val, min), max);
+
 // Define mock base classes for Foundry documents
 class MockDocument {
   id: string;

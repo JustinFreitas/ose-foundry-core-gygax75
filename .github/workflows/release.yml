@@ -22,6 +22,10 @@ jobs:
       - name: Install dev dependencies
         run: npm ci #--cache .npm --prefer-offline --ignore-scripts
 
+      # Run unit tests before building
+      - name: Run unit tests
+        run: npm run test
+
       # Create a build using Gulp build script
       - name: Run Gulp build script
         run: npm run build

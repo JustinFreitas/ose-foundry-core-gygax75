@@ -97,6 +97,7 @@ export default class OseActorSheetMonster extends OseActorSheet {
       window: { title: game.i18n.localize("OSE.dialog.generateSaves") },
       position: {
         width: 250,
+        height: "auto",
       },
       content: dlg,
       buttons: [

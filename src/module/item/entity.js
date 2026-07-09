@@ -185,10 +185,15 @@ export default class OseItem extends Item {
     });
   }
 
-  async spendSpell() {
+  async spendSpell(options = {}) {
     if (this.type !== "spell") throw new Error("Trying to spend a spell on an item that is not a spell.");
 
     const itemData = this.system;
+    if (itemData.cast <= 0) {
+      ui.notifications?.warn("This spell has no remaining casts.");
+      return;
+    }
+
     await this.update({
       system: {
         cast: itemData.cast - 1,
@@ -196,9 +201,9 @@ export default class OseItem extends Item {
     });
 
     if (itemData.roll) {
-      await this.rollFormula();
+      await this.rollFormula(options);
     } else {
-      await this.show({ skipDialog: true });
+      await this.show();
     }
   }
 
@@ -389,6 +394,7 @@ export default class OseItem extends Item {
       case "item":
       case "armor": {
         this.show();
+        break;
       }
     }
   }
@@ -501,7 +507,15 @@ export default class OseItem extends Item {
     // Attack and Damage Rolls
     switch (action) {
       case "damage": {
-        await item.rollDamage({ event });
+        const attData = {
+          item: item._source,
+          roll: {
+            dmg: item.system.damage,
+            type: item.system.missile && !item.system.melee ? "missile" : "melee",
+          },
+          label: item.name,
+        };
+        await actor.rollDamage(attData, { event });
         break;
       }
 

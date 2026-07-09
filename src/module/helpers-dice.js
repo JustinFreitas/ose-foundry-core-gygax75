@@ -46,7 +46,7 @@ const OseDice = {
     }
 
     if (["gmroll", "blindroll"].includes(rollMode)) chatData.whisper = ChatMessage.getWhisperRecipients("GM");
-    if (rollMode === "selfroll") chatData.whisper = [game.user._id];
+    if (rollMode === "selfroll") chatData.whisper = [game.user.id];
     if (rollMode === "blindroll") {
       chatData.blind = true;
       data.roll.blindroll = true;
@@ -301,7 +301,7 @@ const OseDice = {
     }
 
     if (["gmroll", "blindroll"].includes(rollMode)) chatData.whisper = ChatMessage.getWhisperRecipients("GM");
-    if (rollMode === "selfroll") chatData.whisper = [game.user._id];
+    if (rollMode === "selfroll") chatData.whisper = [game.user.id];
     if (rollMode === "blindroll") {
       chatData.blind = true;
       data.roll.blindroll = true;

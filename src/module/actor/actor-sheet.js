@@ -353,16 +353,16 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
   }
 
   _onSortItem(event, itemData) {
-    const source = this.actor.items.get(itemData._id);
-    const siblings = this.actor.items.filter((i) => i.data._id !== source.data._id);
+    const source = this.actor.items.get(itemData._id || itemData.id);
+    const siblings = this.actor.items.filter((i) => i.id !== source.id);
     const dropTarget = event.target.closest("[data-item-id]");
     const targetId = dropTarget ? dropTarget.dataset.itemId : null;
-    const target = siblings.find((s) => s.data._id === targetId);
+    const target = siblings.find((s) => s.id === targetId);
     if (!target) throw new Error(`Couldn't drop near ${event.target}`);
     const targetData = target?.system;
 
     // Dragging items into a container
-    if ((target?.type === "container" || target?.data?.type === "container") && targetData.containerId === "") {
+    if (target?.type === "container" && targetData.containerId === "") {
       if (source.type === "container") {
         return ui.notifications.warn(
           game.i18n.localize("OSE.warn.noNestedContainers") || "You cannot nest containers.",

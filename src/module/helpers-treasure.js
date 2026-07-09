@@ -140,7 +140,7 @@ export async function rollTreasure(table, options = {}) {
 
   const rollMode = getRollMode();
   if (["gmroll", "blindroll"].includes(rollMode)) chatData.whisper = ChatMessage.getWhisperRecipients("GM");
-  if (rollMode === "selfroll") chatData.whisper = [game.user._id];
+  if (rollMode === "selfroll") chatData.whisper = [game.user.id];
   if (rollMode === "blindroll") chatData.blind = true;
 
   ChatMessage.create(chatData);

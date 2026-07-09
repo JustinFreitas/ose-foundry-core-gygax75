@@ -17,7 +17,10 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
     const data = foundry.utils.deepClone(super.getData().data);
     for (const item of this.actor.items) {
       item.isExpanded = this._expanded.has(item.id);
-      await item.prepareDerivedData();
+      item.system.enrichedDescription = await foundry.applications.ux.TextEditor.implementation.enrichHTML(
+        item.system.description,
+        { async: true },
+      );
     }
     data.owner = this.actor.isOwner;
     data.editable = this.actor.sheet.isEditable;

@@ -45,13 +45,7 @@ export default class OseItem extends Item {
     super.prepareData();
   }
 
-  async prepareDerivedData() {
-    // Rich text description
-    this.system.enrichedDescription = await foundry.applications.ux.TextEditor.implementation.enrichHTML(
-      this.system.description,
-      { async: true },
-    );
-  }
+
 
   static chatListeners(html) {
     // Use event delegation for buttons

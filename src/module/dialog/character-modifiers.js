@@ -43,4 +43,9 @@ export default class OseCharacterModifiers extends FormApplication {
   activateListeners(html) {
     super.activateListeners(html);
   }
+
+  /** @override */
+  async _updateObject(event, formData) {
+    return this.object.update(formData);
+  }
 }

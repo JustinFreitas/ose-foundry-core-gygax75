@@ -132,7 +132,7 @@ export default class OseActor extends Actor {
     return this.isOwner || this.testUserPermission(game.user, CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER);
   }
 
-  generateSave(hd) {
+  async generateSave(hd) {
     const parsedHd = hd.includes("+") ? Number.parseInt(hd, 10) + 1 : Number.parseInt(hd, 10);
 
     // Compute saves
@@ -151,7 +151,7 @@ export default class OseActor extends Actor {
       thac0 = CONFIG.OSE.monster_thac0[k];
     });
 
-    this.update({
+    await this.update({
       "system.thac0.value": thac0,
       "system.thac0.bba": 19 - thac0,
       "system.saves": {

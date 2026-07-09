@@ -41,3 +41,16 @@
     overflow: auto;
   }
 }
+
+// Foundry V14 ApplicationV2 compatibility
+.window-app.ose {
+  background: url("/ui/parchment.jpg") repeat;
+  color: #191813;
+  --color-text-primary: #191813;
+  --color-text-hyperlink: #4a52ac;
+  
+  .window-header {
+    color: #f0f0e0;
+    --color-text-primary: #f0f0e0;
+  }
+}

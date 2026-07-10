@@ -66,3 +66,36 @@ describe("Offline Item Entity manual tag tests", () => {
     expect(item.system.tags).toEqual([{ title: "Two-handed", value: "Two-handed", label: "Two-handed" }]);
   });
 });
+
+describe("Offline Item Entity migrateData tests", () => {
+  it("dedupes container itemIds corrupted by the duplicate-drop bug, preserving order", () => {
+    const source = {
+      type: "container",
+      system: { itemslots: 1, itemIds: ["a", "b", "a", "c", "b", "a"] },
+    };
+
+    const migrated = OseItem.migrateData(source);
+
+    expect(migrated.system.itemIds).toEqual(["a", "b", "c"]);
+  });
+
+  it("leaves an already-clean itemIds array untouched", () => {
+    const itemIds = ["a", "b", "c"];
+    const source = { type: "container", system: { itemslots: 1, itemIds } };
+
+    const migrated = OseItem.migrateData(source);
+
+    // Same reference: no churn when there is nothing to fix
+    expect(migrated.system.itemIds).toBe(itemIds);
+  });
+
+  it("ignores non-container items and malformed itemIds", () => {
+    const weapon = { type: "weapon", system: { itemslots: 1, tags: [] } };
+    expect(() => OseItem.migrateData(weapon)).not.toThrow();
+
+    // Drag data can double-stringify itemIds into a string; migrateData must not touch it
+    const stringIds = { type: "container", system: { itemslots: 1, itemIds: '["a","a"]' } };
+    const migrated = OseItem.migrateData(stringIds);
+    expect(migrated.system.itemIds).toBe('["a","a"]');
+  });
+});

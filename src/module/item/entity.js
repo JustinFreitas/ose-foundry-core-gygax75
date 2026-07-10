@@ -37,6 +37,14 @@ export default class OseItem extends Item {
         source.system.itemslots = 2;
       if (source?.system?.type === "heavy" && source.type === "armor") source.system.itemslots = 2;
     }
+    // Containers created before the duplicate-drop fix may have accumulated
+    // repeated ids in itemIds; collapse them (preserving order).
+    if (source?.type === "container" && Array.isArray(source.system?.itemIds)) {
+      const deduped = [...new Set(source.system.itemIds)];
+      if (deduped.length !== source.system.itemIds.length) {
+        source.system.itemIds = deduped;
+      }
+    }
 
     return source;
   }

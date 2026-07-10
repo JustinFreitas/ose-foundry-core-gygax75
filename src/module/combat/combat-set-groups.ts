@@ -6,6 +6,8 @@ const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 export default class OSECombatGroupSelector extends HandlebarsApplicationMixin(ApplicationV2) {
   _highlighted;
 
+  #changeListenerBound = false;
+
   // ===========================================================================
   // APPLICATION SETUP
   // ===========================================================================
@@ -37,7 +39,11 @@ export default class OSECombatGroupSelector extends HandlebarsApplicationMixin(A
 
   static PARTS = {
     main: {
-      template: "/systems/ose-dev/dist/templates/apps/combat-set-groups.hbs",
+      // Lazy getter: resolves the system path at render time rather than
+      // hardcoding the system id at module load.
+      get template() {
+        return `${OSE.systemPath()}/templates/apps/combat-set-groups.hbs`;
+      },
     },
   };
 
@@ -60,7 +66,11 @@ export default class OSECombatGroupSelector extends HandlebarsApplicationMixin(A
       li.addEventListener("mouseover", this.#onCombatantHoverIn.bind(this));
       li.addEventListener("mouseout", this.#onCombatantHoverOut.bind(this));
     }
-    this.element.addEventListener("change", this._updateObject);
+    // The root element survives re-renders; bind the delegated listener once.
+    if (!this.#changeListenerBound) {
+      this.element.addEventListener("change", this._updateObject);
+      this.#changeListenerBound = true;
+    }
   }
 
   // ===========================================================================

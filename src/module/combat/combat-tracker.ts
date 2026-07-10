@@ -15,8 +15,12 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
   /** @inheritDoc */
   async _prepareTrackerContext(context, options) {
     await super._prepareTrackerContext(context, options);
+    // Use the combat this tracker is viewing, which is not necessarily
+    // the active combat (game.combat).
+    const combat = this.viewed;
     context.turns?.forEach((turn) => {
-      const combatant = game.combat.combatants.get(turn.id);
+      const combatant = combat?.combatants.get(turn.id);
+      if (!combatant) return;
       turn.isSlowed = turn.initiative === `${OSECombatant.INITIATIVE_VALUE_SLOWED}`;
       turn.isFast = turn.initiative === `${OSECombatant.INITIATIVE_VALUE_FAST}`;
       turn.isCasting = !!combatant.getFlag(game.system.id, "prepareSpell");
@@ -59,15 +63,21 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
     return super._onCombatantControl(event, target);
   }
 
-  /** @override */
-  _configureRenderOptions(options: object) {
-    super._configureRenderOptions(options);
-
-    // Replace the tracker template
-    this.constructor.PARTS.tracker.template = `${OSE.systemPath()}/templates/sidebar/combat-tracker-combatant.hbs`;
-
-    return options;
-  }
+  /**
+   * Own copy of PARTS with the tracker template swapped for the OSE version.
+   * Defined as an own static (with a lazy template getter, since the system
+   * path needs `game`) so the base CombatTracker.PARTS is never mutated.
+   * @override
+   */
+  static PARTS = {
+    ...foundry.applications.sidebar.tabs.CombatTracker.PARTS,
+    tracker: {
+      ...foundry.applications.sidebar.tabs.CombatTracker.PARTS.tracker,
+      get template() {
+        return `${OSE.systemPath()}/templates/sidebar/combat-tracker-combatant.hbs`;
+      },
+    },
+  };
 
   /**
    * Toggle a boolean flag value on the combatant.

@@ -22,7 +22,7 @@ export class OSECombatant extends Combatant {
   get isDefeated() {
     if (this.defeated) return true;
 
-    return !this.defeated && this.actor?.system?.hp?.value === 0;
+    return (this.actor?.system?.hp?.value ?? 1) <= 0;
   }
 
   get isFast() {

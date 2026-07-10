@@ -65,13 +65,11 @@ export default class OseActorSheetMonster extends OseActorSheet {
     data.config.morale = game.settings.get(game.system.id, "morale");
     monsterData.details.treasure.link = await foundry.applications.ux.TextEditor.implementation.enrichHTML(
       monsterData.details.treasure.table,
-      { async: true },
     );
     data.isNew = this.actor.isNew();
 
     data.enrichedBiography = await foundry.applications.ux.TextEditor.implementation.enrichHTML(
       this.object.system.details.biography,
-      { async: true },
     );
 
     // Monsters don't show an encumbrance bar
@@ -122,7 +120,7 @@ export default class OseActorSheetMonster extends OseActorSheet {
   }
 
   async _onDrop(event) {
-    super._onDrop(event);
+    await super._onDrop(event);
     let data;
     try {
       data = JSON.parse(event.dataTransfer.getData("text/plain"));
@@ -131,14 +129,11 @@ export default class OseActorSheetMonster extends OseActorSheet {
       return false;
     }
 
-    let link = "";
-    if (data.pack) {
-      const tableDatum = game.packs.get(data.pack).index.find((el) => el._id === data.id);
-      link = `@UUID[${data.uuid}]{${tableDatum.name}}`;
-    } else {
-      link = `@UUID[${data.uuid}]`;
-    }
-    this.actor.update({ "system.details.treasure.table": link });
+    // Resolve via UUID so world and compendium tables both link with a name.
+    const table = await fromUuid(data.uuid);
+    if (!table) return;
+    const link = `@UUID[${data.uuid}]{${table.name}}`;
+    await this.actor.update({ "system.details.treasure.table": link });
   }
 
   /* -------------------------------------------- */

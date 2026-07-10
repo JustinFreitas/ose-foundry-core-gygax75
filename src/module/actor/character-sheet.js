@@ -85,11 +85,9 @@ export default class OseActorSheetCharacter extends OseActorSheet {
 
     data.enrichedBiography = await foundry.applications.ux.TextEditor.implementation.enrichHTML(
       this.object.system.details.biography,
-      { async: true },
     );
     data.enrichedNotes = await foundry.applications.ux.TextEditor.implementation.enrichHTML(
       this.object.system.details.notes,
-      { async: true },
     );
 
     return data;
@@ -222,7 +220,7 @@ export default class OseActorSheetCharacter extends OseActorSheet {
       if (score) {
         actorObject.rollCheck(score, { event: ev });
       } else if (stat === "lr") {
-        actorObject.rollLoyalty(score, { event: ev });
+        actorObject.rollLoyalty({ event: ev });
       }
     });
 

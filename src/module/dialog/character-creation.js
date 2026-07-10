@@ -90,17 +90,15 @@ export default class OseCharacterCreator extends FormApplication {
     const data = {
       roll: {},
     };
-    if (options.skipMessage) {
-      const skipMessagRoll = new Roll(rollParts[0]);
-      await skipMessagRoll.evaluate();
-    }
-    // Roll and return
+    // Roll and return; skipMessage suppresses the individual chat card
+    // (the auto-roller posts a single summary card on submit instead).
     return OseDice.Roll({
       event: options.event,
       parts: rollParts,
       data,
       skipDialog: true,
-      speaker: ChatMessage.getSpeaker({ actor: this }),
+      chatMessage: !options.skipMessage,
+      speaker: ChatMessage.getSpeaker({ actor: this.object }),
       flavor: game.i18n.format("OSE.dialog.generateScore", {
         score: label,
         count: this.counters[score],
@@ -133,6 +131,13 @@ export default class OseCharacterCreator extends FormApplication {
     });
 
     html.find("input.score-value").change((ev) => {
+      // Keep manually typed values in sync with the rolled scores so the
+      // stats readout and the submitted data reflect what's on screen.
+      const { score } = ev.currentTarget.closest("[data-score]")?.dataset ?? {};
+      const value = Number.parseInt(ev.currentTarget.value, 10);
+      if (score && !Number.isNaN(value)) {
+        this.scores[score] = { value };
+      }
       this.doStats(ev);
     });
 
@@ -153,14 +158,14 @@ export default class OseCharacterCreator extends FormApplication {
   async _onSubmit(event, { updateData = null, preventClose = false, preventRender = false } = {}) {
     const extendedData = { ...updateData, system: { scores: this.scores } };
     // eslint-disable-next-line no-underscore-dangle
-    super._onSubmit(event, {
+    await super._onSubmit(event, {
       updateData: extendedData,
       preventClose,
       preventRender,
     });
 
     // Gather scores
-    const speaker = ChatMessage.getSpeaker({ actor: this.object.actor });
+    const speaker = ChatMessage.getSpeaker({ actor: this.object });
     const templateData = {
       config: CONFIG.OSE,
       scores: this.scores,
@@ -178,21 +183,23 @@ export default class OseCharacterCreator extends FormApplication {
       speaker,
     });
 
-    // Generate gold
-    const itemData = {
-      name: game.i18n.localize("OSE.items.gp.short"),
-      type: "item",
-      img: `${OSE.assetsPath}/gold.png`,
-      system: {
-        treasure: true,
-        cost: 1,
-        weight: 1,
-        quantity: {
-          value: this.gold,
+    // Generate gold (only if any was actually rolled)
+    if (this.gold > 0) {
+      const itemData = {
+        name: game.i18n.localize("OSE.items.gp.short"),
+        type: "item",
+        img: `${OSE.assetsPath}/gold.png`,
+        system: {
+          treasure: true,
+          cost: 1,
+          weight: 1,
+          quantity: {
+            value: this.gold,
+          },
         },
-      },
-    };
-    this.object.createEmbeddedDocuments("Item", [itemData]);
+      };
+      await this.object.createEmbeddedDocuments("Item", [itemData]);
+    }
   }
 
   /**

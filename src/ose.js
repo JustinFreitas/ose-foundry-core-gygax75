@@ -169,7 +169,6 @@ Hooks.on("renderSettings", async (_app, html) => {
 });
 
 Hooks.on("renderChatLog", (_app, html) => OseItem.chatListeners(html));
-Hooks.on("getChatLogEntryContext", chat.addChatMessageContextOptions);
 Hooks.on("getChatMessageContextOptions", chat.addChatMessageContextOptions);
 Hooks.on("renderChatMessageHTML", chat.addChatMessageButtons);
 Hooks.on("renderRollTableSheet", treasure.augmentTable);
@@ -196,6 +195,11 @@ Hooks.on("createCombatant", (combatant) => {
 
 Hooks.on("renderActorSheet", (app, html) => {
   if (!app?.object?.isOwnerOrObserver) return;
+
+  // The sheet's outer element survives re-renders; only bind the menu once.
+  const element = html instanceof HTMLElement ? html : html?.[0];
+  if (!element || element.dataset.oseItemContextMenu) return;
+  element.dataset.oseItemContextMenu = "true";
 
   new foundry.applications.ux.ContextMenu(
     html,

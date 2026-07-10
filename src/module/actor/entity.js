@@ -63,12 +63,13 @@ export default class OseActor extends Actor {
   }
 
   async createEmbeddedDocuments(embeddedName, data = [], context = {}) {
-    data.forEach((item) => {
-      if (item.img === undefined) {
-        item.img = OseItem.defaultIcons[item.type];
-      }
-    });
-    return super.createEmbeddedDocuments(embeddedName, data, context);
+    let creationData = data;
+    if (embeddedName === "Item") {
+      creationData = data.map((item) =>
+        item.img === undefined ? { ...item, img: OseItem.defaultIcons[item.type] } : item,
+      );
+    }
+    return super.createEmbeddedDocuments(embeddedName, creationData, context);
   }
 
   /* -------------------------------------------- */
@@ -133,7 +134,11 @@ export default class OseActor extends Actor {
   }
 
   async generateSave(hd) {
-    const parsedHd = hd.includes("+") ? Number.parseInt(hd, 10) + 1 : Number.parseInt(hd, 10);
+    // HD arrives as a string that may carry a bonus (e.g. "3+1"); a bonus
+    // bumps the creature into the next HD bracket for saves and THAC0.
+    const hdString = String(hd ?? "");
+    const baseHd = Number.parseInt(hdString, 10) || 0;
+    const parsedHd = hdString.includes("+") ? baseHd + 1 : baseHd;
 
     // Compute saves
     let saves = {};
@@ -147,7 +152,7 @@ export default class OseActor extends Actor {
     // Compute Thac0
     let thac0 = 20;
     Object.keys(CONFIG.OSE.monster_thac0).forEach((k) => {
-      if (hd < Number.parseInt(k, 10)) return;
+      if (parsedHd < Number.parseInt(k, 10)) return;
       thac0 = CONFIG.OSE.monster_thac0[k];
     });
 
@@ -179,7 +184,7 @@ export default class OseActor extends Actor {
   /* -------------------------------------------- */
 
   async rollHP(_options = {}) {
-    const { total } = await new Roll(this.system.hp.hd).roll({ async: true });
+    const { total } = await new Roll(this.system.hp.hd).roll();
     return this.update({ "system.hp": { max: total, value: total } });
   }
 
@@ -611,9 +616,12 @@ export default class OseActor extends Actor {
     // and str/dex modifier only if it's non-zero
     let attackMods = [];
 
-    if (options.type === "melee") attackMods = [data.scores.str.mod, data.thac0.mod.melee];
-
-    dmgParts.push(...removeFalsyElements(attackMods));
+    // Melee: str.mod + thac0.mod.melee go to the attack roll; only the Str
+    // modifier also adds to damage (RAW). The melee attack tweak does not.
+    if (options.type === "melee") {
+      attackMods = [data.scores.str.mod, data.thac0.mod.melee];
+      if (data.scores.str.mod) dmgParts.push(data.scores.str.mod);
+    }
 
     // Missile: dex.mod + thac0.mod.missile go to the attack roll only (RAW: missile
     // attacks get no inherent bonus damage). An explicit damage.mod.missile lever

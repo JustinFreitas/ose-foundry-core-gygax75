@@ -84,7 +84,7 @@ async function drawTreasure(table, data, visited = new Set()) {
         const text = await r.getHTML();
         data.treasure[r.id] = {
           img: r.img,
-          text: await foundry.applications.ux.TextEditor.implementation.enrichHTML(text, { async: true }),
+          text: await foundry.applications.ux.TextEditor.implementation.enrichHTML(text),
         };
         const parsedUuid = foundry.utils.parseUuid(r.documentUuid);
         const documentCollection = parsedUuid?.collection?.metadata?.id ?? parsedUuid?.documentType ?? "";

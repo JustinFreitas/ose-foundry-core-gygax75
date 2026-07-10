@@ -313,7 +313,9 @@ export default class OsePartySheet extends FormApplication {
                   const name = formData.partyToLoad;
                   if (!name) return false;
 
-                  const partyActorIds = savedParties[name];
+                  // Re-fetch: the party may have been re-saved or deleted since the dialog opened.
+                  const latestSavedParties = game.settings.get(game.system.id, "savedParties") || {};
+                  const partyActorIds = latestSavedParties[name];
                   if (!partyActorIds) return false;
 
                   const updates = game.actors.reduce((acc, actor) => {

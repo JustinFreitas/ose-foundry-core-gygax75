@@ -15,13 +15,14 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
 
   async getData() {
     const data = foundry.utils.deepClone(super.getData().data);
-    for (const item of this.actor.items) {
-      item.isExpanded = this._expanded.has(item.id);
-      item.system.enrichedDescription = await foundry.applications.ux.TextEditor.implementation.enrichHTML(
-        item.system.description,
-        { async: true },
-      );
-    }
+    await Promise.all(
+      [...this.actor.items].map(async (item) => {
+        item.isExpanded = this._expanded.has(item.id);
+        item.system.enrichedDescription = await foundry.applications.ux.TextEditor.implementation.enrichHTML(
+          item.system.description,
+        );
+      }),
+    );
     data.owner = this.actor.isOwner;
     data.editable = this.actor.sheet.isEditable;
 
@@ -357,11 +358,11 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
 
   _onSortItem(event, itemData) {
     const source = this.actor.items.get(itemData._id || itemData.id);
+    if (!source) return super._onSortItem(event, itemData);
     const siblings = this.actor.items.filter((i) => i.id !== source.id);
     const dropTarget = event.target.closest("[data-item-id]");
     const targetId = dropTarget ? dropTarget.dataset.itemId : null;
     const target = siblings.find((s) => s.id === targetId);
-    if (!target) throw new Error(`Couldn't drop near ${event.target}`);
     const targetData = target?.system;
 
     // Dragging items into a container
@@ -375,10 +376,11 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
       return;
     }
 
-    if (source?.system.containerId !== "") {
+    if (source.system.containerId !== "") {
       this.actor.updateEmbeddedDocuments("Item", [{ _id: source.id, "system.containerId": "" }]);
     }
 
+    // No (or unknown) drop target: let Foundry's default sorting handle it.
     super._onSortItem(event, itemData);
   }
 
@@ -441,16 +443,12 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
       itemArray.push(...subfolder.contents);
     });
 
-    // Compendium items
+    // Compendium folders only index their contents; resolve the full documents.
     if (itemArray.length > 0 && itemArray[0]?.uuid?.includes("Compendium")) {
-      const items = [];
-      itemArray.forEach(async (item) => {
-        items.push(await fromUuid(item.uuid));
-      });
-      itemArray = items;
+      itemArray = (await Promise.all(itemArray.map((item) => fromUuid(item.uuid)))).filter((item) => item);
     }
 
-    this._onDropItemCreate(itemArray);
+    return this._onDropItemCreate(itemArray);
   }
 
   // eslint-disable-next-line no-underscore-dangle
@@ -556,6 +554,11 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
       }
       return result;
     }
+
+    // Same-actor drop with no container involved: defer to Foundry's default
+    // handling so drag-reordering items on the sheet still works.
+    // eslint-disable-next-line no-underscore-dangle
+    return super._onDropItem(event, data);
   }
 
   async _onContainerItemRemove(item, container) {
@@ -574,7 +577,7 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
       latestItem = newItem.pop();
     }
 
-    const alreadyExistsInContainer = target.system.itemIds.find((i) => i.id === latestItem.id);
+    const alreadyExistsInContainer = target.system.itemIds.includes(latestItem.id);
     if (!alreadyExistsInContainer) {
       const newList = [...target.system.itemIds, latestItem.id];
       await target.update({ system: { itemIds: newList } });
@@ -582,10 +585,14 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
     }
   }
 
-  // eslint-disable-next-line no-underscore-dangle, consistent-return
-  async _onDropItemCreate(droppedItem, targetContainer = false) {
+  // eslint-disable-next-line no-underscore-dangle
+  async _onDropItemCreate(droppedItem) {
     // override to fix hidden items because their original containers don't exist on this actor
-    const droppedItemArray = Array.isArray(droppedItem) ? droppedItem : [droppedItem];
+    // Normalize Documents (e.g. from folder drops) to plain data so the
+    // containerId fix below actually applies to the created copies.
+    const droppedItemArray = (Array.isArray(droppedItem) ? droppedItem : [droppedItem]).map(
+      (item) => item.toObject?.() ?? item,
+    );
     droppedItemArray.forEach((item) => {
       if (item.system.containerId && item.system.containerId !== "")
         // eslint-disable-next-line no-param-reassign
@@ -597,18 +604,10 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
           // eslint-disable-next-line no-param-reassign
           containedItem.system.containerId = "";
         });
-        droppedItem.push(...containedItems);
+        droppedItemArray.push(...containedItems);
       }
     });
-    if (!targetContainer) {
-      return this.actor.createEmbeddedDocuments("Item", droppedItem);
-    }
-
-    const { itemIds } = targetContainer.system;
-    itemIds.push(droppedItem.id);
-    const item = this.actor.items.get(droppedItem[0].id);
-    await targetContainer.update({ system: { itemIds } });
-    return item.update({ system: { containerId: targetContainer.id } });
+    return this.actor.createEmbeddedDocuments("Item", droppedItemArray);
   }
 
   /* -------------------------------------------- */
@@ -702,9 +701,6 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
 
     // Resize resizable classes
     const resizable = html.find(".resizable");
-    if (resizable.length === 0) {
-      return;
-    }
     resizable.each((_, el) => {
       const heightDelta = this.position.height - this.options.height;
       el.style.height = `${heightDelta + Number.parseInt(el.dataset.baseSize, 10)}px`;

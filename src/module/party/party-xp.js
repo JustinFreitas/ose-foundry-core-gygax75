@@ -104,7 +104,7 @@ export default class OsePartyXP extends FormApplication {
     // eslint-disable-next-line no-underscore-dangle
     totalField.on("input", this._calculateShare.bind(this));
 
-    html.find('button[data-action="deal-xp"').click((event) => {
+    html.find('button[data-action="deal-xp"]').click((event) => {
       super.submit(event);
     });
   }

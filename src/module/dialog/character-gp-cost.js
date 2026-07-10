@@ -69,12 +69,13 @@ export default class OseCharacterGpCost extends FormApplication {
   // eslint-disable-next-line no-underscore-dangle
   async _onSubmit(event, { preventClose = false, preventRender = false } = {}) {
     // eslint-disable-next-line no-underscore-dangle
-    super._onSubmit(event, {
+    await super._onSubmit(event, {
       preventClose,
       preventRender,
     });
-    // Generate gold
-    const totalCost = await this.#getTotalCost(await this.getData());
+    // Generate gold; compute the cost from the actor's live inventory rather
+    // than the snapshot taken when the dialog was opened.
+    const totalCost = await this.#getTotalCost({ items: [...this.object.items] });
     const gp = await this.object.items.find((item) => {
       const itemData = item.system;
       return (

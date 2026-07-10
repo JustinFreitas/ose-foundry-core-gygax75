@@ -291,10 +291,7 @@ export default class OseItem extends Item {
    */
   async pushManualTag(values) {
     const data = this?.system;
-    let update = [];
-    if (data.tags) {
-      update = data.tags;
-    }
+    const update = data.tags ? [...data.tags] : [];
     const newData = {};
     const regExp = /\(([^)]+)\)/;
     values.forEach((val) => {
@@ -310,25 +307,29 @@ export default class OseItem extends Item {
         title = trimmedVal;
       }
       // Auto fill checkboxes
+      let isCheckboxTag = false;
       switch (title.toLowerCase()) {
         case CONFIG.OSE.tags.melee.toLowerCase(): {
           newData.melee = true;
+          isCheckboxTag = true;
           break;
         }
 
         case CONFIG.OSE.tags.slow.toLowerCase(): {
           newData.slow = true;
+          isCheckboxTag = true;
           break;
         }
 
         case CONFIG.OSE.tags.missile.toLowerCase(): {
           newData.missile = true;
+          isCheckboxTag = true;
           break;
         }
       }
 
       // Add the tag if it has a specific title or if it is not a checkbox
-      if (title !== trimmedVal || (!newData.melee && !newData.slow && !newData.missile)) {
+      if (title !== trimmedVal || !isCheckboxTag) {
         update.push({
           title,
           value: trimmedVal,
@@ -468,73 +469,73 @@ export default class OseItem extends Item {
     // Extract card data
     const button = event.target.closest(".card-buttons button");
     button.disabled = true;
-    const card = button.closest(".chat-card");
-    const { messageId } = card.closest(".message").dataset;
-    const message = game.messages.get(messageId);
-    const { action } = button.dataset;
+    try {
+      const card = button.closest(".chat-card");
+      const { messageId } = card.closest(".message").dataset;
+      const message = game.messages.get(messageId);
+      const { action } = button.dataset;
 
-    // Validate permission to proceed with the roll
-    const isTargetted = action === "save";
-    if (!(isTargetted || game.user.isGM || message.isAuthor)) return;
+      // Validate permission to proceed with the roll
+      const isTargetted = action === "save";
+      if (!(isTargetted || game.user.isGM || message.isAuthor)) return;
 
-    // Get the Actor from a synthetic Token
-    const actor = OseItem._getChatCardActor(card);
-    if (!actor) return;
+      // Get the Actor from a synthetic Token
+      const actor = OseItem._getChatCardActor(card);
+      if (!actor) return;
 
-    // Get the Item
-    const item = actor.items.get(card.dataset.itemId);
-    if (!item) {
-      return ui.notifications.error(
-        game.i18n.format("OSE.error.itemNoLongerExistsOnActor", {
-          actorName: actor.name,
-          itemId: card.dataset.itemId,
-        }),
-      );
-    }
-
-    // Get card targets
-    let targets = [];
-    if (isTargetted) {
-      targets = OseItem._getChatCardTargets(card);
-    }
-
-    // Attack and Damage Rolls
-    switch (action) {
-      case "damage": {
-        const attData = {
-          item: item._source,
-          roll: {
-            dmg: item.system.damage,
-            type: item.system.missile && !item.system.melee ? "missile" : "melee",
-          },
-          label: item.name,
-        };
-        await actor.rollDamage(attData, { event });
-        break;
+      // Get the Item
+      const item = actor.items.get(card.dataset.itemId);
+      if (!item) {
+        return ui.notifications.error(
+          game.i18n.format("OSE.error.itemNoLongerExistsOnActor", {
+            actorName: actor.name,
+            itemId: card.dataset.itemId,
+          }),
+        );
       }
 
-      case "formula": {
-        await item.rollFormula({ event });
-        break;
+      // Get card targets
+      let targets = [];
+      if (isTargetted) {
+        targets = OseItem._getChatCardTargets(card);
       }
 
-      case "save": {
-        if (targets.length === 0) {
-          ui.notifications.error(game.i18n.localize("OSE.error.noTokenControlled"));
-          button.disabled = false;
-          return button.disabled;
-        }
-        for (const t of targets) {
-          await t.rollSave(button.dataset.save, { event });
+      // Attack and Damage Rolls
+      switch (action) {
+        case "damage": {
+          const attData = {
+            item: item._source,
+            roll: {
+              dmg: item.system.damage,
+              type: item.system.missile && !item.system.melee ? "missile" : "melee",
+            },
+            label: item.name,
+          };
+          await actor.rollDamage(attData, { event });
+          break;
         }
 
-        break;
-      }
-      // No default
-    }
+        case "formula": {
+          await item.rollFormula({ event });
+          break;
+        }
 
-    // Re-enable the button
-    button.disabled = false;
+        case "save": {
+          if (targets.length === 0) {
+            return ui.notifications.error(game.i18n.localize("OSE.error.noTokenControlled"));
+          }
+          for (const t of targets) {
+            await t.rollSave(button.dataset.save, { event });
+          }
+
+          break;
+        }
+        // No default
+      }
+    } finally {
+      // Re-enable the button no matter how we exited
+      button.disabled = false;
+    }
   }
 
   static _getChatCardActor(card) {
@@ -544,10 +545,8 @@ export default class OseItem extends Item {
       const [sceneId, tokenId] = tokenKey.split(".");
       const scene = game.scenes.get(sceneId);
       if (!scene) return null;
-      const tokenData = scene.getEmbeddedDocument("Token", tokenId);
-      if (!tokenData) return null;
-      const token = new foundry.canvas.placeables.Token(tokenData);
-      return token.actor;
+      const tokenDocument = scene.getEmbeddedDocument("Token", tokenId);
+      return tokenDocument?.actor ?? null;
     }
 
     // Case 2 - use Actor ID directory

@@ -227,7 +227,7 @@ export class OSECombat extends foundry.documents.Combat {
    */
   async activateCombatant(turn: number) {
     if (game.user.isGM) {
-      await game.combat.update({ turn });
+      await this.update({ turn });
     }
   }
 
@@ -244,15 +244,24 @@ export class OSECombat extends foundry.documents.Combat {
       return;
     }
 
-    if (this.#combatantGroups.has(groupName)) {
-      await this.#combatantGroups.get(groupName);
-    } else {
-      const groupCreation = this.createEmbeddedDocuments("CombatantGroup", [{ name: groupName, initiative: null }]);
+    let group = this.groups.find((g: CombatantGroup) => g.name === groupName);
+    if (!group) {
+      // Deduplicate concurrent creations of the same group, but clear the
+      // cache entry once settled so a deleted group can be recreated later.
+      const groupCreation =
+        this.#combatantGroups.get(groupName) ??
+        (this.createEmbeddedDocuments("CombatantGroup", [
+          { name: groupName, initiative: null },
+        ]) as Promise<CombatantGroup>);
       this.#combatantGroups.set(groupName, groupCreation);
-      await groupCreation;
+      try {
+        await groupCreation;
+      } finally {
+        this.#combatantGroups.delete(groupName);
+      }
+      group = this.groups.find((g: CombatantGroup) => g.name === groupName);
     }
 
-    const group = this.groups.find((g: CombatantGroup) => g.name === groupName);
     if (!group) {
       return;
     }

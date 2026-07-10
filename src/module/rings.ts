@@ -17,8 +17,11 @@ export function initializeTokenRing(config: foundry.canvas.tokens.TokenRingConfi
 /**
  * Prompts the user to select the default OSE dynamic token ring.
  * Will do nothing if the user has previously been prompted.
+ * GM only: both settings written here are world-scoped, so players
+ * lack permission to answer the prompt.
  */
 export async function promptTokenRingSelection() {
+  if (!game.user.isGM) return;
   const hasPrompted = game.settings.get(game.system.id, "hasPromptedDefaultOSETokenRing");
   if (hasPrompted) return;
 

@@ -29,7 +29,7 @@ const OseDice = {
     };
 
     // Optionally include a situational bonus
-    if (form?.bonus.value) {
+    if (form?.bonus?.value) {
       parts.push(form.bonus.value);
     }
 
@@ -54,25 +54,17 @@ const OseDice = {
 
     templateData.result = OseDice.digestResult(data, roll);
 
-    return new Promise((resolve) => {
-      roll.render().then((r) => {
-        templateData.rollOSE = r;
-        foundry.applications.handlebars.renderTemplate(template, templateData).then((content) => {
-          chatData.content = content;
-          // Dice So Nice
-          if (game.dice3d) {
-            game.dice3d.showForRoll(roll, game.user, true, chatData.whisper, chatData.blind).then(() => {
-              if (chatMessage !== false) ChatMessage.create(chatData);
-              resolve(roll);
-            });
-          } else {
-            chatData.sound = CONFIG.sounds.dice;
-            if (chatMessage !== false) ChatMessage.create(chatData);
-            resolve(roll);
-          }
-        });
-      });
-    });
+    templateData.rollOSE = await roll.render();
+    chatData.content = await foundry.applications.handlebars.renderTemplate(template, templateData);
+
+    // Dice So Nice
+    if (game.dice3d) {
+      await game.dice3d.showForRoll(roll, game.user, true, chatData.whisper, chatData.blind);
+    } else {
+      chatData.sound = CONFIG.sounds.dice;
+    }
+    if (chatMessage !== false) await ChatMessage.create(chatData);
+    return roll;
   },
 
   /**
@@ -261,6 +253,7 @@ const OseDice = {
     flavor = null,
     speaker = null,
     form = null,
+    chatMessage = true,
   } = {}) {
     if (data.roll.dmg.filter((v) => v !== "").length === 0) {
       /**
@@ -284,7 +277,7 @@ const OseDice = {
     };
 
     // Optionally include a situational bonus
-    if (form?.bonus.value) parts.push(form.bonus.value);
+    if (form?.bonus?.value) parts.push(form.bonus.value);
 
     const roll = new Roll(parts.join("+"), data);
     await roll.evaluate();
@@ -309,36 +302,22 @@ const OseDice = {
 
     templateData.result = OseDice.digestAttackResult(data, roll);
 
-    return new Promise((resolve) => {
-      roll.render().then((r) => {
-        templateData.rollOSE = r;
-        dmgRoll.render().then((dr) => {
-          templateData.rollDamage = dr;
-          foundry.applications.handlebars.renderTemplate(template, templateData).then((content) => {
-            chatData.content = content;
-            // 2 Step Dice So Nice
-            if (game.dice3d) {
-              game.dice3d.showForRoll(roll, game.user, true, chatData.whisper, chatData.blind).then(() => {
-                if (templateData.result.isSuccess) {
-                  templateData.result.dmg = dmgRoll.total;
-                  game.dice3d.showForRoll(dmgRoll, game.user, true, chatData.whisper, chatData.blind).then(() => {
-                    ChatMessage.create(chatData);
-                    resolve(roll);
-                  });
-                } else {
-                  ChatMessage.create(chatData);
-                  resolve(roll);
-                }
-              });
-            } else {
-              chatData.sound = CONFIG.sounds.dice;
-              ChatMessage.create(chatData);
-              resolve(roll);
-            }
-          });
-        });
-      });
-    });
+    templateData.rollOSE = await roll.render();
+    templateData.rollDamage = await dmgRoll.render();
+    chatData.content = await foundry.applications.handlebars.renderTemplate(template, templateData);
+
+    // 2 Step Dice So Nice
+    if (game.dice3d) {
+      await game.dice3d.showForRoll(roll, game.user, true, chatData.whisper, chatData.blind);
+      if (templateData.result.isSuccess) {
+        templateData.result.dmg = dmgRoll.total;
+        await game.dice3d.showForRoll(dmgRoll, game.user, true, chatData.whisper, chatData.blind);
+      }
+    } else {
+      chatData.sound = CONFIG.sounds.dice;
+    }
+    if (chatMessage !== false) await ChatMessage.create(chatData);
+    return roll;
   },
 
   async RollSave({

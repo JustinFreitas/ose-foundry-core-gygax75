@@ -45,7 +45,7 @@ export default class OseCharacterModifiers extends FormApplication {
   }
 
   /** @override */
-  async _updateObject(event, formData) {
+  async _updateObject(_event, formData) {
     return this.object.update(formData);
   }
 }

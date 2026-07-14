@@ -175,9 +175,12 @@ global.foundry = {
   },
   applications: {
     api: {
-      DialogV2: {
-        wait: vi.fn().mockResolvedValue({}),
-        confirm: vi.fn().mockResolvedValue(true),
+      DialogV2: class {
+        static wait = vi.fn().mockResolvedValue({});
+        static confirm = vi.fn().mockResolvedValue(true);
+        static prompt = vi.fn().mockResolvedValue({});
+        addEventListener = vi.fn();
+        render = vi.fn().mockReturnThis();
       },
     },
     handlebars: {

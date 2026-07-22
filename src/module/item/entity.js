@@ -53,8 +53,6 @@ export default class OseItem extends Item {
     super.prepareData();
   }
 
-
-
   static chatListeners(html) {
     // Use event delegation for buttons
     html.addEventListener("click", (event) => {

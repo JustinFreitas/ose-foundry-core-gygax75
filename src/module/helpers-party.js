@@ -79,4 +79,3 @@ export const resetDutyXP = async (targetActors = null) => {
     ui.notifications.info("No characters currently have active Duty XP.");
   }
 };
-

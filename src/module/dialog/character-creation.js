@@ -73,7 +73,7 @@ export default class OseCharacterCreator extends FormApplication {
     stats.find(".avg").text(Math.round((10 * sum) / n) / 10);
     stats.find(".std").text(Math.round(100 * std) / 100);
 
-    let subparElem = stats.find(".subpar-warning");
+    const subparElem = stats.find(".subpar-warning");
     if (isSubPar) {
       if (subparElem.length === 0) {
         stats.append(

@@ -13,7 +13,7 @@ export default class OSECombatGroupSelector extends HandlebarsApplicationMixin(A
   // ===========================================================================
   static DEFAULT_OPTIONS = {
     id: "combat-set-groups-{id}",
-    classes: ["combat-set-groups"],
+    classes: ["ose", "dialog", "combat-set-groups"],
     tag: "form",
     window: {
       frame: true,

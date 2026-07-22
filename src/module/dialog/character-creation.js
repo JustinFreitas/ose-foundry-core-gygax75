@@ -65,10 +65,24 @@ export default class OseCharacterCreator extends FormApplication {
     const mean = Number.parseFloat(sum) / n;
     const std = Math.sqrt(scores.map((x) => (x.value - mean) ** 2).reduce((acc, next) => acc + next, 0) / n);
 
+    const lowScoresCount = scores.filter((x) => x.value <= 8).length;
+    const isSubPar = n >= 6 && (sum <= 55 || lowScoresCount >= 2);
+
     const stats = list.siblings(".roll-stats");
     stats.find(".sum").text(sum);
     stats.find(".avg").text(Math.round((10 * sum) / n) / 10);
     stats.find(".std").text(Math.round(100 * std) / 100);
+
+    let subparElem = stats.find(".subpar-warning");
+    if (isSubPar) {
+      if (subparElem.length === 0) {
+        stats.append(
+          `<div class="subpar-warning" style="color: #c9302c; font-weight: bold; font-size: 0.85em; margin-top: 6px; text-align: center;">⚠️ Sub-Par Character (Total ≤ 55 or 2+ scores ≤ 8)</div>`,
+        );
+      }
+    } else {
+      subparElem.remove();
+    }
 
     if (n >= 6) {
       $(ev.currentTarget).closest("form").find('button[type="submit"]').removeAttr("disabled");
@@ -78,6 +92,7 @@ export default class OseCharacterCreator extends FormApplication {
       sum,
       avg: Math.round((10 * sum) / n) / 10,
       std: Math.round(100 * std) / 100,
+      isSubPar,
     };
   }
 

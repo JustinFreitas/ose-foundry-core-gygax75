@@ -2,6 +2,7 @@
  * @file An application for managing the current party.
  */
 import OSE from "../config";
+import { resetDutyXP } from "../helpers-party";
 import OseParty from "./party";
 import OsePartyXP from "./party-xp";
 
@@ -56,13 +57,16 @@ export default class OsePartySheet extends FormApplication {
     const settings = {
       ascending: game.settings.get(game.system.id, "ascendingAC"),
     };
+    const partyActors = OseParty.currentParty;
+    const hasDutyXP = partyActors.some((a) => a.flags?.dutyXP !== undefined);
 
     return {
-      partyActors: OseParty.currentParty,
+      partyActors,
       // data: this.object,
       config: CONFIG.OSE,
       user: game.user,
       settings,
+      hasDutyXP,
     };
   }
 
@@ -415,6 +419,25 @@ export default class OsePartySheet extends FormApplication {
 
     html.find(".header #deal-xp").click(this._dealXP.bind(this));
     html.find(".header #manage-parties").click(this._manageParties.bind(this));
+    html.find(".header #reset-duty-xp").click(async () => {
+      const partyActorsWithDuty = OseParty.currentParty.filter((a) => a.flags?.dutyXP !== undefined);
+      if (partyActorsWithDuty.length === 0) {
+        ui.notifications.info("No characters in party currently have active Duty XP.");
+        return;
+      }
+      const confirmed = await foundry.applications.api.DialogV2.confirm({
+        classes: ["ose", "dialog"],
+        position: { width: 400, height: "auto" },
+        window: {
+          title: game.i18n.localize("OSE.dialog.party.resetDutyTitle") || "Reset Duty XP Bonuses",
+        },
+        content: `<p>Reset Duty XP (+5%) bonuses for <strong>${partyActorsWithDuty.length} character(s)</strong> back to their original values?</p>`,
+      });
+      if (confirmed) {
+        await resetDutyXP(partyActorsWithDuty);
+        this.render(true);
+      }
+    });
 
     // Actor buttons
     const getActor = (event) => {

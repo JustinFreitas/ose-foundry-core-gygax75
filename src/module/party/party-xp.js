@@ -2,6 +2,7 @@
  * @file An application for dispensing XP to party members
  */
 import OSE from "../config";
+import { resetDutyXP } from "../helpers-party";
 import OseParty from "./party";
 
 export default class OsePartyXP extends FormApplication {
@@ -95,6 +96,22 @@ export default class OsePartyXP extends FormApplication {
       }
     });
     await Promise.all(promises);
+
+    // Prompt DM to reset Duty XP bonuses if any party members have active duty XP
+    const dutyActors = OseParty.currentParty.filter((a) => a.flags?.dutyXP !== undefined);
+    if (dutyActors.length > 0) {
+      const confirmed = await foundry.applications.api.DialogV2.confirm({
+        classes: ["ose", "dialog"],
+        position: { width: 400, height: "auto" },
+        window: {
+          title: game.i18n.localize("OSE.dialog.party.resetDutyTitle") || "Reset Duty XP Bonuses?",
+        },
+        content: `<p>XP has been distributed! <strong>${dutyActors.length} character(s)</strong> currently have active Duty XP (+5%) bonuses. Would you like to reset their XP bonuses back to normal now?</p>`,
+      });
+      if (confirmed) {
+        await resetDutyXP(dutyActors);
+      }
+    }
   }
 
   activateListeners(html) {

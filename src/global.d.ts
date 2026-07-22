@@ -4,13 +4,10 @@ import { OseCombat } from "./module/combat";
 import type { OseConfig } from "./module/config";
 
 declare global {
-  // Configure foundry-vtt-types for lenient typing
-  // Assume all initialization hooks have run for full Game type coverage
-  interface AssumeHookRan {
-    init: never;
-    i18nInit: never;
-    setup: never;
-    ready: never;
+  interface LenientGlobalVariableTypes {
+    game: never;
+    canvas: never;
+    ui: never;
   }
 
   interface CONFIG {

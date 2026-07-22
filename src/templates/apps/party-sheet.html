@@ -23,6 +23,17 @@
     >
       {{localize 'OSE.dialog.xp.label'}}
     </button>
+    {{#if hasDutyXP}}
+    <button
+      id="reset-duty-xp"
+      class="item-control warning"
+      type="button"
+      style="background: #a94442; color: white; margin-left: 4px;"
+      title="Reset Duty XP Bonuses"
+    >
+      <i class="fas fa-rotate-left"></i> Reset Duty
+    </button>
+    {{/if}}
     {{/if}}
   </div>
   <div class="body party-members">
@@ -47,7 +58,12 @@
         </div>
         <div class="fields">
           <div class="flexrow field-row">
-            <div title="{{e.name}}" class="field-name flex2">{{e.name}}</div>
+            <div title="{{e.name}}" class="field-name flex2">
+              {{e.name}}
+              {{#if e.flags.dutyXP}}
+              <span class="duty-badge" title="Active Duty XP (+5%)" style="background: #f0ad4e; color: #000; font-size: 0.75em; padding: 1px 4px; border-radius: 3px; margin-left: 4px; font-weight: bold;">🏅 Duty</span>
+              {{/if}}
+            </div>
             <div class="field-long" title="{{localize 'OSE.Health'}}">
               <i class="fas fa-heart"></i>
               {{e.system.hp.value}}/{{e.system.hp.max}}

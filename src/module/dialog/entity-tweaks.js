@@ -6,7 +6,7 @@ import OSE from "../config";
 export default class OseEntityTweaks extends FormApplication {
   static get defaultOptions() {
     return foundry.utils.mergeObject(FormApplication.defaultOptions, {
-      classes: ["sheet-tweaks"],
+      classes: ["ose", "dialog", "sheet-tweaks"],
       id: "entity-tweaks",
       template: `${OSE.systemPath()}/templates/actors/dialogs/tweaks-dialog.html`,
       width: 380,

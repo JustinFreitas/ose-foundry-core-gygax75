@@ -42,6 +42,27 @@ export default class OseCharacterGpCost extends FormApplication {
    */
   async getData() {
     const data = await foundry.utils.deepClone(this.object.preparedData);
+    
+    // Override the cost display to show the bundle cost dynamically
+    const updateDisplayCost = (items) => {
+      if (!items) return;
+      for (let item of items) {
+        if (OseCharacterGpCost.physicalItemTypes.has(item.type) && !item.system.treasure && !item.flags?.ose?.paid) {
+          item.system.cost = OseCharacterGpCost.getCartItemCost(item);
+        }
+      }
+    };
+    
+    updateDisplayCost(data.owned?.weapons);
+    updateDisplayCost(data.owned?.armors);
+    updateDisplayCost(data.owned?.items);
+    if (data.owned?.containers) {
+      updateDisplayCost(data.owned.containers);
+      for (let bag of data.owned.containers) {
+        updateDisplayCost(bag.system?.contents);
+      }
+    }
+
     data.totalCost = await this.#getTotalCost(data);
     data.user = game.user;
     this.inventory = this.object.items;
@@ -146,12 +167,27 @@ export default class OseCharacterGpCost extends FormApplication {
     this.object.sheet.render(true);
   }
 
+  static getCartItemCost(item) {
+    const itemData = item.system;
+    if (!itemData) return 0;
+    
+    let calculatedCost = 0;
+    // If it's a bundled item (has a max quantity and parenthesis in name like 'Case of Bolts (30)'), charge bundle price
+    if (/\(\d+\)/.test(item.name) && itemData.quantity?.max > 0) {
+      calculatedCost = itemData.cost * itemData.quantity.max;
+    } else {
+      // Normal item, charge per-unit price * quantity
+      calculatedCost = itemData.cost * (itemData.quantity?.value || 1);
+    }
+    return Math.round(calculatedCost * 100) / 100;
+  }
+
   async #getTotalCost(data) {
     const rawTotal = data.items.reduce((total, item) => {
       const itemData = item.system;
       // Only count non-treasure physical items that haven't been paid for yet
       if (OseCharacterGpCost.physicalItemTypes.has(item.type) && !itemData.treasure && !item.flags?.ose?.paid) {
-        return total + itemData.cost;
+        return total + OseCharacterGpCost.getCartItemCost(item);
       }
 
       return total;

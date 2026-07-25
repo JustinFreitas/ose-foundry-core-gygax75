@@ -134,10 +134,7 @@ export default class OseCharacterGpCost extends FormApplication {
 
     const speaker = ChatMessage.getSpeaker({ actor: this });
     const templateData = await this.getData();
-    const content = await foundry.applications.handlebars.renderTemplate(
-      `${OSE.systemPath()}/templates/chat/inventory-list.html`,
-      templateData,
-    );
+    const content = `<div class="ose chat-card"><div class="ose chat-block"><div class="flexrow chat-header"><div class="chat-title" style="padding-top: 10px; padding-bottom: 10px;"><h2>${game.i18n.format("OSE.dialog.purchaseFor", { totalCost: templateData.totalCost })}</h2></div></div></div></div>`;
     ChatMessage.create({
       content,
       speaker,

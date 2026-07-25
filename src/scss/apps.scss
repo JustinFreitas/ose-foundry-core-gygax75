@@ -86,9 +86,9 @@
 
         .field-short {
           font-size: var(--font-size-12);
-          flex-basis: 45px;
-          flex-grow: 0;
-          text-align: center;
+          text-align: right;
+          white-space: nowrap;
+          padding-right: 5px;
         }
       }
     }

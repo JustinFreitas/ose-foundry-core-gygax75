@@ -25,6 +25,9 @@ export default class OseDataModelItem extends foundry.abstract.TypeDataModel {
   }
 
   get cumulativeCost() {
+    if (this.quantity?.max > 0) {
+      return (this.cost / this.quantity.max) * this.quantity.value;
+    }
     return this.cost * this.quantity.value;
   }
 

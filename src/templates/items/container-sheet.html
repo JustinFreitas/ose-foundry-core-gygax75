@@ -11,7 +11,7 @@
     <div class="flexrow">
       <div class="stats">
         <div class="form-group">
-          <label>{{localize 'OSE.items.Cost'}}</label>
+          <label>{{localize 'OSE.items.Cost'}}{{#if system.quantity.max}} (Bundle){{/if}}</label>
           <div class="form-fields">
             <input
               type="text"

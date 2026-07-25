@@ -10,7 +10,7 @@
           ></div>
           <h4 class="item-name" style="white-space: nowrap; padding-right: 15px;" title="{{item.name}}">{{item.name~}}</h4>
             <div class="field-short">
-              {{item.system.cost}}
+              {{item.system.cost}}{{#if item.system.quantity.max}} [Bundle]{{/if}}
             </div>
           </div>
         </li>
@@ -24,7 +24,7 @@
             ></div>
             <h4 class="item-name" style="white-space: nowrap; padding-right: 15px;" title="{{item.name}}">{{item.name~}}</h4>
               <div class="field-short">
-                {{item.system.cost}}
+                {{item.system.cost}}{{#if item.system.quantity.max}} [Bundle]{{/if}}
               </div>
             </div>
           </li>
@@ -38,7 +38,7 @@
             ></div>
             <h4 class="item-name" style="white-space: nowrap; padding-right: 15px;" title="{{bag.name}}">{{bag.name~}}</h4>
               <div class="field-short">
-                {{bag.system.cost}}
+                {{bag.system.cost}}{{#if bag.system.quantity.max}} [Bundle]{{/if}}
               </div>
             </div>
           </li>
@@ -51,7 +51,7 @@
             ></div>
             <h4 class="item-name" style="white-space: nowrap; padding-right: 15px;" title="{{item.name}}">{{item.name~}}</h4>
               <div class="field-short">
-                {{item.system.cost}}
+                {{item.system.cost}}{{#if item.system.quantity.max}} [Bundle]{{/if}}
               </div>
             </div>
           </li>
@@ -66,7 +66,7 @@
             ></div>
             <h4 class="item-name" style="white-space: nowrap; padding-right: 15px;" title="{{item.name}}">{{item.name~}}</h4>
               <div class="field-short">
-                {{item.system.cost}}
+                {{item.system.cost}}{{#if item.system.quantity.max}} [Bundle]{{/if}}
               </div>
             </div>
           </li>

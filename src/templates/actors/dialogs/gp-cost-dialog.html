@@ -9,8 +9,8 @@
             style="background-image: url({{item.img}})"
           ></div>
           <h4 class="item-name" style="white-space: nowrap; padding-right: 15px;" title="{{item.name}}">{{item.name~}}</h4>
-            <div class="field-short">
-              {{item.system.cost}}{{#if item.system.quantity.max}} [Bundle]{{/if}}
+            <div class="field-short" {{#if item.system.bundleTooltip}}title="{{item.system.bundleTooltip}}"{{/if}}>
+              {{item.system.cost}}
             </div>
           </div>
         </li>
@@ -23,8 +23,8 @@
               style="background-image: url({{item.img}})"
             ></div>
             <h4 class="item-name" style="white-space: nowrap; padding-right: 15px;" title="{{item.name}}">{{item.name~}}</h4>
-              <div class="field-short">
-                {{item.system.cost}}{{#if item.system.quantity.max}} [Bundle]{{/if}}
+              <div class="field-short" {{#if item.system.bundleTooltip}}title="{{item.system.bundleTooltip}}"{{/if}}>
+                {{item.system.cost}}
               </div>
             </div>
           </li>
@@ -37,8 +37,8 @@
               style="background-image: url({{bag.img}})"
             ></div>
             <h4 class="item-name" style="white-space: nowrap; padding-right: 15px;" title="{{bag.name}}">{{bag.name~}}</h4>
-              <div class="field-short">
-                {{bag.system.cost}}{{#if bag.system.quantity.max}} [Bundle]{{/if}}
+              <div class="field-short" {{#if bag.system.bundleTooltip}}title="{{bag.system.bundleTooltip}}"{{/if}}>
+                {{bag.system.cost}}
               </div>
             </div>
           </li>
@@ -50,8 +50,8 @@
               style="background-image: url({{item.img}})"
             ></div>
             <h4 class="item-name" style="white-space: nowrap; padding-right: 15px;" title="{{item.name}}">{{item.name~}}</h4>
-              <div class="field-short">
-                {{item.system.cost}}{{#if item.system.quantity.max}} [Bundle]{{/if}}
+              <div class="field-short" {{#if item.system.bundleTooltip}}title="{{item.system.bundleTooltip}}"{{/if}}>
+                {{item.system.cost}}
               </div>
             </div>
           </li>
@@ -65,8 +65,8 @@
               style="background-image: url({{item.img}})"
             ></div>
             <h4 class="item-name" style="white-space: nowrap; padding-right: 15px;" title="{{item.name}}">{{item.name~}}</h4>
-              <div class="field-short">
-                {{item.system.cost}}{{#if item.system.quantity.max}} [Bundle]{{/if}}
+              <div class="field-short" {{#if item.system.bundleTooltip}}title="{{item.system.bundleTooltip}}"{{/if}}>
+                {{item.system.cost}}
               </div>
             </div>
           </li>

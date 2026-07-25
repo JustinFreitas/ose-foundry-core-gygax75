@@ -709,11 +709,11 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
   }
 
   // eslint-disable-next-line no-underscore-dangle
-  async _onResize(event) {
-    // eslint-disable-next-line no-underscore-dangle
-    super._onResize(event);
+  setPosition(position) {
+    super.setPosition(position);
 
-    const html = $(this.form);
+    const html = this.element;
+    if (!html) return;
     const resizable = html.find(".resizable");
     if (resizable.length === 0) {
       return;

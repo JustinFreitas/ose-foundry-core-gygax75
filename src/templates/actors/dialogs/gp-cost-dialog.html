@@ -1,6 +1,6 @@
 <form autocomplete="off">
   <div class="inventory">
-        <ul class="item-list">
+      <ul class="item-list">
         {{#each owned.weapons as |item|}}
         <li class="item-entry item" data-item-id="{{item.id}}">
           <div class="item-header flexrow">
@@ -16,8 +16,6 @@
           </div>
         </li>
         {{/each}}
-      </ul>
-      <ul class="item-list">
         {{#each owned.armors as |item|}}
         <li class="item-entry item" data-item-id="{{item.id}}">
             <div class="item-header flexrow">
@@ -33,8 +31,6 @@
             </div>
           </li>
         {{/each}}
-      </ul>
-      <ul class="item-list">
         {{#each owned.containers as |bag|}}
         <li class="item-entry item" data-item-id="{{bag.id}}">
             <div class="item-header flexrow">
@@ -67,8 +63,6 @@
         </ol>
             {{/each}}
         {{/each}}
-      </ul>
-      <ul class="item-list">
         {{#each owned.items as |item|}}
         <li class="item-entry item" data-item-id="{{item.id}}">
             <div class="item-header flexrow">

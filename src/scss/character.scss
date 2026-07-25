@@ -177,6 +177,7 @@
     grid-template-columns: 1fr max-content;
     gap: 5px 0;
     margin-top: 5px;
+    padding-right: 15px; // prevent window drag handle from overlapping text
 
     .encumbrance-label {
       height: 10px;

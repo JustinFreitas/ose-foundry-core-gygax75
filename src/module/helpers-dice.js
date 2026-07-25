@@ -413,6 +413,8 @@ const OseDice = {
     title = null,
     chatMessage = true,
     flags = {},
+    ammoOptions = null,
+    onConfirm = null,
   } = {}) {
     const template = `${OSE.systemPath()}/templates/chat/roll-dialog.html`;
     const dialogData = {
@@ -420,6 +422,7 @@ const OseDice = {
       data,
       rollMode: data.roll.blindroll ? "blindroll" : getRollMode(),
       rollModes: getRollModes(),
+      ammoOptions,
     };
     const rollData = {
       parts,
@@ -431,6 +434,13 @@ const OseDice = {
       flags,
     };
     if (skipDialog) {
+      if (typeof onConfirm === "function") {
+        const warning = await onConfirm(null); // null form means skipDialog
+        if (warning) {
+          rollData.flavor = rollData.flavor ? `${rollData.flavor} [${warning}]` : `[${warning}]`;
+          rollData.title = rollData.title ? `${rollData.title} [${warning}]` : `[${warning}]`;
+        }
+      }
       return ["melee", "missile", "attack"].includes(data.roll.type)
         ? OseDice.sendAttackRoll(rollData)
         : OseDice.sendRoll(rollData);
@@ -441,8 +451,15 @@ const OseDice = {
         action: "ok",
         label: game.i18n.localize("OSE.Roll"),
         icon: "fas fa-dice-d20",
-        callback: (_event, button) => {
+        callback: async (_event, button) => {
           rollData.form = button.form;
+          if (typeof onConfirm === "function") {
+            const warning = await onConfirm(button.form);
+            if (warning) {
+              rollData.flavor = rollData.flavor ? `${rollData.flavor} [${warning}]` : `[${warning}]`;
+              rollData.title = rollData.title ? `${rollData.title} [${warning}]` : `[${warning}]`;
+            }
+          }
           return ["melee", "missile", "attack"].includes(data.roll.type)
             ? OseDice.sendAttackRoll(rollData)
             : OseDice.sendRoll(rollData);

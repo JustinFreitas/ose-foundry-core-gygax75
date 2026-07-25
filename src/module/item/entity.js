@@ -197,15 +197,17 @@ export default class OseItem extends Item {
     }
 
     if (isThrown) {
-      if (this.system.quantity?.value > 0) {
-        await this.update({ "system.quantity.value": this.system.quantity.value - 1 });
-        return true;
-      }
-      if (mode === "enforce") {
+      if (this.system.quantity?.value <= 0 && mode === "enforce") {
         ui.notifications.error(game.i18n.format("OSE.error.outOfAmmo", { name: this.name }));
         return false;
       }
-      options.ammoWarning = game.i18n.format("OSE.error.outOfAmmo", { name: this.name });
+      options.onConfirm = async () => {
+        if (this.system.quantity?.value > 0) {
+          await this.update({ "system.quantity.value": this.system.quantity.value - 1 });
+          return null;
+        }
+        return game.i18n.format("OSE.error.outOfAmmo", { name: this.name });
+      };
       return true;
     }
     const validAmmo = this.actor.items.filter((i) => {
@@ -221,7 +223,9 @@ export default class OseItem extends Item {
         ui.notifications.error(game.i18n.format("OSE.error.noAmmoFound", { type: requiredAmmo[0] }));
         return false;
       }
-      options.ammoWarning = game.i18n.format("OSE.error.noAmmoFound", { type: requiredAmmo[0] });
+      options.onConfirm = async () => {
+        return game.i18n.format("OSE.error.noAmmoFound", { type: requiredAmmo[0] });
+      };
       return true;
     }
 
@@ -233,58 +237,18 @@ export default class OseItem extends Item {
       return a.name.localeCompare(b.name);
     });
 
-    return new Promise((resolve) => {
-      const content = `
-          <form>
-            <div class="form-group">
-              <label>${game.i18n.localize("OSE.dialog.selectAmmunition")}</label>
-            </div>
-            ${availableAmmo
-              .map(
-                (a, idx) => `
-              <div class="form-group">
-                <label>
-                  <input type="radio" name="ammoId" value="${a.id}" ${idx === 0 ? "checked" : ""}>
-                  ${a.name} (${a.system.quantity.value} left)
-                </label>
-              </div>
-            `,
-              )
-              .join("")}
-          </form>
-        `;
-
-      new foundry.applications.api.DialogV2({
-        classes: ["ose", "dialog"],
-        window: { title: game.i18n.localize("OSE.dialog.selectAmmunition") },
-        position: { width: 400, height: "auto" },
-        content: content,
-        buttons: [
-          {
-            action: "fire",
-            icon: "fas fa-bullseye",
-            label: game.i18n.localize("OSE.Missile"),
-            default: true,
-            callback: async (_event, button, _dialog) => {
-              const form = button.form;
-              const ammoId = form.elements.ammoId.value;
-              const ammoItem = this.actor.items.get(ammoId);
-              if (ammoItem) {
-                await ammoItem.update({ "system.quantity.value": ammoItem.system.quantity.value - 1 });
-                options.ammoSpent = `${ammoItem.name} (${ammoItem.system.quantity.value - 1} left)`;
-              }
-              resolve(true);
-            },
-          },
-          {
-            action: "cancel",
-            label: game.i18n.localize("Cancel"),
-            callback: () => resolve(false),
-          },
-        ],
-        rejectClose: false,
-      }).render(true);
-    });
+    options.ammoOptions = availableAmmo.map((a) => ({ id: a.id, name: a.name, quantity: a.system.quantity.value }));
+    options.onConfirm = async (form) => {
+      // If skipDialog was used, form is null, so use the first ammo
+      const ammoId = form?.elements?.ammoId?.value || options.ammoOptions[0].id;
+      const ammoItem = this.actor.items.get(ammoId);
+      if (ammoItem) {
+        await ammoItem.update({ "system.quantity.value": ammoItem.system.quantity.value - 1 });
+        return `${ammoItem.name} (${ammoItem.system.quantity.value - 1} left)`;
+      }
+      return null;
+    };
+    return true;
   }
 
   async rollFormula(options = {}) {

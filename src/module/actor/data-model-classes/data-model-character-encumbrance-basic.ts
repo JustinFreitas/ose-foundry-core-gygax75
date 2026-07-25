@@ -100,6 +100,8 @@ export default class OseDataModelCharacterEncumbranceBasic
       atFirstBreakpoint: new BooleanField({ initial: false }),
       atSecondBreakpoint: new BooleanField({ initial: false }),
       atThirdBreakpoint: new BooleanField({ initial: false }),
+      nextBreakpointValue: new NumberField({ nullable: true, required: false, initial: null }),
+      untilNextBreakpoint: new NumberField({ nullable: true, required: false, initial: null }),
     });
   }
 
@@ -113,6 +115,13 @@ export default class OseDataModelCharacterEncumbranceBasic
 
   get value() {
     return this.#weight;
+  }
+
+  get nextBreakpointValue() {
+    if (this.value < this.#treasureEncumbrance) {
+      return this.#treasureEncumbrance;
+    }
+    return null;
   }
 
   get overSignificantTreasureThreshold() {

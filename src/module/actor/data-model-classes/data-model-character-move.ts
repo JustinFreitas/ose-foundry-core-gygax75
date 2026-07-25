@@ -64,9 +64,9 @@ export default class OseDataModelCharacterMove implements CharacterMove {
 
   get base() {
     // Manual entry for movement
-    if (!this.#autocalculate || this.#encumbranceVariant === "disabled") return this.#moveBase;
+    if (!this.#autocalculate || this.#encumbranceVariant === "disabled") return Math.round(this.#moveBase);
     // Automatic calculation for movement
-    return this.#derivedSpeed();
+    return Math.round(this.#derivedSpeed());
   }
 
   set base(value) {
@@ -74,10 +74,10 @@ export default class OseDataModelCharacterMove implements CharacterMove {
   }
 
   get encounter() {
-    return this.base / 3;
+    return Math.round(this.base / 3);
   }
 
   get overland() {
-    return this.base / 5;
+    return Math.round(this.base / 5);
   }
 }

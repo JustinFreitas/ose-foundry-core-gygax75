@@ -64,8 +64,8 @@ export default class OseDataModelCharacter extends foundry.abstract.TypeDataMode
       }),
       hp: new SchemaField({
         hd: new StringField(),
-        value: new NumberField({ integer: true }),
-        max: new NumberField({ integer: true }),
+        value: new NumberField({ integer: true, initial: 1 }),
+        max: new NumberField({ integer: true, initial: 1 }),
       }),
       thac0: new ObjectField(),
       // Damage modifiers (e.g. damage.mod.missile), applied via Active Effects.

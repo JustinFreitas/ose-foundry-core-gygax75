@@ -21,6 +21,9 @@ export default class OseDataModelItem extends foundry.abstract.TypeDataModel {
   }
 
   get cumulativeWeight() {
+    if (this.quantity?.max > 0) {
+      return (this.weight / this.quantity.max) * this.quantity.value;
+    }
     return this.weight * this.quantity.value;
   }
 
@@ -32,6 +35,9 @@ export default class OseDataModelItem extends foundry.abstract.TypeDataModel {
   }
 
   get cumulativeItemslots() {
+    if (this.quantity?.max > 0) {
+      return Math.ceil((this.itemslots / this.quantity.max) * this.quantity.value);
+    }
     return Math.ceil(this.itemslots * this.quantity.value);
   }
 

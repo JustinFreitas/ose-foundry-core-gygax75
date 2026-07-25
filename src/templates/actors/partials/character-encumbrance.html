@@ -1,5 +1,5 @@
-<div class="encumbrance {{#if encumbered}}encumbered{{/if}}">
-  <span class="encumbrance-bar" style="width:{{pct}}%"></span>
+<div class="encumbrance {{#if encumbered}}encumbered{{/if}}" title="Movement: {{#if @root.system.movement.base}}{{@root.system.movement.base}}' ({{@root.system.movement.encounter}}'){{else}}Unknown{{/if}}">
+  <span class="encumbrance-bar {{#if atThirdBreakpoint}}tier-4{{else if atSecondBreakpoint}}tier-3{{else if atFirstBreakpoint}}tier-2{{else}}tier-1{{/if}}" style="width:{{pct}}%"></span>
   {{#each steps as |s|}}
   <i class="encumbrance-breakpoint arrow-up" style="left:{{s}}%"></i>
   <i class="encumbrance-breakpoint arrow-down" style="left:{{s}}%"></i>

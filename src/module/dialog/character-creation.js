@@ -105,8 +105,12 @@ export default class OseCharacterCreator extends FormApplication {
     const data = {
       roll: {},
     };
-    // Roll and return; skipMessage suppresses the individual chat card
-    // (the auto-roller posts a single summary card on submit instead).
+    // Roll and return early if skipping message to prevent 3D dice spam
+    if (options.skipMessage) {
+      const skipMessagRoll = new Roll(rollParts[0]);
+      await skipMessagRoll.evaluate();
+      return skipMessagRoll;
+    }
     return OseDice.Roll({
       event: options.event,
       parts: rollParts,
@@ -158,9 +162,28 @@ export default class OseCharacterCreator extends FormApplication {
 
     html.find("a.auto-roll").click(async (ev) => {
       const stats = ["str", "int", "dex", "wis", "con", "cha"];
+      let subPar = true;
+      let rerollCount = 0;
+      while (subPar) {
+        let total = 0;
+        let count8orLess = 0;
+        for (const char of stats) {
+          const r = await this.rollScore(char, { event: ev, skipMessage: true });
+          this.scores[char] = { value: r.total };
+          total += r.total;
+          if (r.total <= 8) {
+            count8orLess++;
+          }
+        }
+        if (total > 55 && count8orLess < 2) {
+          subPar = false;
+        } else {
+          rerollCount++;
+        }
+      }
+      this.subParRerolls = rerollCount;
       for (const char of stats) {
-        const r = await this.rollScore(char, { event: ev, skipMessage: true });
-        this.scores[char] = { value: r.total };
+        $(ev.currentTarget).closest("form").find(`[data-score="${char}"] input`).val(this.scores[char].value);
       }
       this.doStats(ev);
       const r = await this.rollScore("gold", { event: ev, skipMessage: true });
@@ -187,6 +210,7 @@ export default class OseCharacterCreator extends FormApplication {
       title: game.i18n.localize("OSE.dialog.generator"),
       stats: this.object.stats,
       gold: this.gold,
+      rerolls: this.subParRerolls,
     };
     const content = await foundry.applications.handlebars.renderTemplate(
       `${OSE.systemPath()}/templates/chat/roll-creation.html`,

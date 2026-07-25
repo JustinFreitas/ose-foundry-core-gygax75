@@ -285,7 +285,7 @@ export default class OseActorSheetCharacter extends OseActorSheet {
     let subPar = true;
     let rerollCount = 0;
     const scores = {};
-    
+
     while (subPar) {
       let total = 0;
       let count8orLess = 0;
@@ -304,28 +304,28 @@ export default class OseActorSheetCharacter extends OseActorSheet {
         rerollCount++;
       }
     }
-    
+
     const goldRoll = new Roll("3d6");
     await goldRoll.evaluate();
     const gold = 10 * goldRoll.total;
-    
+
     const scoresValues = Object.values(scores);
     const n = scoresValues.length;
     const sum = scoresValues.reduce((acc, next) => acc + next.value, 0);
     const mean = Number.parseFloat(sum) / n;
     const std = Math.sqrt(scoresValues.map((x) => (x.value - mean) ** 2).reduce((acc, next) => acc + next, 0) / n);
-    
+
     const objStats = {
       sum,
       avg: Math.round((10 * sum) / n) / 10,
       std: Math.round(100 * std) / 100,
       isSubPar: false,
     };
-    
+
     await this.actor.update({
-      "system.scores": scores
+      "system.scores": scores,
     });
-    
+
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
     const templateData = {
       config: CONFIG.OSE,
@@ -335,7 +335,7 @@ export default class OseActorSheetCharacter extends OseActorSheet {
       gold: gold,
       rerolls: rerollCount,
     };
-    
+
     const content = await foundry.applications.handlebars.renderTemplate(
       `${OSE.systemPath()}/templates/chat/roll-creation.html`,
       templateData,

@@ -40,13 +40,14 @@ export default class OseDataModelCharacterEncumbranceDetailed
     super(OseDataModelCharacterEncumbranceDetailed.type, max);
     this.#hasAdventuringGear = items.some((i: Item) => i.type === "item" && !i.system.treasure);
     this.#weight =
-      items.reduce((acc, { type, system: { treasure, quantity, weight } }: Item) => {
+      items.reduce((acc, { type, system }: Item) => {
         if (type === "spell" || type === "ability") return acc;
 
         let value = acc;
+        const itemWeight = system.cumulativeWeight ?? system.weight * (system.quantity?.value ?? 1);
 
-        if (type === "item" && treasure) value += quantity.value * weight;
-        if (["weapon", "armor", "container"].includes(type)) value += weight;
+        if (type === "item" && system.treasure) value += itemWeight;
+        if (["weapon", "armor", "container"].includes(type)) value += itemWeight;
 
         return value;
       }, 0) + (this.#hasAdventuringGear ? OseDataModelCharacterEncumbranceDetailed.gearWeight : 0);

@@ -65,11 +65,10 @@ export default class OseDataModelCharacterEncumbranceBasic
     this.#treasureEncumbrance =
       options?.significantTreasure || OseDataModelCharacterEncumbranceBasic.significantTreasure;
 
-    this.#weight = items.reduce(
-      (acc: number, { type, system: { treasure, quantity, weight } }: Item) =>
-        type !== "item" || !treasure ? acc : acc + quantity.value * weight,
-      0,
-    );
+    this.#weight = items.reduce((acc: number, { type, system }: Item) => {
+      const itemWeight = system.cumulativeWeight ?? system.weight * (system.quantity?.value ?? 1);
+      return type !== "item" || !system.treasure ? acc : acc + itemWeight;
+    }, 0);
 
     this.#heaviestArmor = items.reduce((heaviest, { type, system: { type: armorType, equipped } }) => {
       if (type !== "armor" || !equipped) return heaviest;

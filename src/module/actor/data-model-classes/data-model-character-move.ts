@@ -57,9 +57,9 @@ export default class OseDataModelCharacterMove implements CharacterMove {
 
   #derivedSpeed() {
     if (this.#overEncumbranceLimit) return 0;
-    if (this.#atThirdBreakpoint) return this.#moveBase * 0.25;
-    if (this.#atSecondBreakpoint) return this.#moveBase * 0.5;
-    return this.#atFirstBreakpoint ? this.#moveBase * 0.75 : this.#moveBase;
+    if (this.#atThirdBreakpoint) return 30;
+    if (this.#atSecondBreakpoint) return 60;
+    return this.#atFirstBreakpoint ? 90 : 120;
   }
 
   get base() {

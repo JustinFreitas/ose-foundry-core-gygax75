@@ -603,9 +603,9 @@ export default class OseActor extends Actor {
         });
 
     if (options.ammoWarning) {
-      label += `<br><span style="color: red; font-weight: bold;">${options.ammoWarning}</span>`;
+      label += ` [${options.ammoWarning}]`;
     } else if (options.ammoSpent) {
-      label += `<br><i>Spent 1x ${options.ammoSpent}</i>`;
+      label += ` [Spent 1x ${options.ammoSpent}]`;
     }
 
     const dmgParts = removeFalsyElements([

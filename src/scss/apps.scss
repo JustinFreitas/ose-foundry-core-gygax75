@@ -76,6 +76,7 @@
         .item-image {
           flex-basis: 30px;
           flex-grow: 0;
+          flex-shrink: 0;
           background-size: contain;
           background-repeat: no-repeat;
         }

@@ -563,10 +563,17 @@ export default class OseActor extends Actor {
         await this.rollAttack(data, {
           type,
           skipDialog: options.skipDialog,
+          ammoWarning: options.ammoWarning,
+          ammoSpent: options.ammoSpent,
         });
       }
     } else {
-      this.rollAttack(data, { type, skipDialog: options.skipDialog });
+      this.rollAttack(data, { 
+        type, 
+        skipDialog: options.skipDialog,
+        ammoWarning: options.ammoWarning,
+        ammoSpent: options.ammoSpent,
+      });
     }
   }
 
@@ -587,13 +594,19 @@ export default class OseActor extends Actor {
   rollAttack(attData, options = {}) {
     const data = this.system;
 
-    const label = attData.item
+    let label = attData.item
       ? game.i18n.format("OSE.roll.attacksWith", {
           name: attData.item.name,
         })
       : game.i18n.format("OSE.roll.attacks", {
           name: this.name,
         });
+
+    if (options.ammoWarning) {
+      label += `<br><span style="color: red; font-weight: bold;">${options.ammoWarning}</span>`;
+    } else if (options.ammoSpent) {
+      label += `<br><i>Spent 1x ${options.ammoSpent}</i>`;
+    }
 
     const dmgParts = removeFalsyElements([
       // Weapon damage roll value

@@ -227,6 +227,11 @@
   "OSE.effect.unequipped": "Unequipped",
   "OSE.effect.suppressedHint": "This effect is suppressed because its source item is not equipped.",
 
+  "OSE.Setting.AutomateAmmo": "Automate Ammunition Tracking",
+  "OSE.Setting.AutomateAmmoHint": "Choose how ammunition consumption is handled for missile and thrown weapons.",
+  "OSE.Setting.AutomateAmmoDisabled": "Disabled",
+  "OSE.Setting.AutomateAmmoWarn": "Track & Warn (Allow firing without ammo)",
+  "OSE.Setting.AutomateAmmoEnforce": "Track & Enforce (Block firing without ammo)",
   "OSE.Setting.Initiative": "Initiative",
   "OSE.Setting.InitiativeHint": "Grouped or individual initiative.",
   "OSE.Setting.InitiativeIndividual": "Individual initiative",
@@ -398,6 +403,9 @@
   "OSE.error.noGP": "You need a GP item to use this feature.",
   "OSE.error.unexpectedSettings": "unexpected OSE setting {configName}: {configValue}",
   "OSE.error.cantDealDamageTo": "Can't deal damage to {nameOrId}",
+  "OSE.error.outOfAmmo": "Out of ammo! ({name})",
+  "OSE.error.noAmmoFound": "Out of ammo! (No {type}s found)",
+  "OSE.dialog.selectAmmunition": "Select Ammunition",
 
   "TYPES.Base": "Base",
   "TYPES.Item.ability": "Ability",

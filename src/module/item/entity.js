@@ -119,7 +119,7 @@ export default class OseItem extends Item {
     return itemData;
   }
 
-  rollWeapon(options = {}) {
+  async rollWeapon(options = {}) {
     const isNPC = this.actor.type !== "character";
     const _targets = 5;
     const itemData = this.system;
@@ -155,8 +155,10 @@ export default class OseItem extends Item {
             action: "missile",
             icon: "fas fa-bullseye",
             label: game.i18n.localize("OSE.Missile"),
-            callback: () => {
-              this.actor.targetAttack(rollData, "missile", options);
+            callback: async () => {
+              if (await this._handleAmmoConsumption(options)) {
+                this.actor.targetAttack(rollData, "missile", options);
+              }
             },
           },
         ],
@@ -165,9 +167,124 @@ export default class OseItem extends Item {
     }
     if (itemData.missile && !isNPC) {
       type = "missile";
+      if (!(await this._handleAmmoConsumption(options))) {
+        return false;
+      }
     }
     this.actor.targetAttack(rollData, type, options);
     return true;
+  }
+
+  async _handleAmmoConsumption(options) {
+    const mode = game.settings.get(game.system.id, "automateAmmo");
+    if (mode === "disabled") return true;
+
+    const itemName = this.name.toLowerCase();
+    
+    let requiredAmmo = null;
+    let isThrown = false;
+    
+    if (itemName.includes("crossbow")) {
+      requiredAmmo = ["bolt", "quarrel"];
+    } else if (itemName.includes("bow")) {
+      requiredAmmo = ["arrow"];
+    } else if (itemName.includes("sling")) {
+      requiredAmmo = ["stone", "bullet"];
+    } else if (itemName.includes("blowpipe") || itemName.includes("blowgun")) {
+      requiredAmmo = ["dart"];
+    } else {
+      isThrown = true;
+    }
+
+    if (isThrown) {
+      if (this.system.quantity?.value > 0) {
+        await this.update({ "system.quantity.value": this.system.quantity.value - 1 });
+        return true;
+      } else {
+        if (mode === "enforce") {
+          ui.notifications.error(game.i18n.format("OSE.error.outOfAmmo", { name: this.name }));
+          return false;
+        } else {
+          options.ammoWarning = game.i18n.format("OSE.error.outOfAmmo", { name: this.name });
+          return true;
+        }
+      }
+    } else {
+      const validAmmo = this.actor.items.filter(i => {
+        if (i.type !== "item" && i.type !== "weapon") return false;
+        const iName = i.name.toLowerCase();
+        return requiredAmmo.some(req => iName.includes(req));
+      });
+
+      const availableAmmo = validAmmo.filter(i => i.system.quantity?.value > 0);
+
+      if (availableAmmo.length === 0) {
+        if (mode === "enforce") {
+          ui.notifications.error(game.i18n.format("OSE.error.noAmmoFound", { type: requiredAmmo[0] }));
+          return false;
+        } else {
+          options.ammoWarning = game.i18n.format("OSE.error.noAmmoFound", { type: requiredAmmo[0] });
+          return true;
+        }
+      }
+
+      availableAmmo.sort((a, b) => {
+        const aMagic = a.name.includes("+");
+        const bMagic = b.name.includes("+");
+        if (aMagic && !bMagic) return 1;
+        if (!aMagic && bMagic) return -1;
+        return a.name.localeCompare(b.name);
+      });
+
+      return new Promise((resolve) => {
+        const content = `
+          <form>
+            <div class="form-group">
+              <label>${game.i18n.localize("OSE.dialog.selectAmmunition")}</label>
+            </div>
+            ${availableAmmo.map((a, idx) => `
+              <div class="form-group">
+                <label>
+                  <input type="radio" name="ammoId" value="${a.id}" ${idx === 0 ? "checked" : ""}>
+                  ${a.name} (${a.system.quantity.value} left)
+                </label>
+              </div>
+            `).join("")}
+          </form>
+        `;
+
+        new foundry.applications.api.DialogV2({
+          classes: ["ose", "dialog"],
+          window: { title: game.i18n.localize("OSE.dialog.selectAmmunition") },
+          position: { width: 400, height: "auto" },
+          content: content,
+          buttons: [
+            {
+              action: "fire",
+              icon: "fas fa-bullseye",
+              label: game.i18n.localize("OSE.Missile"),
+              default: true,
+              callback: async (event, button, dialog) => {
+                const form = button.form;
+                const ammoId = form.elements.ammoId.value;
+                const ammoItem = this.actor.items.get(ammoId);
+                if (ammoItem) {
+                  await ammoItem.update({ "system.quantity.value": ammoItem.system.quantity.value - 1 });
+                  options.ammoSpent = `${ammoItem.name} (${ammoItem.system.quantity.value - 1} left)`;
+                }
+                resolve(true);
+              }
+            },
+            {
+              action: "cancel",
+              label: game.i18n.localize("Cancel"),
+              callback: () => resolve(false)
+            }
+          ],
+          rejectClose: false
+        }).render(true);
+      });
+    }
   }
 
   async rollFormula(options = {}) {

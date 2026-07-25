@@ -123,6 +123,20 @@ const registerSettings = () => {
     config: true,
     requiresReload: true,
   } as any);
+  game.settings.register(game.system.id, "automateAmmo", {
+    name: "OSE.Setting.AutomateAmmo",
+    hint: "OSE.Setting.AutomateAmmoHint",
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      disabled: "OSE.Setting.AutomateAmmoDisabled",
+      warn: "OSE.Setting.AutomateAmmoWarn",
+      enforce: "OSE.Setting.AutomateAmmoEnforce",
+    },
+    default: "warn",
+  });
+
   game.settings.register(game.system.id, "hasPromptedDefaultOSETokenRing", {
     default: false,
     scope: "world",

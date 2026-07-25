@@ -213,6 +213,21 @@ export default class OseDataModelCharacterEncumbranceItemBased
     return this.usingEquippedEncumbrance ? this.#atOneThird : this.#atFiveEighths;
   }
 
+  get nextBreakpointValue() {
+    const steps = this.usingEquippedEncumbrance
+      ? Object.values(OseDataModelCharacterEncumbranceItemBased.equippedStepCounts)
+      : Object.values(OseDataModelCharacterEncumbranceItemBased.packedStepCounts);
+
+    const activeWeight = this.usingEquippedEncumbrance ? this.#equippedWeight : this.#packedWeight - this.#weightMod;
+
+    for (const step of steps) {
+      if (activeWeight <= step) {
+        return step + (this.usingEquippedEncumbrance ? 0 : this.#weightMod);
+      }
+    }
+    return null;
+  }
+
   get atSecondBreakpoint(): boolean {
     return this.usingEquippedEncumbrance ? this.#atFiveNinths : this.#atThreeQuarters;
   }

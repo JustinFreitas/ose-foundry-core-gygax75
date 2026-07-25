@@ -12,6 +12,8 @@ export interface CharacterEncumbrance {
   atFirstBreakpoint: boolean | null;
   atSecondBreakpoint: boolean | null;
   atThirdBreakpoint: boolean | null;
+  nextBreakpointValue: number | null;
+  untilNextBreakpoint: number | null;
 }
 
 /**
@@ -114,6 +116,24 @@ export default class OseDataModelCharacterEncumbrance implements CharacterEncumb
 
   get atFirstBreakpoint() {
     return this.pct > OseDataModelCharacterEncumbrance.encumbranceSteps.quarter;
+  }
+
+  get nextBreakpointValue() {
+    const steps = [
+      OseDataModelCharacterEncumbrance.encumbranceSteps.quarter,
+      OseDataModelCharacterEncumbrance.encumbranceSteps.threeEighths,
+      OseDataModelCharacterEncumbrance.encumbranceSteps.half,
+    ].map((pct) => (pct / 100) * this.max);
+
+    for (const step of steps) {
+      if (this.value <= step) return Math.round(step);
+    }
+    return null;
+  }
+
+  get untilNextBreakpoint() {
+    const next = this.nextBreakpointValue;
+    return next !== null ? Math.max(0, next - this.value) : null;
   }
 
   // eslint-disable-next-line class-methods-use-this

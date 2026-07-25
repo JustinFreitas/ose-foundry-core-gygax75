@@ -151,7 +151,7 @@ export default class OseCharacterGpCost extends FormApplication {
       const itemData = item.system;
       // Only count non-treasure physical items that haven't been paid for yet
       if (OseCharacterGpCost.physicalItemTypes.has(item.type) && !itemData.treasure && !item.flags?.ose?.paid) {
-        return total + (itemData.quantity.max ? itemData.cost * itemData.quantity.value : itemData.cost);
+        return total + itemData.cost;
       }
 
       return total;

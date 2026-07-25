@@ -21,24 +21,27 @@ export default class OseDataModelItem extends foundry.abstract.TypeDataModel {
   }
 
   get cumulativeWeight() {
+    const qty = this.quantity?.value ?? 1;
     if (this.quantity?.max > 0) {
-      return (this.weight / this.quantity.max) * this.quantity.value;
+      return (this.weight / this.quantity.max) * qty;
     }
-    return this.weight * this.quantity.value;
+    return this.weight * qty;
   }
 
   get cumulativeCost() {
+    const qty = this.quantity?.value ?? 1;
     if (this.quantity?.max > 0) {
-      return (this.cost / this.quantity.max) * this.quantity.value;
+      return (this.cost / this.quantity.max) * qty;
     }
-    return this.cost * this.quantity.value;
+    return this.cost * qty;
   }
 
   get cumulativeItemslots() {
+    const qty = this.quantity?.value ?? 1;
     if (this.quantity?.max > 0) {
-      return Math.ceil((this.itemslots / this.quantity.max) * this.quantity.value);
+      return Math.ceil((this.itemslots / this.quantity.max) * qty);
     }
-    return Math.ceil(this.itemslots * this.quantity.value);
+    return Math.ceil(this.itemslots * qty);
   }
 
   static migrateData(source) {

@@ -51,6 +51,12 @@ export default class OseCharacterGpCost extends FormApplication {
             const perItem = Math.round((item.system.cost / item.system.quantity.max) * 1000) / 1000;
             item.system.bundleTooltip = `Per-unit cost: ${perItem}`;
           }
+          if (item.system.quantity?.max > 0) {
+            item.system.cost = (item.system.cost / item.system.quantity.max) * item.system.quantity.value;
+          } else {
+            item.system.cost = item.system.cost * (item.system.quantity?.value ?? 1);
+          }
+          item.system.cost = Math.round(item.system.cost * 100) / 100;
         }
       }
     };
@@ -174,7 +180,10 @@ export default class OseCharacterGpCost extends FormApplication {
       const itemData = item.system;
       // Only count non-treasure physical items that haven't been paid for yet
       if (OseCharacterGpCost.physicalItemTypes.has(item.type) && !itemData.treasure && !item.flags?.ose?.paid) {
-        return total + itemData.cost;
+        if (itemData.quantity?.max > 0) {
+          return total + (itemData.cost / itemData.quantity.max) * itemData.quantity.value;
+        }
+        return total + itemData.cost * (itemData.quantity?.value ?? 1);
       }
 
       return total;

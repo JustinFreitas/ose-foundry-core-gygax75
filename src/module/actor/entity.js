@@ -610,7 +610,8 @@ export default class OseActor extends Actor {
     const rollParts = ["1d20"];
     const ascending = game.settings.get(game.system.id, "ascendingAC");
 
-    if (ascending && data.thac0.bba) rollParts.push(data.thac0.bba);
+    const bba = data.thac0?.bba ?? -1;
+    if (ascending && bba) rollParts.push(bba);
 
     // for each type of attack, add the Tweaks bonus
     // and str/dex modifier only if it's non-zero
@@ -647,7 +648,7 @@ export default class OseActor extends Actor {
       itemId: attData.item?._id,
       roll: {
         type: options.type,
-        thac0: data.thac0.value,
+        thac0: data.thac0?.value ?? 20,
         dmg: dmgParts,
         save: attData.roll.save,
         target: attData.roll.target,

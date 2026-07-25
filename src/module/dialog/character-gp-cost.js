@@ -17,7 +17,7 @@ export default class OseCharacterGpCost extends FormApplication {
       classes: ["ose", "dialog", "gp-cost"],
       id: "sheet-gp-cost",
       template: `${OSE.systemPath()}/templates/actors/dialogs/gp-cost-dialog.html`,
-      width: 240,
+      width: "auto",
     });
   }
 
@@ -76,29 +76,50 @@ export default class OseCharacterGpCost extends FormApplication {
     // Generate gold; compute the cost from the actor's live inventory rather
     // than the snapshot taken when the dialog was opened.
     const totalCost = await this.#getTotalCost({ items: [...this.object.items] });
-    const gp = await this.object.items.find((item) => {
+
+    const gpBank = this.object.items.find((item) => item.name === "GP (Bank)" && item.system.treasure);
+    const gp = this.object.items.find((item) => {
       const itemData = item.system;
       return (
         (item.name === game.i18n.localize("OSE.items.gp.short") || item.name === "GP") && // legacy behavior used GP, even for other languages
         itemData.treasure
       );
     });
-    if (!gp) {
-      ui.notifications.error(game.i18n.localize("OSE.error.noGP"));
+
+    const gpBankQty = gpBank ? gpBank.system.quantity.value : 0;
+    const gpQty = gp ? gp.system.quantity.value : 0;
+
+    if (gpBankQty + gpQty < totalCost) {
+      ui.notifications.error(game.i18n.localize("OSE.error.notEnoughGP"));
       return;
     }
-    const newGP = gp.system.quantity.value - totalCost;
-    if (newGP >= 0) {
-      await this.object.updateEmbeddedDocuments("Item", [{ _id: gp.id, "system.quantity.value": newGP }]);
 
-      // Mark all items in the cart as "paid for" by setting a flag
-      await this.#markItemsAsPaid();
+    let remainingCost = totalCost;
+    const updates = [];
 
-      // Close the dialog after successful transaction
-      await this.close();
-    } else {
-      ui.notifications.error(game.i18n.localize("OSE.error.notEnoughGP"));
+    if (gpBank && remainingCost > 0) {
+      const deduct = Math.min(gpBankQty, remainingCost);
+      const newQty = Math.round((gpBankQty - deduct) * 100) / 100;
+      updates.push({ _id: gpBank.id, "system.quantity.value": newQty });
+      remainingCost -= deduct;
     }
+
+    if (gp && remainingCost > 0) {
+      const deduct = Math.min(gpQty, remainingCost);
+      const newQty = Math.round((gpQty - deduct) * 100) / 100;
+      updates.push({ _id: gp.id, "system.quantity.value": newQty });
+      remainingCost -= deduct;
+    }
+
+    if (updates.length > 0) {
+      await this.object.updateEmbeddedDocuments("Item", updates);
+    }
+
+    // Mark all items in the cart as "paid for" by setting a flag
+    await this.#markItemsAsPaid();
+
+    // Close the dialog after successful transaction
+    await this.close();
   }
 
   /**
@@ -128,9 +149,8 @@ export default class OseCharacterGpCost extends FormApplication {
     this.object.sheet.render(true);
   }
 
-  // eslint-disable-next-line class-methods-use-this
   async #getTotalCost(data) {
-    return data.items.reduce((total, item) => {
+    const rawTotal = data.items.reduce((total, item) => {
       const itemData = item.system;
       // Only count non-treasure physical items that haven't been paid for yet
       if (OseCharacterGpCost.physicalItemTypes.has(item.type) && !itemData.treasure && !item.flags?.ose?.paid) {
@@ -139,6 +159,7 @@ export default class OseCharacterGpCost extends FormApplication {
 
       return total;
     }, 0);
+    return Math.round(rawTotal * 100) / 100;
   }
 
   /**

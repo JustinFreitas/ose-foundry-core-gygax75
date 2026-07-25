@@ -62,6 +62,14 @@ export default class OseDataModelCharacterMove implements CharacterMove {
     return this.#atFirstBreakpoint ? 90 : 120;
   }
 
+  #nextDerivedSpeed() {
+    if (this.#overEncumbranceLimit) return 0;
+    if (this.#atThirdBreakpoint) return 0;
+    if (this.#atSecondBreakpoint) return 30;
+    if (this.#atFirstBreakpoint) return 60;
+    return 90;
+  }
+
   get base() {
     // Manual entry for movement
     if (!this.#autocalculate || this.#encumbranceVariant === "disabled") return Math.round(this.#moveBase);
@@ -71,6 +79,16 @@ export default class OseDataModelCharacterMove implements CharacterMove {
 
   set base(value) {
     this.#moveBase = value;
+  }
+
+  get nextBase() {
+    if (!this.#autocalculate || this.#encumbranceVariant === "disabled") return null;
+    return Math.round(this.#nextDerivedSpeed());
+  }
+
+  get nextEncounter() {
+    const next = this.nextBase;
+    return next !== null ? Math.round(next / 3) : null;
   }
 
   get encounter() {

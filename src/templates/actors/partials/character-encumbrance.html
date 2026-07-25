@@ -1,4 +1,4 @@
-<div class="encumbrance {{#if encumbered}}encumbered{{/if}}" title="Movement: {{#if @root.system.movement.base}}{{@root.system.movement.base}}' ({{@root.system.movement.encounter}}'){{else}}Unknown{{/if}}{{#unless (eq untilNextBreakpoint null)}} ({{untilNextBreakpoint}} left){{/unless}}">
+<div class="encumbrance {{#if encumbered}}encumbered{{/if}}" title="Movement: {{#if @root.system.movement.base}}{{@root.system.movement.base}}'/{{@root.system.movement.encounter}}'{{else}}Unknown{{/if}}{{#unless (eq untilNextBreakpoint null)}} ({{untilNextBreakpoint}} left{{#if (eq @root.system.movement.nextBase 0)}} until 0'/0'{{else if @root.system.movement.nextBase}} until {{@root.system.movement.nextBase}}'/{{@root.system.movement.nextEncounter}}'{{/if}}){{/unless}}">
   <span class="encumbrance-bar {{#if atThirdBreakpoint}}tier-4{{else if atSecondBreakpoint}}tier-3{{else if atFirstBreakpoint}}tier-2{{else}}tier-1{{/if}}" style="width:{{pct}}%"></span>
   {{#each steps as |s|}}
   <i class="encumbrance-breakpoint arrow-up" style="left:{{s}}%"></i>

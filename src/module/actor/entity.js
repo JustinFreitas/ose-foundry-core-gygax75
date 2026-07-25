@@ -619,7 +619,7 @@ export default class OseActor extends Actor {
     // Melee: str.mod + thac0.mod.melee go to the attack roll; only the Str
     // modifier also adds to damage (RAW). The melee attack tweak does not.
     if (options.type === "melee") {
-      attackMods = [data.scores.str.mod, data.thac0.mod.melee];
+      attackMods = [data.scores.str.mod, data.thac0?.mod?.melee];
       if (options.twoWeapons) attackMods.push(1);
       if (data.scores.str.mod) dmgParts.push(data.scores.str.mod);
     }
@@ -628,7 +628,7 @@ export default class OseActor extends Actor {
     // attacks get no inherent bonus damage). An explicit damage.mod.missile lever
     // (e.g. from Bless) does add to missile damage.
     if (options.type === "missile") {
-      attackMods = [data.scores.dex.mod, data.thac0.mod.missile];
+      attackMods = [data.scores.dex.mod, data.thac0?.mod?.missile];
       if (data.damage?.mod?.missile) dmgParts.push(data.damage.mod.missile);
     }
 

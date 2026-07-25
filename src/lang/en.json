@@ -58,6 +58,8 @@
   "OSE.dialog.generator": "Character generator",
   "OSE.dialog.generateSaves": "Generate Saves",
   "OSE.dialog.generateScores": "Generate Scores",
+  "OSE.dialog.autoGenerateScores": "Auto Generate Scores",
+  "OSE.dialog.showGenerateScoresDialogGM": "Show Generate Scores Dialog (GM)",
   "OSE.dialog.generateScore": "Rolling {score} ({count})",
   "OSE.dialog.shoppingCart": "Shopping Cart",
   "OSE.dialog.purchaseFor": "Purchase for {totalCost}GP",

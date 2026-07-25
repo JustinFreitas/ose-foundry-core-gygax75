@@ -224,20 +224,33 @@ export default class OseCharacterCreator extends FormApplication {
 
     // Generate gold (only if any was actually rolled)
     if (this.gold > 0) {
-      const itemData = {
-        name: game.i18n.localize("OSE.items.gp.short"),
-        type: "item",
-        img: `${OSE.assetsPath}/gold.png`,
-        system: {
-          treasure: true,
-          cost: 1,
-          weight: 1,
-          quantity: {
-            value: this.gold,
-          },
-        },
-      };
-      await this.object.createEmbeddedDocuments("Item", [itemData]);
+      const gpBankItem = this.object.items.find((i) => i.name === "GP (Bank)");
+      if (gpBankItem) {
+        await gpBankItem.update({ "system.quantity.value": this.gold });
+      } else {
+        const worldGpBank = game.items.find((i) => i.name === "GP (Bank)" && i.type === "item");
+        if (worldGpBank) {
+          const itemData = worldGpBank.toObject();
+          itemData.system.quantity = itemData.system.quantity || {};
+          itemData.system.quantity.value = this.gold;
+          await this.object.createEmbeddedDocuments("Item", [itemData]);
+        } else {
+          const itemData = {
+            name: game.i18n.localize("OSE.items.gp.short"),
+            type: "item",
+            img: `${OSE.assetsPath}/gold.png`,
+            system: {
+              treasure: true,
+              cost: 1,
+              weight: 1,
+              quantity: {
+                value: this.gold,
+              },
+            },
+          };
+          await this.object.createEmbeddedDocuments("Item", [itemData]);
+        }
+      }
     }
   }
 

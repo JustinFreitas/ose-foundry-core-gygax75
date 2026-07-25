@@ -331,7 +331,13 @@ const OseDice = {
   } = {}) {
     const template = `${OSE.systemPath()}/templates/chat/roll-dialog.html`;
     const dialogData = {
-      formula: parts.join(" "),
+      formula: parts.reduce((acc, p, i) => {
+        if (i === 0) return p;
+        const strP = String(p).trim();
+        if (strP.startsWith("-")) return `${acc} - ${strP.substring(1)}`;
+        if (strP.startsWith("+")) return `${acc} + ${strP.substring(1)}`;
+        return `${acc} + ${strP}`;
+      }, ""),
       data,
       rollMode: getRollMode(),
       rollModes: getRollModes(),
@@ -418,7 +424,13 @@ const OseDice = {
   } = {}) {
     const template = `${OSE.systemPath()}/templates/chat/roll-dialog.html`;
     const dialogData = {
-      formula: parts.join(" "),
+      formula: parts.reduce((acc, p, i) => {
+        if (i === 0) return p;
+        const strP = String(p).trim();
+        if (strP.startsWith("-")) return `${acc} - ${strP.substring(1)}`;
+        if (strP.startsWith("+")) return `${acc} + ${strP.substring(1)}`;
+        return `${acc} + ${strP}`;
+      }, ""),
       data,
       rollMode: data.roll.blindroll ? "blindroll" : getRollMode(),
       rollModes: getRollModes(),

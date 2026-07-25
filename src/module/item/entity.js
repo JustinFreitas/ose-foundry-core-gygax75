@@ -49,6 +49,32 @@ export default class OseItem extends Item {
     return source;
   }
 
+  async _preCreate(data, options, user) {
+    const qtyValue = foundry.utils.getProperty(data, "system.quantity.value");
+    if (qtyValue !== undefined) {
+      const name = data.name;
+      if (name !== "GP (Bank)") {
+        this.updateSource({ "system.quantity.value": Math.floor(qtyValue) });
+      } else {
+        this.updateSource({ "system.quantity.value": Math.round(qtyValue * 100) / 100 });
+      }
+    }
+    return super._preCreate(data, options, user);
+  }
+
+  async _preUpdate(changed, options, user) {
+    const qtyValue = foundry.utils.getProperty(changed, "system.quantity.value");
+    if (qtyValue !== undefined) {
+      const name = changed.name ?? this.name;
+      if (name !== "GP (Bank)") {
+        foundry.utils.setProperty(changed, "system.quantity.value", Math.floor(qtyValue));
+      } else {
+        foundry.utils.setProperty(changed, "system.quantity.value", Math.round(qtyValue * 100) / 100);
+      }
+    }
+    return super._preUpdate(changed, options, user);
+  }
+
   prepareData() {
     super.prepareData();
   }

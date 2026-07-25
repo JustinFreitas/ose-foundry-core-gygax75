@@ -973,7 +973,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
         rolledParts = options.parts;
         return null;
       };
-      
+
       try {
         // Standard formula
         await actor.update({ system: { hp: { hd: "1d8" }, details: { level: 2 }, scores: { con: { mod: 2 } } } });

@@ -42,10 +42,10 @@ export default class OseCharacterGpCost extends FormApplication {
    */
   async getData() {
     const data = await foundry.utils.deepClone(this.object.preparedData);
-    
+
     const updateTooltips = (items) => {
       if (!items) return;
-      for (let item of items) {
+      for (const item of items) {
         if (OseCharacterGpCost.physicalItemTypes.has(item.type) && !item.system.treasure && !item.flags?.ose?.paid) {
           if (item.system.quantity?.max > 0 && item.system.cost > 0) {
             const perItem = Math.round((item.system.cost / item.system.quantity.max) * 1000) / 1000;
@@ -54,13 +54,13 @@ export default class OseCharacterGpCost extends FormApplication {
         }
       }
     };
-    
+
     updateTooltips(data.owned?.weapons);
     updateTooltips(data.owned?.armors);
     updateTooltips(data.owned?.items);
     if (data.owned?.containers) {
       updateTooltips(data.owned.containers);
-      for (let bag of data.owned.containers) {
+      for (const bag of data.owned.containers) {
         updateTooltips(bag.system?.contents);
       }
     }

@@ -134,12 +134,12 @@ export default class OseDataModelCharacter extends foundry.abstract.TypeDataMode
   }
 
   get meleeMod() {
-    const ascendingAcMod = this.usesAscendingAC ? this.thac0?.bba ?? -1 : 0;
+    const ascendingAcMod = this.usesAscendingAC ? (this.thac0?.bba ?? -1) : 0;
     return (this.scores.str?.mod || 0) + (this.thac0?.mod?.melee || 0) + ascendingAcMod;
   }
 
   get rangedMod() {
-    const ascendingAcMod = this.usesAscendingAC ? this.thac0?.bba ?? -1 : 0;
+    const ascendingAcMod = this.usesAscendingAC ? (this.thac0?.bba ?? -1) : 0;
     return (this.scores.dex?.mod || 0) + (this.thac0?.mod?.missile || 0) + ascendingAcMod;
   }
 

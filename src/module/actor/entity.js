@@ -568,8 +568,8 @@ export default class OseActor extends Actor {
         });
       }
     } else {
-      this.rollAttack(data, { 
-        type, 
+      this.rollAttack(data, {
+        type,
         skipDialog: options.skipDialog,
         ammoWarning: options.ammoWarning,
         ammoSpent: options.ammoSpent,

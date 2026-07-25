@@ -135,7 +135,7 @@ const registerSettings = () => {
       enforce: "OSE.Setting.AutomateAmmoEnforce",
     },
     default: "warn",
-  });
+  } as any);
 
   game.settings.register(game.system.id, "hasPromptedDefaultOSETokenRing", {
     default: false,
@@ -145,8 +145,8 @@ const registerSettings = () => {
   game.settings.register(game.system.id, "savedParties", {
     default: {},
     scope: "world",
-    type: Object,
-  });
+    type: Object as any,
+  } as any);
 };
 
 declare global {
@@ -163,6 +163,7 @@ declare global {
       "ose.applyDamageOption": ApplyDamageOption;
       "ose.ignoreAttackBonusOnDamageRoll": boolean;
       "ose.savedParties": Record<string, string[]>;
+      "ose.automateAmmo": "disabled" | "warn" | "enforce";
     }
   }
 }

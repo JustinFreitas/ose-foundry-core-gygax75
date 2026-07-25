@@ -45,8 +45,7 @@
               </div>
             </div>
           </li>
-        {{#each bag.system.itemIds as |item|}}
-        <ol>
+        {{#each bag.system.contents as |item|}}
         <li class="item-entry item" data-item-id="{{item.id}}">
             <div class="item-header flexrow">
               <div
@@ -60,7 +59,6 @@
               </div>
             </div>
           </li>
-        </ol>
             {{/each}}
         {{/each}}
         {{#each owned.items as |item|}}

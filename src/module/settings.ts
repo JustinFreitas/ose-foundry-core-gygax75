@@ -19,7 +19,7 @@ const registerSettings = () => {
       individual: "OSE.Setting.InitiativeIndividual",
       group: "OSE.Setting.InitiativeGroup",
     },
-  });
+  } as any);
 
   game.settings.register(game.system.id, "rerollInitiative", {
     name: game.i18n.localize("OSE.Setting.RerollInitiative"),
@@ -65,7 +65,7 @@ const registerSettings = () => {
       obj[enc.type] = enc.localizedLabel;
       return obj;
     }, {}) as SettingConfig<EncumbranceOption>["choices"],
-  });
+  } as any);
 
   game.settings.register(game.system.id, "encumbranceItemStrengthMod", {
     name: game.i18n.localize("OSE.Setting.EncumbranceItemStrengthMod"),
@@ -122,7 +122,7 @@ const registerSettings = () => {
     type: Boolean,
     config: true,
     requiresReload: true,
-  });
+  } as any);
   game.settings.register(game.system.id, "hasPromptedDefaultOSETokenRing", {
     default: false,
     scope: "world",

@@ -94,16 +94,16 @@ describe("Offline Character Scores Data Model", () => {
     expect(scores.int.value).toBe(18);
     expect(scores.int.literacy).toBe("OSE.Literate");
 
-    scores.wis = { value: 18, bonus: 0 };
+    scores.wis = { value: 18, bonus: 0 } as any;
     expect(scores.wis.mod).toBe(3);
 
     scores.dex = { value: 18, bonus: 0 };
     expect(scores.dex.init).toBe(2);
 
-    scores.con = { value: 18, bonus: 0 };
+    scores.con = { value: 18, bonus: 0 } as any;
     expect(scores.con.mod).toBe(3);
 
-    scores.cha = { value: 18, bonus: 0 };
+    scores.cha = { value: 18, bonus: 0 } as any;
     expect(scores.cha.mod).toBe(3);
     expect(scores.cha.npc).toBe(2);
     expect(scores.cha.retain).toBe(7); // 3 + 4

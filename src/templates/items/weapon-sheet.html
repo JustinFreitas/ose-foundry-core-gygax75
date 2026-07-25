@@ -22,7 +22,7 @@
           </div>
           {{#unless (eq @root.config.encumbrance 'itembased')}}
           <div class="form-group">
-            <label title="{{localize 'OSE.items.WeightLong'}}"
+            <label title="{{localize 'OSE.items.WeightLong'}}{{#if system.quantity.max}} (Bundle){{/if}}"
               ><i class="fas fa-weight-hanging"></i
             ></label>
             <div class="form-fields">
@@ -36,7 +36,7 @@
           </div>
           {{else}}
           <div class="form-group">
-            <label data-tooltip aria-label="{{localize 'OSE.items.ItemBasedEncumbranceLong'}}">
+            <label data-tooltip aria-label="{{localize 'OSE.items.ItemBasedEncumbranceLong'}}{{#if system.quantity.max}} (Bundle){{/if}}">
               <i class="fas fa-weight-hanging"></i>
             </label>
             <div class="form-fields">

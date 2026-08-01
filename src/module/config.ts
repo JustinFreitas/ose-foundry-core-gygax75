@@ -20,7 +20,7 @@ export type OseConfig = typeof OSE;
 /** An ability-score key: `str`, `int`, `wis`, `dex`, `con`, or `cha`. */
 export type Attribute = keyof OseConfig["scores"];
 
-/** A dungeon-exploration skill key (e.g. listen at doors, open doors, find secret doors). */
+/** An exploration skill key (e.g. listen at doors, open doors, forage, hunt). */
 export type ExplorationSkill = keyof OseConfig["exploration_skills"];
 
 /** How a roll is compared against its target: exact result, at or above, or at or below. */
@@ -95,19 +95,23 @@ export const OSE = {
     con: "OSE.scores.con.short",
     cha: "OSE.scores.cha.short",
   },
-  /** Full dungeon-exploration skill names, as localization keys, keyed by skill. */
+  /** Full exploration skill names, as localization keys, keyed by skill. */
   exploration_skills: {
     ld: "OSE.exploration.ld.long",
     od: "OSE.exploration.od.long",
     sd: "OSE.exploration.sd.long",
-    fs: "OSE.exploration.ft.long",
+    ft: "OSE.exploration.ft.long",
+    fg: "OSE.exploration.fg.long",
+    hn: "OSE.exploration.hn.long",
   },
-  /** Abbreviated dungeon-exploration skill names, as localization keys, keyed by skill. */
+  /** Abbreviated exploration skill names, as localization keys, keyed by skill. */
   exploration_skills_short: {
     ld: "OSE.exploration.ld.abrev",
     od: "OSE.exploration.od.abrev",
     sd: "OSE.exploration.sd.abrev",
-    fs: "OSE.exploration.ft.abrev",
+    ft: "OSE.exploration.ft.abrev",
+    fg: "OSE.exploration.fg.abrev",
+    hn: "OSE.exploration.hn.abrev",
   },
   /** Comparison operators shown for a roll's target: equal, at-or-above, at-or-below. */
   roll_type: {

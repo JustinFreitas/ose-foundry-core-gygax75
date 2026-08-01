@@ -22,6 +22,7 @@ export type { CharacterEncumbrance } from "../module/actor/data-model-classes/da
 export type { CharacterMove } from "../module/actor/data-model-classes/data-model-character-move";
 export type { CharacterScores } from "../module/actor/data-model-classes/data-model-character-scores";
 export type { CharacterSpells } from "../module/actor/data-model-classes/data-model-character-spells";
+export type { ExplorationSkills } from "../module/actor/exploration-skills";
 export type {
   ApplyDamageOption,
   Armor,

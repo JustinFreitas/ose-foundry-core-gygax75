@@ -6,6 +6,7 @@ export default defineConfig({
     setupFiles: ["./test/setup.ts"],
     include: ["src/**/*.spec.ts"],
     exclude: ["node_modules", "dist"],
+    maxWorkers: "75%",
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],

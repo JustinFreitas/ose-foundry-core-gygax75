@@ -173,6 +173,56 @@ Hooks.on("getChatMessageContextOptions", chat.addChatMessageContextOptions);
 Hooks.on("renderChatMessageHTML", chat.addChatMessageButtons);
 Hooks.on("renderRollTableSheet", treasure.augmentTable);
 Hooks.on("updateActor", party.update);
+Hooks.on("preUpdateActor", (actor, updateData, _options, userId) => {
+  const hpChange = foundry.utils.getProperty(updateData, "system.hp.value");
+  if (hpChange !== undefined) {
+    const oldHp = actor.system.hp?.value ?? 0;
+    if (hpChange > oldHp) {
+      const preventsHealing = actor.effects?.some(
+        (e) => e.flags?.ose?.preventsHealing || e.name?.includes("Poison") || e.name?.includes("Diseased")
+      );
+      if (preventsHealing) {
+        const user = game.users.get(userId);
+        const userName = user?.name || "A player";
+        ChatMessage.create({
+          content: `<div class="ose chat-card">
+            <h3>⚠️ Healing Warning</h3>
+            <p><b>${actor.name}</b> HP was modified from <b>${oldHp}</b> to <b>${hpChange}</b> by <i>${userName}</i>, but this character has an active <b>Poisoned / Diseased</b> effect preventing healing!</p>
+          </div>`
+        });
+      }
+    }
+  }
+});
+Hooks.on("preCreateChatMessage", (message, data, _options, _userId) => {
+  const speaker = message.speaker;
+  if (!speaker) return;
+  const actor = ChatMessage.getSpeakerActor(speaker);
+  if (!actor) return;
+
+  const hasSpeed = actor.effects?.some(
+    (e) =>
+      e.name?.includes("Speed of the Heroes") ||
+      e.name?.includes("Haste") ||
+      e.name?.includes("Speed") ||
+      e.flags?.ose?.isSpeedOfHeroes ||
+      e.flags?.ose?.isHasted ||
+      e.flags?.ose?.isSpeed
+  );
+
+  if (hasSpeed) {
+    const flavorStr = message.flavor || message.title || "";
+    const isAttack =
+      message.flags?.ose?.rollType === "attack" ||
+      flavorStr.toLowerCase().includes("attack");
+
+    if (isAttack) {
+      const contentStr = data.content || message.content || "";
+      const hastedNote = `<div class="ose-hasted-note" style="margin-top: 4px; padding: 4px 8px; background: #fff8dc; border: 1px solid #d4af37; border-radius: 4px; color: #5a3e1b; font-size: 0.85em; text-align: center;">⚡ <b>Extra Attack:</b> Character may make an additional attack this round!</div>`;
+      message.updateSource({ content: contentStr + hastedNote });
+    }
+  }
+});
 Hooks.on("deleteActor", (actor) => OsePartySheet._pruneDeletedActorFromSavedParties(actor.id));
 /**
  * @param {OSECombatTracker} app - The combat tracker application

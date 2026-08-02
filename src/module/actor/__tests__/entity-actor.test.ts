@@ -21,6 +21,7 @@ import {
 /**
  * @file Contains tests for Actor Entity.
  */
+import type { ExplorationSkill } from "../../config";
 // eslint-disable-next-line import/no-cycle
 import OseItem from "../../item/entity";
 import OseActor from "../entity";
@@ -581,7 +582,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       await trashChat();
     });
 
-    const explorationOptions = ["ld", "od", "sd", "fs"];
+    const explorationOptions: ExplorationSkill[] = ["ld", "od", "sd", "ft", "fg", "hn"];
     explorationOptions.forEach((expl) => {
       it("for character", async () => {
         const actor = (await createMockActor("character")) as OseActor;

@@ -12,11 +12,11 @@ import {
   createMockCompendium,
   createMockScene,
   createWorldTestItem,
-  delay,
   itemTypes,
   rollSpecificNumber,
   trashChat,
   waitForInput,
+  waitUntil,
 } from "../../../e2e/testUtils";
 /**
  * @file Contains tests for Actor Entity.
@@ -99,8 +99,12 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
 
   describe("createEmbeddedDocuments(embeddedName, data, context)", () => {
     after(async () => {
-      for (const i of game.items?.filter((i) => i?.name?.indexOf(`Test ${key}`) >= 0) ?? []) {
-        await i.delete();
+      // Guard each delete: tests may have already removed their world item, and
+      // async re-renders can race a second delete. Re-fetch by id and skip if
+      // it's already gone so cleanup is idempotent.
+      const stale = game.items?.filter((i) => i?.name?.indexOf(`Test ${key}`) >= 0) ?? [];
+      for (const i of stale) {
+        if (game.items?.get(i.id)) await i.delete();
       }
     });
     itemTypes.forEach((itemType) => {
@@ -113,7 +117,8 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
         await actor?.createEmbeddedDocuments("Item", [item]);
         const actorItem = actor?.items.getName(item?.name);
         expect(actorItem?.img).equal(OseItem.defaultIcons[itemType]);
-        item?.delete();
+        // Await the world-item delete so it can't race the `after` cleanup.
+        if (item?.id && game.items?.get(item.id)) await item.delete();
       });
     });
   });
@@ -129,7 +134,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       expect(game.messages?.size).equal(0);
       await actor?.getExperience(10);
       expect(actor?.system.details.xp.value).equal(10);
-      await waitForInput();
+      await waitUntil(() => game.messages?.size === 1);
       expect(game.messages?.size).equal(1);
       await actor?.delete();
     });
@@ -140,7 +145,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       expect(game.messages?.size).equal(0);
       await actor?.getExperience(-10);
       expect(actor?.system.details.xp.value).equal(-10);
-      await waitForInput();
+      await waitUntil(() => game.messages?.size === 1);
       expect(game.messages?.size).equal(1);
       await actor?.delete();
     });
@@ -152,7 +157,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       expect(game.messages?.size).equal(0);
       await actor?.getExperience(10);
       expect(actor?.system.details.xp.value).equal(11);
-      await waitForInput();
+      await waitUntil(() => game.messages?.size === 1);
       expect(game.messages?.size).equal(1);
       await actor?.delete();
     });
@@ -383,7 +388,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
         const actor = (await createMockActor("character")) as OseActor;
         expect(game.messages?.size).equal(0);
         await actor?.rollSave(save, { fastForward: true });
-        await waitForInput();
+        await waitUntil(() => game.messages?.size === 1);
         expect(game.messages?.size).equal(1);
         await actor?.delete();
       });
@@ -392,7 +397,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
         const actor = (await createMockActor("monster")) as OseActor;
         expect(game.messages?.size).equal(0);
         await actor.rollSave(save, { fastForward: true });
-        await waitForInput();
+        await waitUntil(() => game.messages?.size === 1);
         expect(game.messages?.size).equal(1);
         await actor?.delete();
       });
@@ -408,7 +413,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       const actor = (await createMockActor("character")) as OseActor;
       expect(game.messages?.size).equal(0);
       await actor.rollMorale();
-      await waitForInput();
+      await waitUntil(() => game.messages?.size === 1);
       expect(game.messages?.size).equal(1);
       await actor?.delete();
     });
@@ -417,7 +422,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       const actor = (await createMockActor("monster")) as OseActor;
       expect(game.messages?.size).equal(0);
       await actor.rollMorale();
-      await waitForInput();
+      await waitUntil(() => game.messages?.size === 1);
       expect(game.messages?.size).equal(1);
       await actor?.delete();
     });
@@ -432,7 +437,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       const actor = (await createMockActor("character")) as OseActor;
       expect(game.messages?.size).equal(0);
       await actor.rollLoyalty();
-      await waitForInput();
+      await waitUntil(() => game.messages?.size === 1);
       expect(game.messages?.size).equal(1);
       await actor?.delete();
     });
@@ -441,7 +446,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       const actor = (await createMockActor("monster")) as OseActor;
       expect(game.messages?.size).equal(0);
       await actor.rollLoyalty();
-      await waitForInput();
+      await waitUntil(() => game.messages?.size === 1);
       expect(game.messages?.size).equal(1);
       await actor?.delete();
     });
@@ -456,7 +461,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       const actor = (await createMockActor("character")) as OseActor;
       expect(game.messages?.size).equal(0);
       await actor.rollReaction({ fastForward: true });
-      await waitForInput();
+      await waitUntil(() => game.messages?.size === 1);
       expect(game.messages?.size).equal(1);
       await actor.delete();
     });
@@ -465,7 +470,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       const actor = (await createMockActor("monster")) as OseActor;
       expect(game.messages?.size).equal(0);
       await actor.rollReaction({ fastForward: true });
-      await waitForInput();
+      await waitUntil(() => game.messages?.size === 1);
       expect(game.messages?.size).equal(1);
       await actor.delete();
     });
@@ -483,7 +488,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
         const actor = (await createMockActor("character")) as OseActor;
         expect(game.messages?.size).equal(0);
         await actor.rollCheck(score, { fastForward: true });
-        await waitForInput();
+        await waitUntil(() => game.messages?.size === 1);
         expect(game.messages?.size).equal(1);
         await actor.delete();
       });
@@ -559,7 +564,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
         const actor = (await createMockActor("monster")) as OseActor;
         expect(game.messages?.size).equal(0);
         await actor.rollAppearing({ check: "wilderness" });
-        await waitForInput();
+        await waitUntil(() => game.messages?.size === 1);
         expect(game.messages?.size).equal(1);
         expect(game.messages?.contents[0].content).contain(game.i18n.format("OSE.roll.appearing", { type: "2" }));
         await actor.delete();
@@ -569,7 +574,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
         const actor = (await createMockActor("monster")) as OseActor;
         expect(game.messages?.size).equal(0);
         await actor.rollAppearing({ check: "other" });
-        await waitForInput();
+        await waitUntil(() => game.messages?.size === 1);
         expect(game.messages?.size).equal(1);
         expect(game.messages?.contents[0].content).contain(game.i18n.format("OSE.roll.appearing", { type: "1" }));
         await actor.delete();
@@ -588,7 +593,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
         const actor = (await createMockActor("character")) as OseActor;
         expect(game.messages?.size).equal(0);
         await actor.rollExploration(expl, { fastForward: true });
-        await waitForInput();
+        await waitUntil(() => (game.messages?.size ?? 0) >= 1);
         expect(game.messages?.contents[0].content).contain(
           game.i18n.format("OSE.roll.exploration", {
             exploration: game.i18n.localize(`OSE.exploration.${expl}.long`),
@@ -617,7 +622,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       const actor = (await createMockActor("character")) as OseActor;
       expect(game.messages?.size).equal(0);
       await actor.rollDamage({ label: "test" });
-      await waitForInput();
+      await waitUntil(() => game.messages?.size === 1);
       expect(game.messages?.size).equal(1);
       expect(game.messages?.contents[0].content).contain(`test - ${game.i18n.localize("OSE.Damage")}`);
       await actor.delete();
@@ -627,7 +632,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       const actor = (await createMockActor("monster")) as OseActor;
       expect(game.messages?.size).equal(0);
       await actor.rollDamage({ label: "test" });
-      await waitForInput();
+      await waitUntil(() => game.messages?.size === 1);
       expect(game.messages?.size).equal(1);
       expect(game.messages?.contents[0].content).contain(`test - ${game.i18n.localize("OSE.Damage")}`);
       await actor.delete();
@@ -640,7 +645,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
         label: "test",
         roll: { dmg: "15" },
       });
-      await waitForInput();
+      await waitUntil(() => game.messages?.size === 1);
       expect(game.messages?.size).equal(1);
       expect(game.messages?.contents[0].content).contain(`test - ${game.i18n.localize("OSE.Damage")}`);
       expect(game.messages?.contents[0].content).contain("15");
@@ -656,7 +661,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
         label: "test",
         roll: { dmg: "15", type: "melee" },
       });
-      await waitForInput();
+      await waitUntil(() => game.messages?.size === 1);
       expect(game.messages?.size).equal(1);
       expect(game.messages?.contents[0].content).contain(`test - ${game.i18n.localize("OSE.Damage")}`);
       expect(game.messages?.contents[0].content).contain("15 - 3");
@@ -664,14 +669,38 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
     });
   });
 
-  describe("targetAttack(data, type, options)", () => {
-    before(async () => {
+  describe("targetAttack(data, type, options)", function () {
+    // Token draw, targeting and per-test canvas cleanup are all asynchronous
+    // canvas operations; allow generous headroom over mocha's 2000ms default.
+    this.timeout(30_000);
+    // Release any targets and remove any tokens left on the active scene so each
+    // test starts from a known-clean state (prevents cross-test target/message
+    // leakage that made this suite flaky).
+    const clearTargetsAndTokens = async () => {
+      game.user?.targets.forEach((t) => t.setTarget(false, { releaseOthers: false, groupSelection: true }));
+      await waitUntil(() => (game.user?.targets.size ?? 0) === 0);
+      const tokenIds = (canvas.scene?.tokens?.contents ?? []).map((t) => t.id);
+      if (tokenIds.length > 0) {
+        await canvas.scene?.deleteEmbeddedDocuments("Token", tokenIds);
+      }
+      await waitForInput();
+    };
+
+    before(async function () {
+      // Activating a scene tears down and redraws the whole canvas, which can
+      // take well over mocha's 2000ms default headless.
+      this.timeout(30_000);
       const scene = await createMockScene();
       await scene?.activate();
-      await delay(500);
+      // Wait until the canvas has actually finished drawing the new scene —
+      // creating tokens before that throws "Cannot read properties of null
+      // (reading 'addChild')" from the tokens layer.
+      await waitUntil(() => canvas.ready && canvas.scene?.id === scene?.id && Boolean(canvas.tokens));
+      await waitForInput();
     });
 
     afterEach(async () => {
+      await clearTargetsAndTokens();
       await trashChat();
       await waitForInput();
     });
@@ -679,9 +708,14 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
     it("One target causes one attack roll", async () => {
       const actor = (await createMockActor("character")) as OseActor;
       const token = await actor.getTokenDocument();
-      await delay(500);
       await token.constructor.create(token, { parent: canvas.scene });
-      await waitForInput();
+      // Wait until the token's placeable has been FULLY drawn: targeting a
+      // token before Token#_draw assigns `targetArrows` crashes the canvas
+      // ticker ("Cannot read properties of undefined (reading 'clear')" in
+      // Token._drawTargetArrows).
+      await waitUntil(
+        () => canvas.tokens?.placeables.length === 1 && canvas.tokens.placeables.every((t) => Boolean(t.targetArrows)),
+      );
       expect(game.user?.targets.size).equal(0);
       for (const t of canvas.tokens?.placeables ?? []) {
         t.setTarget(true, { releaseOthers: false, groupSelection: true });
@@ -693,12 +727,12 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       await actor.targetAttack({ roll: { target: {} } }, "melee", {
         skipDialog: true,
       });
-      await waitForInput();
+      await waitUntil(() => game.messages?.size === 1);
       expect(game.messages?.size).equal(1);
-      for (const t of canvas.tokens?.placeables ?? []) {
-        t.setTarget(false);
-      }
-      expect(game.user?.targets.size).equal(0);
+      // Release targets and remove the token BEFORE deleting the actor:
+      // deleting an actor while its token is still targeted triggers async
+      // canvas teardown errors that mocha attributes to this test.
+      await clearTargetsAndTokens();
       await actor.delete();
     });
 
@@ -706,7 +740,13 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       const actor = (await createMockActor("character")) as OseActor;
       const token = await actor.getTokenDocument();
       await token.constructor.create(token, { parent: canvas.scene });
-      await waitForInput();
+      const token2 = await actor.getTokenDocument();
+      await token2.constructor.create(token2, { parent: canvas.scene });
+      // Wait until both placeables have been FULLY drawn (see above: targeting
+      // before `targetArrows` exists crashes the canvas ticker).
+      await waitUntil(
+        () => canvas.tokens?.placeables.length === 2 && canvas.tokens.placeables.every((t) => Boolean(t.targetArrows)),
+      );
       expect(game.user?.targets.size).equal(0);
       for (const t of canvas.tokens?.placeables ?? []) {
         t.setTarget(true, { releaseOthers: false, groupSelection: true });
@@ -716,12 +756,10 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       await actor.targetAttack({ roll: { target: {} } }, "melee", {
         skipDialog: true,
       });
-      await waitForInput();
+      await waitUntil(() => game.messages?.size === 2);
       expect(game.messages?.size).equal(2);
-      for (const t of canvas.tokens?.placeables ?? []) {
-        t.setTarget(false);
-      }
-      expect(game.user?.targets.size).equal(0);
+      // Untarget and remove tokens before deleting the actor (see above).
+      await clearTargetsAndTokens();
       await actor.delete();
     });
 
@@ -740,12 +778,13 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       expect(game.user?.targets.size).equal(0);
       expect(game.messages?.size).equal(0);
       await actor.targetAttack(data, "melee", { skipDialog: true });
-      await waitForInput();
+      await waitUntil(() => game.messages?.size === 1);
       expect(game.messages?.size).equal(1);
       await actor.delete();
     });
 
     after(async () => {
+      await clearTargetsAndTokens();
       await cleanUpScenes();
     });
   });
@@ -765,7 +804,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       expect(game.messages?.size).equal(0);
       const rolldata = await actor.rollAttack({ roll: {} }, { skipDialog: true });
       expect(rolldata.formula).equal("1d20");
-      await waitForInput();
+      await waitUntil(() => game.messages?.size === 1);
       expect(game.messages?.size).equal(1);
       await actor.delete();
     });
@@ -777,7 +816,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       expect(game.messages?.size).equal(0);
       const rolldata = await actor.rollAttack({ roll: {}, item }, { skipDialog: true });
       expect(rolldata.formula).equal("1d20");
-      await waitForInput();
+      await waitUntil(() => game.messages?.size === 1);
       expect(game.messages?.size).equal(1);
       expect(game.messages?.contents[0].content).contain(
         game.i18n.format("OSE.roll.attacksWith", { name: item?.name }),
@@ -792,7 +831,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       expect(game.messages?.size).equal(0);
       const rolldata = await actor.rollAttack({ roll: {} }, { type: "missile", skipDialog: true });
       expect(rolldata.formula).equal("1d20 - 3");
-      await waitForInput();
+      await waitUntil(() => game.messages?.size === 1);
       expect(game.messages?.size).equal(1);
       await actor.delete();
     });
@@ -803,7 +842,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       expect(game.messages?.size).equal(0);
       const rolldata = await actor.rollAttack({ roll: {} }, { type: "melee", skipDialog: true });
       expect(rolldata.formula).equal("1d20 + 3");
-      await waitForInput();
+      await waitUntil(() => game.messages?.size === 1);
       expect(game.messages?.size).equal(1);
       await actor.delete();
     });
@@ -819,7 +858,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       expect(game.messages?.size).equal(0);
       const rolldata = await actor.rollAttack({ roll: {} }, { type: "melee", skipDialog: true });
       expect(rolldata.formula).equal("1d20 + 3");
-      await waitForInput();
+      await waitUntil(() => game.messages?.size === 1);
       expect(game.messages?.size).equal(1);
       expect(game.messages?.contents[0].content).contain(game.i18n.localize("OSE.messages.InflictsDamage"));
       expect(game.messages?.contents[0].content).contain("1d6 + 3");
@@ -836,7 +875,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       expect(game.messages?.size).equal(0);
       const rolldata = await actor.rollAttack({ roll: {}, item }, { skipDialog: true });
       expect(rolldata.formula).equal("1d20 + 18");
-      await waitForInput();
+      await waitUntil(() => game.messages?.size === 1);
       expect(game.messages?.size).equal(1);
       await actor.delete();
     });

@@ -495,7 +495,7 @@ export default class OseActor extends Actor {
         });
       }
     } else {
-      this.rollAttack(data, { type, skipDialog: options.skipDialog });
+      await this.rollAttack(data, { type, skipDialog: options.skipDialog });
     }
   }
 

@@ -3,6 +3,13 @@
  */
 import OSE, { type InventoryItemTag } from "./config";
 
+// Blank/absent numeric fields (e.g. an unset Tweaks bonus) should read as 0
+// rather than propagating NaN into the rendered sheet.
+const toInt = (val: unknown) => {
+  const parsed = Number.parseInt(val as string, 10);
+  return Number.isNaN(parsed) ? 0 : parsed;
+};
+
 const registerHelpers = async () => {
   // Handlebars template helpers
   Handlebars.registerHelper("eq", (a, b) => a === b);
@@ -17,9 +24,9 @@ const registerHelpers = async () => {
     return "0";
   });
 
-  Handlebars.registerHelper("add", (lh, rh) => Number.parseInt(lh, 10) + Number.parseInt(rh, 10));
+  Handlebars.registerHelper("add", (lh, rh) => toInt(lh) + toInt(rh));
 
-  Handlebars.registerHelper("subtract", (lh, rh) => Number.parseInt(lh, 10) - Number.parseInt(rh, 10));
+  Handlebars.registerHelper("subtract", (lh, rh) => toInt(lh) - toInt(rh));
 
   Handlebars.registerHelper("divide", (lh, rh) => Math.floor(Number.parseFloat(lh) / Number.parseFloat(rh)));
 

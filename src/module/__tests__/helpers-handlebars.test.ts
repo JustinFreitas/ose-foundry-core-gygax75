@@ -54,6 +54,13 @@ export default ({ describe, it, expect }: QuenchMethods) => {
         expect(Handlebars.helpers.add("1", "3")).equal(4);
         expect(Handlebars.helpers.add("1", "-3")).equal(-2);
       });
+
+      it("treats blank and absent operands as 0", () => {
+        expect(Handlebars.helpers.add(2, "")).equal(2);
+        expect(Handlebars.helpers.add(2, undefined)).equal(2);
+        expect(Handlebars.helpers.add("", -3)).equal(-3);
+        expect(Handlebars.helpers.add(null, "")).equal(0);
+      });
     });
 
     describe("subtract helper", () => {
@@ -67,6 +74,13 @@ export default ({ describe, it, expect }: QuenchMethods) => {
         expect(Handlebars.helpers.subtract(1, -2)).equal(3);
         expect(Handlebars.helpers.subtract("1", "3")).equal(-2);
         expect(Handlebars.helpers.subtract("1", "-3")).equal(4);
+      });
+
+      it("treats blank and absent operands as 0", () => {
+        expect(Handlebars.helpers.subtract(2, "")).equal(2);
+        expect(Handlebars.helpers.subtract(2, undefined)).equal(2);
+        expect(Handlebars.helpers.subtract("", 3)).equal(-3);
+        expect(Handlebars.helpers.subtract(null, "")).equal(0);
       });
     });
 

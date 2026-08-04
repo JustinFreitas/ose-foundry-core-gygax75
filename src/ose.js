@@ -241,16 +241,23 @@ Hooks.on("createCombatant", (combatant) => {
   combatant.assignGroup();
 });
 
+/**
+ * @param {Application} app - The actor sheet application
+ * @param {HTMLElement|JQuery} html - Sheet root (v1 hooks may still pass jQuery)
+ */
 Hooks.on("renderActorSheet", (app, html) => {
   if (!app?.object?.isOwnerOrObserver) return;
 
+  // ContextMenu no longer accepts jQuery roots (deprecated since Foundry v13).
+  const root = html instanceof HTMLElement ? html : html?.[0];
+  if (!(root instanceof HTMLElement)) return;
+
   // The sheet's outer element survives re-renders; only bind the menu once.
-  const element = html instanceof HTMLElement ? html : html?.[0];
-  if (!element || element.dataset.oseItemContextMenu) return;
-  element.dataset.oseItemContextMenu = "true";
+  if (root.dataset.oseItemContextMenu) return;
+  root.dataset.oseItemContextMenu = "true";
 
   new foundry.applications.ux.ContextMenu(
-    html,
+    root,
     ".item",
     [
       {

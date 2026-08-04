@@ -3,6 +3,8 @@ foundryconfig.json
 foundryconfig_*.json
 ose-dev.lock
 dist
+.types-build
+packages/types/index.d.ts
 .DS_Store
 .env
 .foundrycache
@@ -12,3 +14,5 @@ foundry/
 .claude/
 coverage/
 
+# packaging artifacts
+*.tgz

@@ -1,19 +1,47 @@
 /**
  * @file The base class for all encumbrance schemes. Feel free to extend this to make your own schemes!
  */
+/**
+ * A character's carrying load under the active encumbrance scheme. The
+ * breakpoint flags and `steps` are only meaningful for variants that impose
+ * movement penalties as weight increases.
+ */
 export interface CharacterEncumbrance {
-  variant: string;
-  enabled: boolean;
-  pct: number;
-  encumbered: boolean;
-  steps: number[];
-  value: number;
+  /** Identifier of the active encumbrance scheme (e.g. `"disabled"`, `"basic"`, `"detailed"`, `"complete"`). */
+  readonly variant: string;
+
+  /** Whether encumbrance is being tracked for this character. */
+  readonly enabled: boolean;
+
+  /** Carried weight as a percentage (0–100) of `max`. */
+  readonly pct: number;
+
+  /** Whether the character is carrying more than their limit. */
+  readonly encumbered: boolean;
+
+  /** Weight thresholds, as percentages of `max`, at which movement penalties take effect. */
+  readonly steps: number[];
+
+  /** Total weight currently carried. */
+  readonly value: number;
+
+  /** Maximum weight the character can carry. */
   max: number;
-  atFirstBreakpoint: boolean | null;
-  atSecondBreakpoint: boolean | null;
-  atThirdBreakpoint: boolean | null;
-  nextBreakpointValue: number | null;
-  untilNextBreakpoint: number | null;
+
+  /** Whether carried weight has reached the first movement-penalty threshold; `null` when the active variant defines none. */
+  readonly atFirstBreakpoint: boolean | null;
+
+  /** Whether carried weight has reached the second movement-penalty threshold; `null` when the active variant defines none. */
+  readonly atSecondBreakpoint: boolean | null;
+
+  /** Whether carried weight has reached the third movement-penalty threshold; `null` when the active variant defines none. */
+  readonly atThirdBreakpoint: boolean | null;
+
+  /** Carried weight at which the next movement penalty takes effect; `null` when no further breakpoint applies. */
+  readonly nextBreakpointValue: number | null;
+
+  /** Weight that can still be carried before the next breakpoint; `null` when no further breakpoint applies. */
+  readonly untilNextBreakpoint: number | null;
 }
 
 /**
@@ -50,6 +78,7 @@ export default class OseDataModelCharacterEncumbrance implements CharacterEncumb
   }
 
   static defineSchema() {
+    // @ts-expect-error League v13 client/data/fields shadows common (only declares ShaderField)
     const { ArrayField, BooleanField, NumberField, SchemaField, StringField } = foundry.data.fields;
 
     return new SchemaField({
@@ -102,10 +131,6 @@ export default class OseDataModelCharacterEncumbrance implements CharacterEncumb
 
   set max(value) {
     this.#max = value;
-  }
-
-  get #delta() {
-    return this.max - OseDataModelCharacterEncumbrance.baseEncumbranceCap;
   }
 
   get atThirdBreakpoint() {

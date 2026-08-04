@@ -489,6 +489,13 @@ export default class OseActor extends Actor {
     });
   }
 
+  /**
+   * @param {import("../config").ExplorationSkill} expl - the exploration skill to test
+   * @param {object} options - roll options
+   * @param {Event} [options.event] - the originating UI event, used to position the roll dialog
+   * @param {boolean} [options.fastForward] - whether to skip the roll dialog
+   * @returns {OseDice.Roll | undefined} - the roll, or nothing for a non-character actor
+   */
   rollExploration(expl, options = {}) {
     const actorType = this.type;
     if (actorType !== "character") return;
@@ -568,7 +575,7 @@ export default class OseActor extends Actor {
         });
       }
     } else {
-      this.rollAttack(data, {
+      await this.rollAttack(data, {
         type,
         skipDialog: options.skipDialog,
         ammoOptions: options.ammoOptions,

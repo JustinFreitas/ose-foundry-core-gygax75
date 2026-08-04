@@ -179,7 +179,7 @@ Hooks.on("preUpdateActor", (actor, updateData, _options, userId) => {
     const oldHp = actor.system.hp?.value ?? 0;
     if (hpChange > oldHp) {
       const preventsHealing = actor.effects?.some(
-        (e) => e.flags?.ose?.preventsHealing || e.name?.includes("Poison") || e.name?.includes("Diseased")
+        (e) => e.flags?.ose?.preventsHealing || e.name?.includes("Poison") || e.name?.includes("Diseased"),
       );
       if (preventsHealing) {
         const user = game.users.get(userId);
@@ -188,7 +188,7 @@ Hooks.on("preUpdateActor", (actor, updateData, _options, userId) => {
           content: `<div class="ose chat-card">
             <h3>⚠️ Healing Warning</h3>
             <p><b>${actor.name}</b> HP was modified from <b>${oldHp}</b> to <b>${hpChange}</b> by <i>${userName}</i>, but this character has an active <b>Poisoned / Diseased</b> effect preventing healing!</p>
-          </div>`
+          </div>`,
         });
       }
     }
@@ -207,14 +207,12 @@ Hooks.on("preCreateChatMessage", (message, data, _options, _userId) => {
       e.name?.includes("Speed") ||
       e.flags?.ose?.isSpeedOfHeroes ||
       e.flags?.ose?.isHasted ||
-      e.flags?.ose?.isSpeed
+      e.flags?.ose?.isSpeed,
   );
 
   if (hasSpeed) {
     const flavorStr = message.flavor || message.title || "";
-    const isAttack =
-      message.flags?.ose?.rollType === "attack" ||
-      flavorStr.toLowerCase().includes("attack");
+    const isAttack = message.flags?.ose?.rollType === "attack" || flavorStr.toLowerCase().includes("attack");
 
     if (isAttack) {
       const contentStr = data.content || message.content || "";

@@ -463,10 +463,11 @@ const OseDice = {
         action: "ok",
         label: game.i18n.localize("OSE.Roll"),
         icon: "fas fa-dice-d20",
-        callback: async (_event, button) => {
-          rollData.form = button.form;
+        callback: async (event, _button, dialog) => {
+          const form = event?.target?.closest?.("form") || event?.target?.form || dialog?.element?.querySelector?.("form");
+          rollData.form = form;
           if (typeof onConfirm === "function") {
-            const warning = await onConfirm(button.form);
+            const warning = await onConfirm(form);
             if (warning) {
               rollData.flavor = rollData.flavor ? `${rollData.flavor} [${warning}]` : `[${warning}]`;
               rollData.title = rollData.title ? `${rollData.title} [${warning}]` : `[${warning}]`;

@@ -1,6 +1,8 @@
 @use "variables";
 
 .ose .window-content {
+  overflow: hidden;
+
   // Utils
   .collapsed {
     display: none;

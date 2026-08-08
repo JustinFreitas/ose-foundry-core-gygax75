@@ -136,6 +136,7 @@
   }
   .sheet-body {
     height: calc(100% - 140px);
+    overflow: hidden;
     .tab {
       height: 100%;
     }

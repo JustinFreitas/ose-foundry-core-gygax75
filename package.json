@@ -17,8 +17,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
-    "link": "node ./tools/symlink.js",
-    "unlink": "node ./tools/symlink.js -c",
+    "link": "node ./tools/symlink.cjs",
+    "unlink": "node ./tools/symlink.cjs -c",
     "lint": "biome check src",
     "format": "biome format --write src",
     "fix": "biome check --write src"

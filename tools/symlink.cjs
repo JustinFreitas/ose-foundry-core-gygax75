@@ -41,7 +41,8 @@ function createSymlink() {
 
     if (!fs.existsSync(linkDirectory)) {
       // link path doesn't exist, create it.
-      fs.symlinkSync(path.resolve(__dirname, ".."), linkDirectory);
+      const symType = process.platform === "win32" ? "junction" : "dir";
+      fs.symlinkSync(path.resolve(__dirname, ".."), linkDirectory, symType);
     }
   });
 
@@ -62,15 +63,28 @@ function createSymlink() {
   // Javascript files
   for (const p of ["client", "common", "tsconfig.json"]) {
     try {
-      fs.symlinkSync(path.join(fileRoot, p), path.join("foundry", p));
+      const targetPath = path.join(fileRoot, p);
+      const isDir = fs.existsSync(targetPath) && fs.statSync(targetPath).isDirectory();
+      const symType = process.platform === "win32" ? (isDir ? "junction" : "file") : undefined;
+      fs.symlinkSync(targetPath, path.join("foundry", p), symType);
     } catch (e) {
-      if (e.code !== "EEXIST") throw e;
+      if (e.code === "EPERM" && process.platform === "win32") {
+        try {
+          fs.copyFileSync(path.join(fileRoot, p), path.join("foundry", p));
+        } catch (copyErr) {
+          if (copyErr.code !== "EEXIST") throw copyErr;
+        }
+      } else if (e.code !== "EEXIST") {
+        throw e;
+      }
     }
   }
 
   // Language files
   try {
-    fs.symlinkSync(path.join(fileRoot, "public", "lang"), path.join("foundry", "lang"));
+    const targetPath = path.join(fileRoot, "public", "lang");
+    const symType = process.platform === "win32" ? "junction" : "dir";
+    fs.symlinkSync(targetPath, path.join("foundry", "lang"), symType);
   } catch (e) {
     if (e.code !== "EEXIST") throw e;
   }

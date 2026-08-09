@@ -15,14 +15,7 @@
     font-weight: bold;
     animation: 0.8s ease-in 1s infinite alternate notify;
   }
-  ::-webkit-scrollbar-thumb {
-    border-radius: 2px;
-    border: 1px solid variables.$colorTan;
-  }
-  ::-webkit-scrollbar-track {
-    border-radius: 2px;
-    background: variables.$colorDark;
-  }
+
   .panel {
     border: 1px solid variables.$colorDark;
     .panel-title {

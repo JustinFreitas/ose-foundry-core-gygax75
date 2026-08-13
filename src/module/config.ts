@@ -8,6 +8,7 @@ import OseDataModelCharacterEncumbranceDisabled from "./actor/data-model-classes
 import OseDataModelCharacterEncumbranceItemBased from "./actor/data-model-classes/data-model-character-encumbrance-item-based";
 
 import { CLASSIC_FANTASY_CLASSES } from "./classes/classic-fantasy-classes";
+import { GYGAX75_CLASSES } from "./classes/gygax75-classes";
 
 /**
  * The shape of the system's global configuration object, `OSE` (exposed at
@@ -68,6 +69,7 @@ export const OSE = {
   /** Character class definitions, grouped by rules setting (e.g. classic fantasy). */
   classes: {
     classic: CLASSIC_FANTASY_CLASSES,
+    gygax75: GYGAX75_CLASSES,
   },
   /** The available encumbrance schemes, keyed by setting value to their data-model class. */
   encumbranceOptions: {
@@ -195,6 +197,8 @@ export const OSE = {
     splash: "OSE.items.Splash",
     reload: "OSE.items.Reload",
     charge: "OSE.items.Charge",
+    penetrating: "OSE.items.Penetrating",
+    reach: "OSE.items.Reach",
   },
   /** Display metadata (label, image, icon) for each item tag, derived on access. */
   auto_tags: {
@@ -261,6 +265,20 @@ export const OSE = {
         icon: "fa-person-running",
       };
     },
+    get penetrating() {
+      return {
+        label: CONFIG.OSE.tags.penetrating,
+        image: `${CONFIG.OSE.assetsPath}/penetrating.png`,
+        icon: "fa-crosshairs",
+      };
+    },
+    get reach() {
+      return {
+        label: CONFIG.OSE.tags.reach,
+        image: `${CONFIG.OSE.assetsPath}/reach.png`,
+        icon: "fa-arrows-left-right-to-line",
+      };
+    },
   },
   /** Icon/image path for each item tag, derived on access. */
   tag_images: {
@@ -290,6 +308,12 @@ export const OSE = {
     },
     get charge() {
       return `${CONFIG.OSE.assetsPath}/charge.png`;
+    },
+    get penetrating() {
+      return "fa-crosshairs";
+    },
+    get reach() {
+      return "fa-arrows-left-right-to-line";
     },
   },
   /**

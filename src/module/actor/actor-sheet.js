@@ -624,29 +624,34 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
       templateData,
     );
     // Create Dialog window and wait for resolution
-    return foundry.applications.api.DialogV2.wait({
-      classes: ["ose", "dialog"],
-      window: { title: game.i18n.localize("OSE.dialog.createItem") },
-      position: { width: 400, height: "auto" },
-      content: dlg,
-      buttons: [
-        {
-          action: "ok",
-          label: game.i18n.localize("OSE.Ok"),
-          icon: "fas fa-check",
-          default: true,
-          callback: (_event, button) => {
-            return new foundry.applications.ux.FormDataExtended(button.form).object;
+    return new Promise((resolve) => {
+      const dialog = new foundry.applications.api.DialogV2({
+        classes: ["ose", "dialog"],
+        window: { title: game.i18n.localize("OSE.dialog.createItem") },
+        position: { width: 400, height: "auto" },
+        content: dlg,
+        buttons: [
+          {
+            action: "ok",
+            label: game.i18n.localize("OSE.Ok"),
+            icon: "fas fa-check",
+            default: true,
+            callback: (_event, button) => {
+              const res = new foundry.applications.ux.FormDataExtended(button.form).object;
+              resolve(res);
+              return res;
+            },
           },
-        },
-        {
-          action: "cancel",
-          icon: "fas fa-times",
-          label: game.i18n.localize("OSE.Cancel"),
-          callback: () => null,
-        },
-      ],
-      rejectClose: false,
+          {
+            action: "cancel",
+            icon: "fas fa-times",
+            label: game.i18n.localize("OSE.Cancel"),
+            callback: () => resolve(null),
+          },
+        ],
+        close: () => resolve(null),
+      });
+      dialog.render(true);
     });
   }
 

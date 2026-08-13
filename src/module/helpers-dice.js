@@ -398,14 +398,23 @@ const OseDice = {
     const html = await foundry.applications.handlebars.renderTemplate(template, dialogData);
 
     // Create Dialog window and wait for resolution
-    const result = await foundry.applications.api.DialogV2.wait({
-      classes: ["ose", "dialog"],
-      window: { title: title || "" },
-      position: { width: 400, height: "auto" },
-      content: html,
-      buttons,
-      default: "ok",
-      rejectClose: false,
+    const result = await new Promise((resolve) => {
+      const dialog = new foundry.applications.api.DialogV2({
+        classes: ["ose", "dialog"],
+        window: { title: title || "" },
+        position: { width: 400, height: "auto" },
+        content: html,
+        buttons: buttons.map((b) => ({
+          ...b,
+          callback: (event, button, dialogInst) => {
+            const res = b.callback ? b.callback(event, button, dialogInst) : false;
+            resolve(res);
+            return res;
+          },
+        })),
+        close: () => resolve(false),
+      });
+      dialog.render(true);
     });
     return result || false;
   },
@@ -490,13 +499,23 @@ const OseDice = {
     const html = await foundry.applications.handlebars.renderTemplate(template, dialogData);
 
     // Create Dialog window and wait for resolution
-    const result = await foundry.applications.api.DialogV2.wait({
-      classes: ["ose", "dialog"],
-      window: { title: title || "" },
-      position: { width: 400, height: "auto" },
-      content: html,
-      buttons,
-      rejectClose: false,
+    const result = await new Promise((resolve) => {
+      const dialog = new foundry.applications.api.DialogV2({
+        classes: ["ose", "dialog"],
+        window: { title: title || "" },
+        position: { width: 400, height: "auto" },
+        content: html,
+        buttons: buttons.map((b) => ({
+          ...b,
+          callback: (event, button, dialogInst) => {
+            const res = b.callback ? b.callback(event, button, dialogInst) : false;
+            resolve(res);
+            return res;
+          },
+        })),
+        close: () => resolve(false),
+      });
+      dialog.render(true);
     });
     return result || false;
   },

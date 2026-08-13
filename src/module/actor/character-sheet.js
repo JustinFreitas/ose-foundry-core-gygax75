@@ -107,29 +107,34 @@ export default class OseActorSheetCharacter extends OseActorSheet {
       templateData,
     );
     // Create Dialog window
-    return foundry.applications.api.DialogV2.wait({
-      classes: ["ose", "dialog"],
-      window: { title: "" },
-      position: { width: 400, height: "auto" },
-      content: dlg,
-      buttons: [
-        {
-          action: "ok",
-          label: game.i18n.localize("OSE.Ok"),
-          icon: "fas fa-check",
-          default: true,
-          callback: (_event, button, _html) => {
-            return new foundry.applications.ux.FormDataExtended(button.form).object;
+    return new Promise((resolve) => {
+      const dialog = new foundry.applications.api.DialogV2({
+        classes: ["ose", "dialog"],
+        window: { title: "" },
+        position: { width: 400, height: "auto" },
+        content: dlg,
+        buttons: [
+          {
+            action: "ok",
+            label: game.i18n.localize("OSE.Ok"),
+            icon: "fas fa-check",
+            default: true,
+            callback: (_event, button) => {
+              const res = new foundry.applications.ux.FormDataExtended(button.form).object;
+              resolve(res);
+              return res;
+            },
           },
-        },
-        {
-          action: "cancel",
-          icon: "fas fa-times",
-          label: game.i18n.localize("OSE.Cancel"),
-          callback: () => null,
-        },
-      ],
-      rejectClose: false,
+          {
+            action: "cancel",
+            icon: "fas fa-times",
+            label: game.i18n.localize("OSE.Cancel"),
+            callback: () => resolve(null),
+          },
+        ],
+        close: () => resolve(null),
+      });
+      dialog.render(true);
     });
   }
 

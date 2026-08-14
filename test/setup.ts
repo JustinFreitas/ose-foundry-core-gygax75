@@ -202,6 +202,26 @@ global.foundry = {
       },
     },
   },
+  appv1: {
+    sheets: {
+      ActorSheet: class {
+        actor: any;
+        options: any = { editable: true };
+        constructor(actor: any, _options: any = {}) {
+          this.actor = actor;
+        }
+        async getData() {
+          return { data: this.actor?.system || {} };
+        }
+        _onSortItem(_event: any, _itemData: any) {
+          return "sorted";
+        }
+        async _onDropItem(_event: any, _data: any) {
+          return "dropped";
+        }
+      },
+    },
+  },
   abstract: {
     TypeDataModel: class {},
   },

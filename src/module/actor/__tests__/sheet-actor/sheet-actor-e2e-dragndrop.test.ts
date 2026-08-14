@@ -194,6 +194,65 @@ export default ({ describe, it, expect, after, beforeEach }: QuenchMethods) => {
       expect(finalElement).not.null;
     });
 
+    it("Drag item from Container A to Container B transfers ownership between containers", async () => {
+      const actor = await createMockActorKey("character", {}, key);
+      const [containerA] = await createActorTestItem(actor, "container", "ContainerA");
+      const [containerB] = await createActorTestItem(actor, "container", "ContainerB");
+      const [weapon] = await createActorTestItem(actor, "weapon", "StowedSword");
+
+      // Place weapon inside Container A
+      await containerA.update({ "system.itemIds": [weapon.id] });
+      await weapon.update({ "system.containerId": containerA.id, "system.equipped": false });
+
+      actor?.sheet?.render(true);
+
+      const weaponElement = await waitForElement(`.sheet .inventory li.item[data-item-id="${weapon?.id}"]`);
+      const containerBElement = await waitForElement(`.sheet .inventory li.item[data-item-id="${containerB?.id}"]`);
+
+      await executeDragNDrop({
+        source: { item: weapon, itemElement: weaponElement },
+        target: { item: containerB, itemElement: containerBElement },
+      });
+      await waitForInput();
+
+      expect(containerA.system.itemIds.length).equal(0);
+      expect(containerB.system.itemIds.length).equal(1);
+      expect(containerB.system.itemIds).contain(weapon.id);
+      expect(weapon.system.containerId).equal(containerB.id);
+    });
+
+    it("Drag item from Container A onto a child item inside Container B transfers into Container B", async () => {
+      const actor = await createMockActorKey("character", {}, key);
+      const [containerA] = await createActorTestItem(actor, "container", "ContainerA");
+      const [containerB] = await createActorTestItem(actor, "container", "ContainerB");
+      const [sword] = await createActorTestItem(actor, "weapon", "Sword");
+      const [torch] = await createActorTestItem(actor, "item", "Torch");
+
+      // Sword in A, Torch in B
+      await containerA.update({ "system.itemIds": [sword.id] });
+      await sword.update({ "system.containerId": containerA.id, "system.equipped": false });
+      await containerB.update({ "system.itemIds": [torch.id] });
+      await torch.update({ "system.containerId": containerB.id, "system.equipped": false });
+
+      actor?.sheet?.render(true);
+
+      const swordElement = await waitForElement(`.sheet .inventory li.item[data-item-id="${sword?.id}"]`);
+      const torchElement = await waitForElement(`.sheet .inventory li.item[data-item-id="${torch?.id}"]`);
+
+      // Drop sword onto torch inside Container B
+      await executeDragNDrop({
+        source: { item: sword, itemElement: swordElement },
+        target: { item: torch, itemElement: torchElement },
+      });
+      await waitForInput();
+
+      expect(containerA.system.itemIds.length).equal(0);
+      expect(containerB.system.itemIds.length).equal(2);
+      expect(containerB.system.itemIds).contain(sword.id);
+      expect(containerB.system.itemIds).contain(torch.id);
+      expect(sword.system.containerId).equal(containerB.id);
+    });
+
     /* --------------------------------------------- */
     /* Loop over item types                          */
     /* --------------------------------------------- */

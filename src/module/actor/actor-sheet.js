@@ -357,31 +357,7 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
   }
 
   _onSortItem(event, itemData) {
-    const source = this.actor.items.get(itemData._id || itemData.id);
-    if (!source) return super._onSortItem(event, itemData);
-    const siblings = this.actor.items.filter((i) => i.id !== source.id);
-    const dropTarget = event.target.closest("[data-item-id]");
-    const targetId = dropTarget ? dropTarget.dataset.itemId : null;
-    const target = siblings.find((s) => s.id === targetId);
-    const targetData = target?.system;
-
-    // Dragging items into a container
-    if (target?.type === "container" && targetData.containerId === "") {
-      if (source.type === "container") {
-        return ui.notifications.warn(
-          game.i18n.localize("OSE.warn.noNestedContainers") || "You cannot nest containers.",
-        );
-      }
-      this.actor.updateEmbeddedDocuments("Item", [{ _id: source.id, "system.containerId": target.id }]);
-      return;
-    }
-
-    if (source.system.containerId !== "") {
-      this.actor.updateEmbeddedDocuments("Item", [{ _id: source.id, "system.containerId": "" }]);
-    }
-
-    // No (or unknown) drop target: let Foundry's default sorting handle it.
-    super._onSortItem(event, itemData);
+    return super._onSortItem(event, itemData);
   }
 
   _onDragStart(event) {
@@ -507,24 +483,110 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
     return [newContainer, ...newContents];
   }
 
+  /**
+   * Determine the target container document for a drop event, if one is targeted.
+   *
+   * @param {DragEvent} event - The drop event.
+   * @returns {Item|null} The targeted container Item document, or null if none.
+   * @protected
+   */
+  _getTargetContainer(event) {
+    const dropTargetItem = event.target.closest("[data-item-id]");
+    const targetId = dropTargetItem ? dropTargetItem.dataset.itemId : null;
+    const targetDoc = targetId ? this.actor.items.get(targetId) : null;
+
+    if (targetDoc?.type === "container") return targetDoc;
+    if (targetDoc?.system?.containerId) {
+      return this.actor.items.get(targetDoc.system.containerId) || null;
+    }
+    const containerEl = event.target.closest(".container");
+    if (containerEl?.dataset?.itemId) {
+      return this.actor.items.get(containerEl.dataset.itemId) || null;
+    }
+    return null;
+  }
+
+  /**
+   * Atomically transfer an item between containers, or into a container.
+   *
+   * @param {Item} item - The item being moved.
+   * @param {Item|null} sourceContainer - The container the item currently belongs to (if any).
+   * @param {Item} targetContainer - The container the item is being moved into.
+   * @returns {Promise<Document[]>}
+   * @protected
+   */
+  async _transferItemBetweenContainers(item, sourceContainer, targetContainer) {
+    const updates = [];
+
+    if (sourceContainer && sourceContainer.id !== targetContainer.id) {
+      const newSourceList = sourceContainer.system.itemIds.filter((id) => id !== item.id);
+      updates.push({ _id: sourceContainer.id, "system.itemIds": newSourceList });
+    }
+
+    const alreadyExists = targetContainer.system.itemIds.includes(item.id);
+    if (!alreadyExists) {
+      const newTargetList = [...targetContainer.system.itemIds, item.id];
+      updates.push({ _id: targetContainer.id, "system.itemIds": newTargetList });
+    }
+
+    updates.push({
+      _id: item.id,
+      "system.containerId": targetContainer.id,
+      "system.equipped": false,
+    });
+
+    return this.actor.updateEmbeddedDocuments("Item", updates);
+  }
+
   // eslint-disable-next-line no-underscore-dangle
   async _onDropItem(event, data) {
-    const targetId = event.target.closest(".item")?.dataset?.itemId;
-    const targetItem = this.actor.items.get(targetId);
-    const targetIsContainer = targetItem?.type === "container";
+    const targetContainer = this._getTargetContainer(event);
+    const dropTargetEl = event.target.closest("[data-item-id]");
+    const targetId = dropTargetEl ? dropTargetEl.dataset.itemId : null;
 
     // This eats the event.target as it is parsed with the TextEditor.
     const item = await Item.implementation.fromDropData(data);
     const itemData = item.toObject();
 
-    const exists = !!this.actor.items.get(item.id);
+    const isOwned = !!this.actor.items.get(item.id);
+    const sourceContainer = item.system?.containerId ? this.actor.items.get(item.system.containerId) : null;
 
-    const isContainer = this.actor.items.get(item.system.containerId);
+    // Issue: https://github.com/vttred/ose/issues/357 - Dragging container onto itself
+    if (item.id === targetId || (targetContainer && item.id === targetContainer.id)) return;
 
-    // Issue: https://github.com/vttred/ose/issues/357
-    if (item.id === targetId) return;
+    // Prevent nesting containers
+    if (item.type === "container" && targetContainer) {
+      return ui.notifications.warn(game.i18n.localize("OSE.warn.noNestedContainers") || "You cannot nest containers.");
+    }
 
-    if (!exists && !targetIsContainer) {
+    // Branch A: Drop target is a Container (or inside a container)
+    if (targetContainer) {
+      if (!isOwned) {
+        // eslint-disable-next-line no-underscore-dangle
+        const result = await this._onContainerItemAdd(item, targetContainer);
+        if (item.actor && item.actor.id !== this.actor.id && !event.ctrlKey) {
+          await item.delete();
+        }
+        return result;
+      }
+
+      // Owned item dropped within same container: no-op / allow standard sort
+      if (sourceContainer?.id === targetContainer.id) {
+        return;
+      }
+
+      // Owned item moved from another container or root inventory into targetContainer
+      // eslint-disable-next-line no-underscore-dangle
+      return this._transferItemBetweenContainers(item, sourceContainer, targetContainer);
+    }
+
+    // Branch B: Drop target is Root Inventory (outside any container)
+    if (sourceContainer) {
+      // eslint-disable-next-line no-underscore-dangle
+      return this._onContainerItemRemove(item, sourceContainer);
+    }
+
+    if (!isOwned) {
       if (item.type === "container" && item.actor && item.actor.id !== this.actor.id) {
         // eslint-disable-next-line no-underscore-dangle
         return this._handleCrossActorContainerDrop(item, event);
@@ -532,23 +594,6 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
 
       // eslint-disable-next-line no-underscore-dangle
       const result = await this._onDropItemCreate([itemData]);
-      if (item.actor && item.actor.id !== this.actor.id && !event.ctrlKey) {
-        await item.delete();
-      }
-      return result;
-    }
-
-    // eslint-disable-next-line no-underscore-dangle
-    if (isContainer) return this._onContainerItemRemove(item, isContainer);
-
-    // eslint-disable-next-line no-underscore-dangle
-    if (targetIsContainer) {
-      if (item.type === "container") {
-        return ui.notifications.warn(
-          game.i18n.localize("OSE.warn.noNestedContainers") || "You cannot nest containers.",
-        );
-      }
-      const result = await this._onContainerItemAdd(item, targetItem);
       if (item.actor && item.actor.id !== this.actor.id && !event.ctrlKey) {
         await item.delete();
       }
@@ -563,9 +608,11 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
 
   async _onContainerItemRemove(item, container) {
     const newList = container.system.itemIds.filter((s) => s !== item.id);
-    const itemObj = this.object.items.get(item.id);
-    await container.update({ system: { itemIds: newList } });
-    await itemObj.update({ system: { containerId: "" } });
+    const itemObj = this.actor.items.get(item.id);
+    return this.actor.updateEmbeddedDocuments("Item", [
+      { _id: container.id, "system.itemIds": newList },
+      { _id: itemObj ? itemObj.id : item.id, "system.containerId": "" },
+    ]);
   }
 
   async _onContainerItemAdd(item, target) {
@@ -580,9 +627,10 @@ export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
     const alreadyExistsInContainer = target.system.itemIds.includes(latestItem.id);
     if (!alreadyExistsInContainer) {
       const newList = [...target.system.itemIds, latestItem.id];
-      await target.update({ system: { itemIds: newList } });
-      await latestItem.update({ system: { containerId: target.id, equipped: false } });
+      await target.update({ "system.itemIds": newList });
+      await latestItem.update({ "system.containerId": target.id, "system.equipped": false });
     }
+    return [latestItem];
   }
 
   // eslint-disable-next-line no-underscore-dangle

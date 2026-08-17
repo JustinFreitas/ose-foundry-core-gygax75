@@ -202,6 +202,9 @@
     }
     .inventory {
       overflow: auto;
+      &.effects {
+        height: 100%;
+      }
       .header-spells {
         line-height: max(30px, 1.9rem);
       }

@@ -65,7 +65,13 @@
       }
     }
     .notes-tab {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+
       .inventory {
+        flex: 0 0 auto;
+
         .languages {
           margin: 2px;
           flex: 0 0 130px;
@@ -99,11 +105,27 @@
           }
         }
         &.notes {
+          flex: 1 1 0;
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
           margin: 2px;
+
+          .item-category-title {
+            flex: 0 0 auto;
+          }
+
+          .resizable-editor {
+            flex: 1 1 0;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+          }
+
           .editor {
-            flex: 1 0 0;
-            min-height: 500px;
-            overflow-y: visible;
+            flex: 1 1 0;
+            min-height: 0;
+            height: 100%;
           }
         }
       }

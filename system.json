@@ -2,7 +2,7 @@
   "id": "ose",
   "title": "Old-School Essentials Development Build",
   "description": "Simple, robust rules compatible with decades of Basic/Expert material",
-  "version": "2.3.0-gygax75.4",
+  "version": "2.3.0-gygax75.5",
   "compatibility": {
     "minimum": "13",
     "verified": "14"

@@ -473,7 +473,8 @@ const OseDice = {
         label: game.i18n.localize("OSE.Roll"),
         icon: "fas fa-dice-d20",
         callback: async (event, _button, dialog) => {
-          const form = event?.target?.closest?.("form") || event?.target?.form || dialog?.element?.querySelector?.("form");
+          const form =
+            event?.target?.closest?.("form") || event?.target?.form || dialog?.element?.querySelector?.("form");
           rollData.form = form;
           if (typeof onConfirm === "function") {
             const warning = await onConfirm(form);

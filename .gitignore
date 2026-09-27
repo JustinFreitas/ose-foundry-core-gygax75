@@ -16,3 +16,10 @@ coverage/
 
 # packaging artifacts
 *.tgz
+
+# Subagents & Local Diagnostics
+.agents/
+tools/*.mjs
+tools/*.jsonl
+tools/*.txt
+

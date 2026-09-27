@@ -68,6 +68,19 @@ describe("Offline Actor Entity Hit Dice tests", () => {
 
       monster.rollHitDice();
       expect(rolledParts[0]).toBe("max(1d4-2, 1)");
+
+      // 6. Test whitespace resilience in HD formula (e.g. "9d8 + 2" with spaces)
+      const actorSpaced = new OseActor({
+        id: "actor-spaced",
+        system: {
+          hp: { hd: "9d8 + 2" },
+          details: { level: 10 },
+          scores: { con: { mod: 2 } },
+        },
+      } as unknown as Actor);
+
+      actorSpaced.selectSingleOrAllHitDiceRoll({ hdRollType: "single" });
+      expect(rolledParts[0]).toBe("2");
     } finally {
       // Restore mock
       OseDice.Roll = originalRoll;

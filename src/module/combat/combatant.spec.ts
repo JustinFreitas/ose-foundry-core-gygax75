@@ -96,6 +96,20 @@ describe("OSECombatant and Fast Combat", () => {
       expect(combatant.isDefeated).toBe(true);
       expect(combatant.isFast).toBe(false);
     });
+
+    it("marks combatant as defeated when defeated flag is true even if HP > 0", () => {
+      const combatant = new OSECombatant({
+        actor: {
+          system: {
+            details: { class: "Halfling" },
+            hp: { value: 10 },
+          },
+        },
+        defeated: true,
+      });
+      expect(combatant.isDefeated).toBe(true);
+      expect(combatant.isFast).toBe(false);
+    });
   });
 
   describe("getInitiativeRoll", () => {
@@ -143,7 +157,7 @@ describe("OSECombatant and Fast Combat", () => {
       expect(roll.formula).toBe("-790");
     });
 
-    it("falls back to passed or default formula for standard combatants", () => {
+    it("falls back to passed formula for standard combatants", () => {
       const combatant = new OSECombatant({
         actor: {
           system: {
@@ -155,6 +169,21 @@ describe("OSECombatant and Fast Combat", () => {
       });
 
       const roll = combatant.getInitiativeRoll("1d6");
+      expect(roll.formula).toBe("1d6");
+    });
+
+    it("falls back to CONFIG.Combat.initiative.formula when no formula is passed", () => {
+      const combatant = new OSECombatant({
+        actor: {
+          system: {
+            details: { class: "Fighter" },
+            hp: { value: 10 },
+          },
+          getRollData: () => ({}),
+        },
+      });
+
+      const roll = combatant.getInitiativeRoll();
       expect(roll.formula).toBe("1d6");
     });
   });
@@ -198,6 +227,29 @@ describe("OSECombatant and Fast Combat", () => {
         token: { disposition: 2 },
       });
       expect(secret.groupRaw).toBe("white");
+    });
+  });
+
+  describe("flags and actions", () => {
+    it("reads and writes isCasting flag", async () => {
+      const combatant = new OSECombatant();
+      expect(combatant.isCasting).toBeFalsy();
+      await combatant.setFlag("ose", "prepareSpell", true);
+      expect(combatant.isCasting).toBe(true);
+    });
+
+    it("assigns group delegating to combat.assignGroup", async () => {
+      const mockCombat = {
+        assignGroup: vi.fn().mockResolvedValue(true),
+      };
+      const combatant = new OSECombatant({
+        combat: mockCombat,
+        actor: { system: { hp: { value: 10 } } },
+        token: { disposition: 1 },
+      });
+
+      await combatant.assignGroup("custom-group");
+      expect(mockCombat.assignGroup).toHaveBeenCalledWith(combatant, "custom-group");
     });
   });
 });

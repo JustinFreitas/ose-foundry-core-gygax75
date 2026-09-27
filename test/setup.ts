@@ -99,6 +99,24 @@ class MockRollTable extends MockDocument {
   }
 }
 
+class MockCombatant extends MockDocument {
+  actor: any = null;
+  token: any = null;
+  defeated: boolean = false;
+  initiative: number | null = null;
+  combat: any = null;
+  group: any = null;
+  constructor(data: any = {}) {
+    super(data);
+    this.actor = data.actor || null;
+    this.token = data.token || null;
+    this.defeated = data.defeated || false;
+    this.initiative = data.initiative ?? null;
+    this.combat = data.combat || null;
+    this.group = data.group || null;
+  }
+}
+
 // Attach mocks to global scope
 global.game = {
   system: { id: "ose" },
@@ -147,6 +165,9 @@ global.CONFIG = {
     languages: ["Common", "Elvish", "Dwarvish"],
     colors: {},
   },
+  Combat: {
+    initiative: { formula: "1d6" },
+  },
   Dice: {},
 } as any;
 
@@ -158,6 +179,7 @@ global.Hooks = {
 
 global.Actor = MockActor as any;
 global.Item = MockItem as any;
+global.Combatant = MockCombatant as any;
 global.Roll = MockRoll as any;
 global.ChatMessage = MockChatMessage as any;
 global.Folder = MockFolder as any;
@@ -174,6 +196,19 @@ global.foundry = {
     escapeHTML: (str: string) => str,
   },
   applications: {
+    sidebar: {
+      tabs: {
+        CombatTracker: class {
+          static DEFAULT_OPTIONS = { actions: {} };
+          static PARTS = { tracker: {} };
+          viewed: any = null;
+          async _prepareTrackerContext(context: any, _options: any) {
+            return context;
+          }
+          async _onCombatantControl(_event: any, _target: any) {}
+        },
+      },
+    },
     api: {
       DialogV2: class {
         static confirm = vi.fn().mockResolvedValue(true);

@@ -352,9 +352,9 @@ export default class OseActor extends Actor {
     const level = +actorData.details.level || 1;
     const single = options.hdRollType === "single";
 
-    // Parse the die size out of the HD formula (e.g. "3d8" -> 8). If the HD is
-    // malformed/empty, warn and bail rather than silently rolling a d0.
-    const parts = /^\d+d(\d+)/.exec(actorData.hp.hd);
+    // Parse the die size out of the HD formula (e.g. "3d8" -> 8, "9d8+2" -> 9 dice, d8, +2).
+    // If the HD is malformed/empty, warn and bail rather than silently rolling a d0.
+    const parts = /^(\d+)d(\d+)(?:([+-])(\d+))?/.exec(actorData.hp.hd);
     if (!parts) {
       ui.notifications.warn(
         game.i18n.format("OSE.warn.invalidHitDice", { hd: actorData.hp.hd ?? "" }) ||
@@ -362,15 +362,37 @@ export default class OseActor extends Actor {
       );
       return;
     }
-    const dieSize = parts[1];
+    const baseDice = Number.parseInt(parts[1], 10);
+    const dieSize = parts[2];
+    const flatSign = parts[3] === "-" ? -1 : 1;
+    const flatBonus = parts[4] ? Number.parseInt(parts[4], 10) * flatSign : 0;
 
-    // Number of dice and the CON bonus scale with how many levels we're rolling.
-    const numDice = single ? 1 : level;
-    const conBonus = single ? actorData.scores.con.mod : actorData.scores.con.mod * level;
+    let rollParts;
+    // B/X & BECMI Name-Level progression (e.g. "9d8+2" at Level 10+):
+    // Levels past base Hit Dice (Level 9+) gain static flat HP per level without CON modifier.
+    if (baseDice >= 8 && flatBonus !== 0) {
+      if (single) {
+        if (level > baseDice) {
+          const flatPerLevel = Math.max(1, Math.round(Math.abs(flatBonus) / (level - baseDice))) * flatSign;
+          rollParts = [flatPerLevel >= 0 ? `${flatPerLevel}` : `max(${flatPerLevel}, 1)`];
+        } else {
+          const conBonus = actorData.scores.con.mod;
+          rollParts = [`max(1d${dieSize} + ${conBonus}, 1)`];
+        }
+      } else {
+        const conTotal = actorData.scores.con.mod * baseDice;
+        rollParts = [`max(${baseDice}d${dieSize} + ${conTotal}, ${baseDice}) + ${flatBonus}`];
+      }
+    } else {
+      // Standard progression (Levels 1-9):
+      // Number of dice and the CON bonus scale with how many levels we're rolling.
+      const numDice = single ? 1 : level;
+      const conBonus = single ? actorData.scores.con.mod : actorData.scores.con.mod * level;
 
-    // A character always gains at least 1 hit point per Hit Die,
-    // regardless of CON modifier (so the floor is the number of dice rolled).
-    const rollParts = [`max(${numDice}d${dieSize} + ${conBonus}, ${numDice})`];
+      // A character always gains at least 1 hit point per Hit Die,
+      // regardless of CON modifier (so the floor is the number of dice rolled).
+      rollParts = [`max(${numDice}d${dieSize} + ${conBonus}, ${numDice})`];
+    }
 
     const data = {
       actor: this,
@@ -393,12 +415,12 @@ export default class OseActor extends Actor {
 
   rollHitDice(options = {}) {
     const actorType = this.type;
-    // Gygax75 - Roll monster HD like normal.
+    // Gygax75 - Roll monster HD like normal with min 1 HP clamp.
     if (actorType !== "character") {
       const actorData = this.system;
 
       const label = game.i18n.localize("OSE.roll.hd");
-      const rollParts = [actorData.hp.hd];
+      const rollParts = [actorData.hp.hd ? `max(${actorData.hp.hd}, 1)` : "1d8"];
 
       const data = {
         actor: this,

@@ -39,6 +39,35 @@ describe("Offline Actor Entity Hit Dice tests", () => {
 
       actor2.selectSingleOrAllHitDiceRoll({ hdRollType: "all" });
       expect(rolledParts[0]).toBe("max(3d8 + 6, 3)");
+
+      // 3. Test Name-Level (10) character with 9d8+2, Single HD roll (grants flat +2, no CON)
+      const actor10 = new OseActor({
+        id: "actor-10",
+        system: {
+          hp: { hd: "9d8+2" },
+          details: { level: 10 },
+          scores: { con: { mod: 2 } },
+        },
+      } as unknown as Actor);
+
+      actor10.selectSingleOrAllHitDiceRoll({ hdRollType: "single" });
+      expect(rolledParts[0]).toBe("2");
+
+      // 4. Test Name-Level (10) character with 9d8+2, All HD roll (rolls 9d8 + 9*CON + flat 2)
+      actor10.selectSingleOrAllHitDiceRoll({ hdRollType: "all" });
+      expect(rolledParts[0]).toBe("max(9d8 + 18, 9) + 2");
+
+      // 5. Test Monster rollHitDice with min 1 HP clamp
+      const monster = new OseActor({
+        id: "monster-1",
+        type: "monster",
+        system: {
+          hp: { hd: "1d4-2" },
+        },
+      } as unknown as Actor);
+
+      monster.rollHitDice();
+      expect(rolledParts[0]).toBe("max(1d4-2, 1)");
     } finally {
       // Restore mock
       OseDice.Roll = originalRoll;

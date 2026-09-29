@@ -6,30 +6,43 @@
 
 .application.dialog.ose,
 .ose.dialog {
-  --color-border: #111111;
-  border: 1px solid black;
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.75);
-  background: #191813;
+  --color-border: #000000;
+  --color-text: #191813;
+  --color-border-light-highlight: #f0f0e0;
+  --color-border-light-secondary: #c9c7b8;
+  --color-border-light-tertiary: #7a7971;
 
-  /* Window Header: Mirrored directly from .ose.chat-block .chat-header */
+  background: url("/ui/denim075.png") repeat;
+  border-radius: 5px;
+  border: 1px solid #000000;
+  box-shadow: 0 0 20px #000000;
+  color: #191813;
+  padding: 0;
+  overflow: hidden;
+
+  /* V1 Window Header: Transparent title bar matching Character Sheet */
   .window-header {
-    background: variables.$darkBackground;
-    color: white;
-    border-bottom: 1px solid black;
-    box-shadow: 0 0 2px #fff inset;
+    background: transparent;
+    flex: 0 0 30px;
+    height: 30px;
     padding: 0 8px;
-    height: 36px;
+    gap: 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.5);
 
     .window-title {
-      color: white;
+      margin: 0;
+      color: #f0f0e0;
       font-family: var(--font-primary);
-      font-weight: bold;
       font-size: var(--font-size-14);
+      font-weight: normal;
+      line-height: 30px;
     }
 
     button.header-control {
-      --button-text-color: white;
-      color: white;
+      --button-text-color: #f0f0e0;
+      color: #f0f0e0;
+      line-height: 30px;
+      margin: 0 0 0 8px;
 
       &:hover {
         color: #ffffff;
@@ -38,65 +51,68 @@
     }
   }
 
-  /* Window Content: Classic OSE parchment body */
+  /* V1 Window Content: Parchment background with 8px padding */
   .window-content {
     background: url("/ui/parchment.jpg") repeat;
+    padding: 8px;
     color: #191813;
-    padding: 0.75rem;
+    font-size: var(--font-size-14);
+    border-radius: 0 0 5px 5px;
 
     p, span, label, div {
       color: #191813;
     }
 
     .form-group {
+      margin-bottom: 0.5rem;
+      align-items: center;
+
       label {
         color: #191813;
         font-weight: bold;
       }
     }
 
-    /* Text Inputs: Underlined style matching sheet & cards */
+    /* V1 Text Inputs: Clean underline with hover gradient */
     input:not([type="checkbox"]) {
-      background: rgba(255, 255, 255, 0.35);
-      color: #191813;
+      background: none;
       border: none;
-      border-bottom: 1px solid variables.$colorTan;
       border-radius: 0;
+      border-bottom: 1px solid variables.$colorTan;
+      box-shadow: none;
+      color: #191813;
+      text-align: center;
 
-      &:focus,
-      &:focus-visible {
+      &:hover:not(:disabled),
+      &:focus:not(:disabled) {
+        background: variables.$inputBackground;
         outline: none;
-        border-bottom: 2px solid variables.$colorOlive;
-        background: rgba(255, 255, 255, 0.55);
       }
 
       &:disabled {
-        background: transparent;
-        border-bottom: 1px solid variables.$colorTan;
         color: #191813;
         opacity: 0.85;
       }
     }
 
-    /* Select Dropdowns: Eliminates dark purple charcoal box */
+    /* V1 Select Dropdowns: Light translucent background with #dad8cc options */
     select {
-      background: rgba(255, 255, 255, 0.5);
-      color: #191813;
+      height: calc(var(--form-field-height, 26px) + 1px);
+      background: rgba(0, 0, 0, 0.05);
       border: 1px solid variables.$colorTan;
       border-radius: 3px;
-      padding: 2px 6px;
-      line-height: 22px;
-      height: 26px;
+      padding: 0 3px;
+      color: #191813;
+      font-family: inherit;
+      font-size: inherit;
 
-      &:focus,
-      &:focus-visible {
+      &:focus {
+        box-shadow: 0 0 5px #ff6400;
         outline: none;
-        border-color: variables.$colorOlive;
-        background: rgba(255, 255, 255, 0.7);
       }
 
       option {
-        background: #f4efe6;
+        background: #dad8cc;
         color: #191813;
       }
     }
@@ -119,66 +135,125 @@
         background: rgba(0, 0, 0, 0.4);
       }
     }
-  }
 
-  /* Dialog Buttons Container: Matches Chat Card footer divider */
-  .dialog-buttons {
-    display: flex;
-    gap: 0.5rem;
-    padding: 0.5rem;
-    background: url("/ui/parchment.jpg") repeat;
-    border-top: 2px groove #fff;
+    /* V1 Dialog Buttons: Targets buttons inside .window-content */
+    .dialog-buttons,
+    .form-footer {
+      display: flex;
+      gap: 0;
+      margin-top: 8px;
+      padding: 0;
+      background: transparent;
+      border-top: none;
 
-    button {
-      --button-background-color: transparent;
-      --button-border-color: #{variables.$colorTan};
-      --button-text-color: #191813;
+      button {
+        --button-background-color: rgba(0, 0, 0, 0.1);
+        --button-border-color: #f0f0e0;
+        --button-text-color: #191813;
 
-      background: linear-gradient(to bottom, #fcfaf4, #ece4d2);
-      border: 1px solid variables.$colorTan;
-      color: #191813;
-      font-family: var(--font-primary);
-      font-size: var(--font-size-13);
-      border-radius: 3px;
-      line-height: 28px;
-      height: 32px;
-      padding: 0 12px;
-      cursor: pointer;
+        background: rgba(0, 0, 0, 0.1);
+        border: 2px groove #f0f0e0;
+        border-radius: 3px;
+        margin: 0 5px 0 0;
+        flex: 1;
+        height: 28px;
+        line-height: 24px;
+        font-size: var(--font-size-14);
+        font-family: var(--font-primary);
+        color: #191813;
+        cursor: pointer;
 
-      /* Unified Icon & Label Color */
-      i, svg, [class*="fa-"] {
-        color: inherit;
-      }
-
-      &:hover,
-      &:focus {
-        background: linear-gradient(to bottom, #ffffff, #f2eadb);
-        border-color: variables.$colorOlive;
-        box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-        color: #000000;
-      }
-
-      /* Primary / Default Button: Mirrored from .chat-header */
-      &.default {
-        background: variables.$darkBackground;
-        color: white;
-        border: 1px solid black;
-        box-shadow: 0 0 2px #fff inset;
-        font-weight: bold;
-
+        /* Unified Icon & Label Color */
+        i, svg, [class*="fa-"], span {
+          color: inherit;
+        }
         i, svg, [class*="fa-"] {
-          color: white;
+          margin-right: 4px;
+        }
+
+        &:last-child {
+          margin-right: 0;
         }
 
         &:hover,
         &:focus {
-          background: #2a2924;
-          color: #ffffff;
-          box-shadow: 0 0 6px rgba(0, 0, 0, 0.5), 0 0 2px #fff inset;
+          outline: none;
+          box-shadow: 0 0 5px #ff6400;
+          background: rgba(0, 0, 0, 0.15);
+          color: #000000;
+        }
 
-          i, svg, [class*="fa-"] {
-            color: #ffffff;
+        /* V1 Default Button: Subtle background, light secondary border */
+        &.default,
+        &[autofocus] {
+          background: rgba(0, 0, 0, 0.05);
+          border-color: #c9c7b8;
+          font-weight: bold;
+
+          &:hover,
+          &:focus {
+            box-shadow: 0 0 5px #ff6400;
           }
+        }
+      }
+    }
+  }
+
+  /* Support for .dialog-buttons rendered outside .window-content */
+  .dialog-buttons,
+  .form-footer {
+    display: flex;
+    gap: 0;
+    margin: 0;
+    padding: 0 8px 8px 8px;
+    background: url("/ui/parchment.jpg") repeat;
+    border-top: none;
+
+    button {
+      --button-background-color: rgba(0, 0, 0, 0.1);
+      --button-border-color: #f0f0e0;
+      --button-text-color: #191813;
+
+      background: rgba(0, 0, 0, 0.1);
+      border: 2px groove #f0f0e0;
+      border-radius: 3px;
+      margin: 0 5px 0 0;
+      flex: 1;
+      height: 28px;
+      line-height: 24px;
+      font-size: var(--font-size-14);
+      font-family: var(--font-primary);
+      color: #191813;
+      cursor: pointer;
+
+      i, svg, [class*="fa-"], span {
+        color: inherit;
+      }
+      i, svg, [class*="fa-"] {
+        margin-right: 4px;
+      }
+
+      &:last-child {
+        margin-right: 0;
+      }
+
+      &:hover,
+      &:focus {
+        outline: none;
+        box-shadow: 0 0 5px #ff6400;
+        background: rgba(0, 0, 0, 0.15);
+        color: #000000;
+      }
+
+      &.default,
+      &[autofocus] {
+        background: rgba(0, 0, 0, 0.05);
+        border-color: #c9c7b8;
+        font-weight: bold;
+
+        &:hover,
+        &:focus {
+          box-shadow: 0 0 5px #ff6400;
         }
       }
     }

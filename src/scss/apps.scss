@@ -5,25 +5,28 @@
 /* ----------------------------------------- */
 
 .application.dialog.ose,
-.application.ose.dialog,
 .ose.dialog {
+  --color-text: #191813;
+  --color-border: #{variables.$colorOlive};
+  --color-bg: transparent;
+
   background: url("/ui/parchment.jpg") repeat;
-  color: #191813;
+  color: var(--color-text);
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-  border: 1px solid variables.$colorOlive;
+  border: 1px solid var(--color-border);
 
   .window-header {
-    color: #191813;
+    color: var(--color-text);
     border-bottom: 1px solid rgba(0, 0, 0, 0.2);
 
     .window-title {
-      color: #191813;
+      color: var(--color-text);
       font-family: var(--font-primary);
       font-weight: bold;
     }
 
     button.header-control {
-      color: #191813;
+      color: var(--color-text);
 
       &:hover {
         text-shadow: 0 0 4px variables.$colorCrimson;
@@ -33,16 +36,44 @@
 
   .window-content {
     background: transparent;
-    color: #191813;
+    color: var(--color-text);
     padding: 0.75rem;
 
     p, span, label, div {
-      color: #191813;
+      color: var(--color-text);
     }
 
     input, select {
-      color: #191813;
-      border-bottom: 1px solid variables.$colorTan;
+      background: rgba(0, 0, 0, 0.05);
+      color: var(--color-text);
+      border: none;
+      border-bottom: 2px solid variables.$colorTan;
+      border-radius: 2px;
+
+      &:focus,
+      &:focus-visible {
+        outline: none;
+        border-bottom-color: variables.$colorOlive;
+        background: rgba(0, 0, 0, 0.08);
+      }
+    }
+
+    &::-webkit-scrollbar,
+    *::-webkit-scrollbar {
+      width: 8px;
+    }
+    &::-webkit-scrollbar-track,
+    *::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    &::-webkit-scrollbar-thumb,
+    *::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 4px;
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.4);
+      }
     }
   }
 
@@ -56,7 +87,7 @@
     button {
       background: rgba(0, 0, 0, 0.05);
       border: 1px solid variables.$colorTan;
-      color: #191813;
+      color: var(--color-text);
       font-family: var(--font-primary);
       border-radius: 3px;
       line-height: 28px;
@@ -71,7 +102,7 @@
       &.default {
         font-weight: bold;
         border-color: variables.$colorOlive;
-        background: rgba(0, 0, 0, 0.08);
+        background: rgba(0, 0, 0, 0.15);
       }
     }
   }

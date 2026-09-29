@@ -120,7 +120,7 @@ export default class OseDataModelCharacterEncumbranceItemBased
         items.reduce((acc, item: Item) => {
           if (item.type === "item" && item.system.isCoinsOrGems) {
             // Up to 100 coins or gems count as 1 item.
-            return acc + item.system.quantity.value / 100;
+            return acc + (item.system.quantity.value ?? 0) / 100;
           }
 
           return acc;

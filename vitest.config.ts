@@ -4,18 +4,16 @@ export default defineConfig({
   test: {
     environment: "happy-dom",
     setupFiles: ["./test/setup.ts"],
-    include: ["src/**/*.spec.ts"],
-    exclude: ["node_modules", "dist"],
-    maxWorkers: "75%",
+    include: ["src/**/*.spec.ts", "src/**/*.unit.test.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
       include: ["src/**/*.ts", "src/**/*.js"],
       exclude: [
-        "src/**/*.test.ts",
-        "src/**/*.spec.ts",
-        "src/e2e/**/*",
-        "src/module/__tests__/**/*",
+        "src/ose.js",
+        "src/module/config.js",
+        "src/module/config.ts",
+        "src/types/**/*",
         "test/**/*",
       ],
     },

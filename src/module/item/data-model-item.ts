@@ -1,7 +1,23 @@
 /**
- * @file The data model for Items of type Ability
+ * @file The data model for Items of type Item (misc / treasure).
  */
-export default class OseDataModelItem extends foundry.abstract.TypeDataModel {
+
+import type { DisplayTag, ItemTag, LegacyItemSource, MiscItemData } from "./item-types";
+
+// fvtt-types cannot resolve this system's data models, so a precise Parent forces
+// casts here and full Item stubs in tests. Revisit if they are ever registered.
+// biome-ignore lint/suspicious/noExplicitAny: see above
+export default class OseDataModelItem extends foundry.abstract.TypeDataModel<any, any> implements MiscItemData {
+  declare treasure: boolean;
+  declare description: string;
+  declare tags: ItemTag[];
+  declare equipped: boolean;
+  declare cost: number;
+  declare containerId: string;
+  declare quantity: { value: number | null; max: number | null };
+  declare weight: number | null;
+  declare itemslots: number;
+
   static defineSchema() {
     const { SchemaField, StringField, NumberField, BooleanField, ArrayField, ObjectField } = foundry.data.fields;
     return {
@@ -22,48 +38,51 @@ export default class OseDataModelItem extends foundry.abstract.TypeDataModel {
 
   get cumulativeWeight() {
     const qty = this.quantity?.value ?? 1;
-    if (this.quantity?.max > 0) {
-      return (this.weight / this.quantity.max) * qty;
+    const weight = this.weight ?? 0;
+    if (this.quantity?.max && this.quantity.max > 0) {
+      return (weight / this.quantity.max) * qty;
     }
-    return this.weight * qty;
+    return weight * qty;
   }
 
   get cumulativeCost() {
     const qty = this.quantity?.value ?? 1;
-    if (this.quantity?.max > 0) {
-      return (this.cost / this.quantity.max) * qty;
+    const cost = this.cost ?? 0;
+    if (this.quantity?.max && this.quantity.max > 0) {
+      return (cost / this.quantity.max) * qty;
     }
-    return this.cost * qty;
+    return cost * qty;
   }
 
   get cumulativeItemslots() {
     const qty = this.quantity?.value ?? 1;
-    if (this.quantity?.max > 0) {
-      return Math.ceil((this.itemslots / this.quantity.max) * qty);
+    const itemslots = this.itemslots ?? 0;
+    if (this.quantity?.max && this.quantity.max > 0) {
+      return Math.ceil((itemslots / this.quantity.max) * qty);
     }
-    return Math.ceil(this.itemslots * qty);
+    return Math.ceil(itemslots * qty);
   }
 
-  static migrateData(source) {
+  static migrateData(source: LegacyItemSource) {
     if (source.details?.description && !source.description) source.description = source.details.description;
     return source;
   }
 
-  get manualTags() {
+  get manualTags(): ItemTag[] | null {
     if (!this.tags) return null;
 
-    const tagNames = new Set(Object.values(CONFIG.OSE.auto_tags).map(({ label }) => label));
+    const tagNames = new Set<string>(Object.values(CONFIG.OSE.auto_tags).map(({ label }) => label));
     return this.tags
       .filter(({ value }) => !tagNames.has(value))
       .map(({ title, value }) => ({ title, value, label: value }));
   }
 
-  get autoTags() {
+  get autoTags(): DisplayTag[] {
     const tagNames = Object.values(CONFIG.OSE.auto_tags);
 
     const autoTags = this.tags.map(({ value }) => tagNames.find(({ label }) => value === label));
 
-    return [...autoTags, ...this.manualTags].flat().filter((t) => !!t);
+    return [...autoTags, ...(this.manualTags ?? [])].flat().filter((t) => !!t);
   }
 
   get isCoinsOrGems() {

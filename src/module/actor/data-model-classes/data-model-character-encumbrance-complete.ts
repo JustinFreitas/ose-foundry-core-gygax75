@@ -32,7 +32,7 @@ export default class OseDataModelCharacterEncumbranceComplete
   constructor(max = OseDataModelCharacterEncumbrance.baseEncumbranceCap, items: Item[] = []) {
     super(OseDataModelCharacterEncumbranceComplete.type, max);
     this.#weight = items.reduce((acc, { type, system }: Item) => {
-      const itemWeight = system.cumulativeWeight ?? system.weight * (system.quantity?.value ?? 1);
+      const itemWeight = system.cumulativeWeight ?? (system.weight ?? 0) * (system.quantity?.value ?? 1);
       if (type === "item") return acc + itemWeight;
       if (["weapon", "armor", "container"].includes(type)) return acc + itemWeight;
       return acc;

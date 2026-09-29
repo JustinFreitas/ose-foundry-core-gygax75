@@ -1,9 +1,114 @@
 import { vi } from "vitest";
+import { OSE } from "../src/module/config";
 
 // Define Math.clamp globally as in Foundry environment
 Math.clamp = (val: number, min: number, max: number) => Math.min(Math.max(val, min), max);
 
 // Define mock base classes for Foundry documents
+
+interface FieldOptions {
+  initial?: unknown;
+}
+
+class DataField {
+  options: FieldOptions;
+
+  constructor(options: FieldOptions = {}) {
+    this.options = options ?? {};
+  }
+
+  getInitialValue(): unknown {
+    return this.options.initial;
+  }
+}
+
+class StringField extends DataField {
+  getInitialValue() {
+    return this.options.initial ?? "";
+  }
+}
+
+class NumberField extends DataField {
+  getInitialValue() {
+    return this.options.initial ?? null;
+  }
+}
+
+class BooleanField extends DataField {
+  getInitialValue() {
+    return this.options.initial ?? false;
+  }
+}
+
+class ArrayField extends DataField {
+  constructor(
+    readonly element: DataField,
+    options: FieldOptions = {},
+  ) {
+    super(options);
+  }
+
+  getInitialValue() {
+    return this.options.initial ?? [];
+  }
+}
+
+class ObjectField extends DataField {
+  getInitialValue() {
+    return this.options.initial ?? {};
+  }
+}
+
+class SchemaField extends DataField {
+  constructor(
+    readonly fields: Record<string, DataField>,
+    options: FieldOptions = {},
+  ) {
+    super(options);
+  }
+
+  getInitialValue() {
+    return Object.fromEntries(Object.entries(this.fields).map(([key, field]) => [key, field.getInitialValue()]));
+  }
+}
+
+class TypeDataModel {
+  parent: unknown;
+  _source: Record<string, unknown> = {};
+
+  constructor(source: Record<string, unknown> = {}, options: { parent?: unknown } = {}) {
+    const ctor = new.target as unknown as {
+      defineSchema(): Record<string, DataField>;
+      migrateData?(source: Record<string, unknown>): Record<string, unknown>;
+    };
+
+    this.parent = options.parent;
+
+    const migrated = ctor.migrateData ? ctor.migrateData({ ...source }) : source;
+    const schema = ctor.defineSchema();
+
+    for (const [key, field] of Object.entries(schema)) {
+      const provided = migrated[key];
+      const value = provided === undefined ? field.getInitialValue() : provided;
+      this._source[key] = value;
+      Object.defineProperty(this, key, {
+        value,
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      });
+    }
+  }
+
+  updateSource(changes: Record<string, unknown> = {}) {
+    for (const [key, value] of Object.entries(changes)) {
+      this._source[key] = value;
+      (this as Record<string, unknown>)[key] = value;
+    }
+    return changes;
+  }
+}
+
 class MockDocument {
   id: string;
   name: string;
@@ -162,6 +267,7 @@ global.ui = {
 
 global.CONFIG = {
   OSE: {
+    ...OSE,
     languages: ["Common", "Elvish", "Dwarvish"],
     colors: {},
   },
@@ -257,7 +363,10 @@ global.foundry = {
     },
   },
   abstract: {
-    TypeDataModel: class {},
+    TypeDataModel,
+  },
+  data: {
+    fields: { DataField, StringField, NumberField, BooleanField, ArrayField, ObjectField, SchemaField },
   },
 } as any;
 

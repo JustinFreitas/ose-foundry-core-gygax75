@@ -1,5 +1,82 @@
 @use "variables";
 
+/* ----------------------------------------- */
+/*  Foundry V14 ApplicationV2 Dialog Styling */
+/* ----------------------------------------- */
+
+.application.dialog.ose,
+.application.ose.dialog,
+.ose.dialog {
+  background: url("/ui/parchment.jpg") repeat;
+  color: #191813;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  border: 1px solid variables.$colorOlive;
+
+  .window-header {
+    color: #191813;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+
+    .window-title {
+      color: #191813;
+      font-family: var(--font-primary);
+      font-weight: bold;
+    }
+
+    button.header-control {
+      color: #191813;
+
+      &:hover {
+        text-shadow: 0 0 4px variables.$colorCrimson;
+      }
+    }
+  }
+
+  .window-content {
+    background: transparent;
+    color: #191813;
+    padding: 0.75rem;
+
+    p, span, label, div {
+      color: #191813;
+    }
+
+    input, select {
+      color: #191813;
+      border-bottom: 1px solid variables.$colorTan;
+    }
+  }
+
+  .dialog-buttons {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: transparent;
+    border-top: 1px solid rgba(0, 0, 0, 0.15);
+
+    button {
+      background: rgba(0, 0, 0, 0.05);
+      border: 1px solid variables.$colorTan;
+      color: #191813;
+      font-family: var(--font-primary);
+      border-radius: 3px;
+      line-height: 28px;
+      padding: 0 10px;
+
+      &:hover,
+      &:focus {
+        background: rgba(0, 0, 0, 0.1);
+        box-shadow: 0 0 5px variables.$colorTan;
+      }
+
+      &.default {
+        font-weight: bold;
+        border-color: variables.$colorOlive;
+        background: rgba(0, 0, 0, 0.08);
+      }
+    }
+  }
+}
+
 .ose.roll-dialog {
   .roll-details {
     font-weight: bold;

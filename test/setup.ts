@@ -156,7 +156,7 @@ class MockActor extends MockDocument {
   }
 
   async delete() {}
-  
+
   async deleteEmbeddedDocuments() {}
   async updateEmbeddedDocuments() {}
 }
@@ -167,7 +167,7 @@ class MockItem extends MockDocument {
 
 class MockRoll {
   formula: string;
-  total: number = 0;
+  total = 0;
   constructor(formula: string) {
     this.formula = formula;
   }
@@ -207,7 +207,7 @@ class MockRollTable extends MockDocument {
 class MockCombatant extends MockDocument {
   actor: any = null;
   token: any = null;
-  defeated: boolean = false;
+  defeated = false;
   initiative: number | null = null;
   combat: any = null;
   group: any = null;

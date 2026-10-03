@@ -18,7 +18,7 @@ export default class OseItem extends Item {
         source.system.itemIds = deduped;
       }
     }
-    return typeof (super.migrateData) === "function" ? super.migrateData(source) : source;
+    return typeof super.migrateData === "function" ? super.migrateData(source) : source;
   }
 
   async _preCreate(data: any, options: any, user: any) {
@@ -194,7 +194,11 @@ export default class OseItem extends Item {
       return a.name.localeCompare(b.name);
     });
 
-    options.ammoOptions = availableAmmo.map((a: any) => ({ id: a.id, name: a.name, quantity: a.system.quantity.value }));
+    options.ammoOptions = availableAmmo.map((a: any) => ({
+      id: a.id,
+      name: a.name,
+      quantity: a.system.quantity.value,
+    }));
     options.onConfirm = async (form: any) => {
       // If skipDialog was used, form is null, so use the first ammo
       const ammoId = form?.elements?.ammoId?.value || options.ammoOptions[0].id;
@@ -322,7 +326,8 @@ export default class OseItem extends Item {
     };
 
     // Toggle default roll mode
-    const rollMode = typeof (game as any).settings?.get === "function" ? (game as any).settings.get("core", "rollMode") : "publicroll";
+    const rollMode =
+      typeof (game as any).settings?.get === "function" ? (game as any).settings.get("core", "rollMode") : "publicroll";
     if (["gmroll", "blindroll"].includes(rollMode)) (chatData as any).whisper = ChatMessage.getWhisperRecipients("GM");
     if (rollMode === "selfroll") (chatData as any).whisper = [game.user.id];
     if (rollMode === "blindroll") (chatData as any).blind = true;
@@ -424,7 +429,9 @@ export default class OseItem extends Item {
       if (!actor) return;
 
       // Get the Item
-      const item = (actor as any).items.get(card.dataset.itemId as string) as (OseItem & Record<string, any>) | undefined;
+      const item = (actor as any).items.get(card.dataset.itemId as string) as
+        | (OseItem & Record<string, any>)
+        | undefined;
       if (!item) {
         return ui.notifications?.error(
           game.i18n.format("OSE.error.itemNoLongerExistsOnActor", {

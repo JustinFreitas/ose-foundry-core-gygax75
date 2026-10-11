@@ -40,11 +40,11 @@ describe("Offline Encumbrance Model Tests", () => {
     it("determines breakpoints by percentage", () => {
       const enc = new TestEncumbrance("basic", 100);
 
-      // Breakpoints: quarter = 25%, threeEighths = 37.5%, half = 50%
-      enc.testValue = 20;
+      // Gygax '75 Breakpoints: quarter = 16.67%, threeEighths = 33.33%, half = 50%
+      enc.testValue = 10;
       expect(enc.atFirstBreakpoint).toBe(false);
 
-      enc.testValue = 30;
+      enc.testValue = 20;
       expect(enc.atFirstBreakpoint).toBe(true);
       expect(enc.atSecondBreakpoint).toBe(false);
 
@@ -190,7 +190,7 @@ describe("Offline Encumbrance Model Tests", () => {
       expect(enc.variant).toBe("complete");
       expect(enc.enabled).toBe(true);
       expect(enc.value).toBe(100); // (5 * 10) + 50 = 100
-      expect(enc.steps).toEqual([25, 37.5, 50]);
+      expect(enc.steps).toEqual(Object.values(OseDataModelCharacterEncumbrance.encumbranceSteps));
     });
   });
 
@@ -226,53 +226,87 @@ describe("Offline Encumbrance Model Tests", () => {
     });
   });
 
-  describe("Configurable Encumbrance Cap (Gygax75 / BECMI vs B/X)", () => {
-    it("defaults to 2400 coins for Gygax75 BECMI ruleset", () => {
+  describe("Configurable Gygax '75 Encumbrance Rules (BECMI 2,400 cn vs B/X 1,600 cn)", () => {
+    it("enables Gygax '75 rules by default with 2,400 cn cap and 400/800/1200 cn breakpoints", () => {
+      OseDataModelCharacterEncumbrance.isGygax75 = null; // reset override
+      expect(OseDataModelCharacterEncumbrance.isGygax75).toBe(true);
       expect(OseDataModelCharacterEncumbrance.baseEncumbranceCap).toBe(2400);
-      const enc = new OseDataModelCharacterEncumbrance();
-      expect(enc.max).toBe(2400);
+
+      const steps = OseDataModelCharacterEncumbrance.encumbranceSteps;
+      expect(steps.quarter).toBeCloseTo((400 / 2400) * 100, 5); // 16.67%
+      expect(steps.threeEighths).toBeCloseTo((800 / 2400) * 100, 5); // 33.33%
+      expect(steps.half).toBe(50); // 50% = 1200 cn
+
+      // Test breakpoint triggers with TestEncumbrance
+      const enc = new TestEncumbrance("detailed", 2400);
+      enc.testValue = 400;
+      expect(enc.atFirstBreakpoint).toBe(false); // <= 400 is Tier 1 (120')
+      expect(enc.nextBreakpointValue).toBe(400);
+
+      enc.testValue = 401;
+      expect(enc.atFirstBreakpoint).toBe(true); // > 400 is Tier 2 (90')
+      expect(enc.atSecondBreakpoint).toBe(false);
+      expect(enc.nextBreakpointValue).toBe(800);
+
+      enc.testValue = 801;
+      expect(enc.atSecondBreakpoint).toBe(true); // > 800 is Tier 3 (60')
+      expect(enc.atThirdBreakpoint).toBe(false);
+      expect(enc.nextBreakpointValue).toBe(1200);
+
+      enc.testValue = 1201;
+      expect(enc.atThirdBreakpoint).toBe(true); // > 1200 is Tier 4 (30')
+      expect(enc.encumbered).toBe(false);
+      expect(enc.nextBreakpointValue).toBe(2400); // 1,199 left until 0'/0' (encumbered)
+      expect(enc.untilNextBreakpoint).toBe(1199);
+
+      enc.testValue = 2401;
+      expect(enc.encumbered).toBe(true); // > 2400 is encumbered (0')
+      expect(enc.nextBreakpointValue).toBe(null);
     });
 
-    it("dynamically reads maxEncumbrance setting when configured", () => {
+    it("restores official B/X defaults when gygax75Encumbrance is disabled", () => {
       const originalGet = game.settings.get;
       try {
+        OseDataModelCharacterEncumbrance.isGygax75 = null;
         (game.settings.get as ReturnType<typeof vi.fn>).mockImplementation((_scope, key) => {
-          if (key === "maxEncumbrance") return 1600;
+          if (key === "gygax75Encumbrance") return false;
           return undefined;
         });
+
+        expect(OseDataModelCharacterEncumbrance.isGygax75).toBe(false);
         expect(OseDataModelCharacterEncumbrance.baseEncumbranceCap).toBe(1600);
+
+        const steps = OseDataModelCharacterEncumbrance.encumbranceSteps;
+        expect(steps.quarter).toBe(25); // 25% = 400 cn
+        expect(steps.threeEighths).toBe(37.5); // 37.5% = 600 cn
+        expect(steps.half).toBe(50); // 50% = 800 cn
+
+        const enc = new TestEncumbrance("detailed", 1600);
+        enc.testValue = 401;
+        expect(enc.atFirstBreakpoint).toBe(true);
+        enc.testValue = 601;
+        expect(enc.atSecondBreakpoint).toBe(true);
+        enc.testValue = 801;
+        expect(enc.atThirdBreakpoint).toBe(true);
+        enc.testValue = 1601;
+        expect(enc.encumbered).toBe(true);
       } finally {
         game.settings.get = originalGet;
+        OseDataModelCharacterEncumbrance.isGygax75 = null;
       }
     });
 
-    it("falls back to 2400 if setting returns invalid or non-positive value", () => {
-      const originalGet = game.settings.get;
-      try {
-        (game.settings.get as ReturnType<typeof vi.fn>).mockImplementation((_scope, key) => {
-          if (key === "maxEncumbrance") return -500;
-          return undefined;
-        });
-        expect(OseDataModelCharacterEncumbrance.baseEncumbranceCap).toBe(2400);
-
-        (game.settings.get as ReturnType<typeof vi.fn>).mockImplementation((_scope, key) => {
-          if (key === "maxEncumbrance") return Number.NaN;
-          return undefined;
-        });
-        expect(OseDataModelCharacterEncumbrance.baseEncumbranceCap).toBe(2400);
-      } finally {
-        game.settings.get = originalGet;
-      }
-    });
-
-    it("safely falls back to 2400 if game.settings throws or is unavailable", () => {
+    it("safely falls back to Gygax '75 (2400 cn) if game.settings is uninitialized", () => {
       const originalSettings = game.settings;
       try {
+        OseDataModelCharacterEncumbrance.isGygax75 = null;
         // @ts-expect-error test uninitialized settings
         game.settings = undefined;
         expect(OseDataModelCharacterEncumbrance.baseEncumbranceCap).toBe(2400);
+        expect(OseDataModelCharacterEncumbrance.isGygax75).toBe(true);
       } finally {
         game.settings = originalSettings;
+        OseDataModelCharacterEncumbrance.isGygax75 = null;
       }
     });
   });

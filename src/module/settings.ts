@@ -76,12 +76,12 @@ const registerSettings = () => {
     config: true,
   });
 
-  game.settings.register(game.system.id, "maxEncumbrance", {
-    name: game.i18n.localize("OSE.Setting.MaxEncumbrance"),
-    hint: game.i18n.localize("OSE.Setting.MaxEncumbranceHint"),
-    default: 2400,
+  game.settings.register(game.system.id, "gygax75Encumbrance", {
+    name: game.i18n.localize("OSE.Setting.Gygax75Encumbrance"),
+    hint: game.i18n.localize("OSE.Setting.Gygax75EncumbranceHint"),
+    default: true,
     scope: "world",
-    type: Number,
+    type: Boolean,
     config: true,
     requiresReload: true,
   });
@@ -168,7 +168,7 @@ declare global {
       "ose.ascendingAC": boolean;
       "ose.morale": boolean;
       "ose.encumbranceOption": EncumbranceOption;
-      "ose.maxEncumbrance": number;
+      "ose.gygax75Encumbrance": boolean;
       "ose.significantTreasure": number;
       "ose.languages": string;
       "ose.applyDamageOption": ApplyDamageOption;

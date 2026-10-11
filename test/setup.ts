@@ -238,7 +238,7 @@ global.game = {
       if (key === "ascendingAC") return false;
       if (key === "initiative") return "group";
       if (key === "rerollInitiative") return "reset";
-      if (key === "maxEncumbrance") return 2400;
+      if (key === "gygax75Encumbrance") return true;
       return undefined;
     }),
     set: vi.fn().mockResolvedValue(true),

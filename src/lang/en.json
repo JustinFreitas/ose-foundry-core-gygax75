@@ -272,8 +272,8 @@
   "OSE.Setting.EncumbranceItemStrengthModHint": "Strength modifier is applied to the item-based encumbrance calculation.",
   "OSE.Setting.ignoreAttackBonusOnDamageRoll": "Globally Ignore Attack Bonus For Damage Rolls",
   "OSE.Setting.ignoreAttackBonusOnDamageRollHint": "Can also be enabled or disabled on a per actor basis via their sheet.",
-  "OSE.Setting.MaxEncumbrance": "Maximum Encumbrance Capacity (cn)",
-  "OSE.Setting.MaxEncumbranceHint": "Maximum carry capacity in coins (cn). Standard B/X is 1600 cn; Rules Compendium / BECMI is 2400 cn.",
+  "OSE.Setting.Gygax75Encumbrance": "Gygax '75 Encumbrance Rules (BECMI 2,400 cn)",
+  "OSE.Setting.Gygax75EncumbranceHint": "When enabled, uses Gygax '75 / BECMI encumbrance: 2,400 cn capacity with movement breakpoints at 400 cn (90'), 800 cn (60'), and 1,200 cn (30'). When disabled, restores official B/X defaults: 1,600 cn capacity with breakpoints at 400 cn (25%), 600 cn (37.5%), and 800 cn (50%).",
 
   "OSE.items.Equip": "Equip",
   "OSE.items.Unequip": "Unequip",

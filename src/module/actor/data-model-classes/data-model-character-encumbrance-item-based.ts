@@ -93,6 +93,7 @@ export default class OseDataModelCharacterEncumbranceItemBased
       max === OseDataModelCharacterEncumbrance.baseEncumbranceCap ||
       max === 2400 ||
       max === 1600 ||
+      max === OseDataModelCharacterEncumbranceItemBased.baseEncumbranceCap ||
       max === OseDataModelCharacterEncumbranceItemBased.alternateBaseEncumbranceCap;
 
     this.#packedMax = isDefaultMax ? 16 : max;

@@ -48,32 +48,53 @@ export interface CharacterEncumbrance {
  * A class to handle character encumbrance.
  */
 export default class OseDataModelCharacterEncumbrance implements CharacterEncumbrance {
-  // Gygax75 customization: BECMI / Rules Compendium encumbrance cap (2400) instead
-  // of the B/X default of 1600. Configurable via 'maxEncumbrance' world setting.
-  static #baseEncumbranceCap = 2400;
+  // Gygax75 customization: BECMI / Rules Compendium encumbrance scale (2,400 cn max with
+  // 400 cn, 800 cn, and 1,200 cn tiers) vs official B/X (1,600 cn max with 400, 600, 800 cn tiers).
+  // Controlled via the 'gygax75Encumbrance' world setting (defaults to true).
+  static #gygax75Override: boolean | null = null;
 
-  static get baseEncumbranceCap(): number {
+  static get isGygax75(): boolean {
+    if (OseDataModelCharacterEncumbrance.#gygax75Override !== null) {
+      return OseDataModelCharacterEncumbrance.#gygax75Override;
+    }
     try {
-      const settingVal = game?.settings?.get?.(game?.system?.id ?? "ose", "maxEncumbrance");
-      if (typeof settingVal === "number" && !Number.isNaN(settingVal) && settingVal > 0) {
+      const settingVal = game?.settings?.get?.(game?.system?.id ?? "ose", "gygax75Encumbrance");
+      if (typeof settingVal === "boolean") {
         return settingVal;
       }
     } catch {
-      // Fall through to default if game.settings is uninitialized
+      // Fall through to true if game.settings is uninitialized
     }
-    return OseDataModelCharacterEncumbrance.#baseEncumbranceCap;
+    return true;
+  }
+
+  static set isGygax75(val: boolean | null) {
+    OseDataModelCharacterEncumbrance.#gygax75Override = val;
+  }
+
+  static get baseEncumbranceCap(): number {
+    return OseDataModelCharacterEncumbrance.isGygax75 ? 2400 : 1600;
   }
 
   static set baseEncumbranceCap(val: number) {
-    OseDataModelCharacterEncumbrance.#baseEncumbranceCap = val;
+    OseDataModelCharacterEncumbrance.isGygax75 = val > 1600;
   }
 
-  // Default encumbrance steps used by the 'complete' and 'detailed' encumbrance variants
-  static encumbranceSteps = {
-    quarter: (1 / 4) * 100,
-    threeEighths: (3 / 8) * 100,
-    half: (1 / 2) * 100,
-  };
+  // Encumbrance step percentages used by the 'complete' and 'detailed' encumbrance variants
+  static get encumbranceSteps() {
+    if (OseDataModelCharacterEncumbrance.isGygax75) {
+      return {
+        quarter: (400 / 2400) * 100, // 16.666...% -> 400 cn breakpoint (90')
+        threeEighths: (800 / 2400) * 100, // 33.333...% -> 800 cn breakpoint (60')
+        half: (1200 / 2400) * 100, // 50.0% -> 1,200 cn breakpoint (30')
+      };
+    }
+    return {
+      quarter: (1 / 4) * 100, // 25.0% -> 400 cn breakpoint (90')
+      threeEighths: (3 / 8) * 100, // 37.5% -> 600 cn breakpoint (60')
+      half: (1 / 2) * 100, // 50.0% -> 800 cn breakpoint (30')
+    };
+  }
 
   #encumbranceVariant;
 
@@ -166,10 +187,11 @@ export default class OseDataModelCharacterEncumbrance implements CharacterEncumb
       OseDataModelCharacterEncumbrance.encumbranceSteps.quarter,
       OseDataModelCharacterEncumbrance.encumbranceSteps.threeEighths,
       OseDataModelCharacterEncumbrance.encumbranceSteps.half,
-    ].map((pct) => (pct / 100) * this.max);
+      100,
+    ].map((pct) => Math.round((pct / 100) * this.max));
 
     for (const step of steps) {
-      if (this.value <= step) return Math.round(step);
+      if (this.value <= step) return step;
     }
     return null;
   }

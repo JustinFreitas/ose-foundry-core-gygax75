@@ -76,6 +76,16 @@ const registerSettings = () => {
     config: true,
   });
 
+  game.settings.register(game.system.id, "maxEncumbrance", {
+    name: game.i18n.localize("OSE.Setting.MaxEncumbrance"),
+    hint: game.i18n.localize("OSE.Setting.MaxEncumbranceHint"),
+    default: 2400,
+    scope: "world",
+    type: Number,
+    config: true,
+    requiresReload: true,
+  });
+
   game.settings.register(game.system.id, "significantTreasure", {
     name: game.i18n.localize("OSE.Setting.SignificantTreasure"),
     hint: game.i18n.localize("OSE.Setting.SignificantTreasureHint"),
@@ -158,6 +168,7 @@ declare global {
       "ose.ascendingAC": boolean;
       "ose.morale": boolean;
       "ose.encumbranceOption": EncumbranceOption;
+      "ose.maxEncumbrance": number;
       "ose.significantTreasure": number;
       "ose.languages": string;
       "ose.applyDamageOption": ApplyDamageOption;

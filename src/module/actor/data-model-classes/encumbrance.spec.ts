@@ -225,4 +225,55 @@ describe("Offline Encumbrance Model Tests", () => {
       expect(enc2.value).toBe(130); // 50 + 80 = 130
     });
   });
+
+  describe("Configurable Encumbrance Cap (Gygax75 / BECMI vs B/X)", () => {
+    it("defaults to 2400 coins for Gygax75 BECMI ruleset", () => {
+      expect(OseDataModelCharacterEncumbrance.baseEncumbranceCap).toBe(2400);
+      const enc = new OseDataModelCharacterEncumbrance();
+      expect(enc.max).toBe(2400);
+    });
+
+    it("dynamically reads maxEncumbrance setting when configured", () => {
+      const originalGet = game.settings.get;
+      try {
+        (game.settings.get as ReturnType<typeof vi.fn>).mockImplementation((_scope, key) => {
+          if (key === "maxEncumbrance") return 1600;
+          return undefined;
+        });
+        expect(OseDataModelCharacterEncumbrance.baseEncumbranceCap).toBe(1600);
+      } finally {
+        game.settings.get = originalGet;
+      }
+    });
+
+    it("falls back to 2400 if setting returns invalid or non-positive value", () => {
+      const originalGet = game.settings.get;
+      try {
+        (game.settings.get as ReturnType<typeof vi.fn>).mockImplementation((_scope, key) => {
+          if (key === "maxEncumbrance") return -500;
+          return undefined;
+        });
+        expect(OseDataModelCharacterEncumbrance.baseEncumbranceCap).toBe(2400);
+
+        (game.settings.get as ReturnType<typeof vi.fn>).mockImplementation((_scope, key) => {
+          if (key === "maxEncumbrance") return Number.NaN;
+          return undefined;
+        });
+        expect(OseDataModelCharacterEncumbrance.baseEncumbranceCap).toBe(2400);
+      } finally {
+        game.settings.get = originalGet;
+      }
+    });
+
+    it("safely falls back to 2400 if game.settings throws or is unavailable", () => {
+      const originalSettings = game.settings;
+      try {
+        // @ts-expect-error test uninitialized settings
+        game.settings = undefined;
+        expect(OseDataModelCharacterEncumbrance.baseEncumbranceCap).toBe(2400);
+      } finally {
+        game.settings = originalSettings;
+      }
+    });
+  });
 });

@@ -49,8 +49,24 @@ export interface CharacterEncumbrance {
  */
 export default class OseDataModelCharacterEncumbrance implements CharacterEncumbrance {
   // Gygax75 customization: BECMI / Rules Compendium encumbrance cap (2400) instead
-  // of the B/X default of 1600. Kept in sync with template.json and the tests.
-  static baseEncumbranceCap = 2400;
+  // of the B/X default of 1600. Configurable via 'maxEncumbrance' world setting.
+  static #baseEncumbranceCap = 2400;
+
+  static get baseEncumbranceCap(): number {
+    try {
+      const settingVal = game?.settings?.get?.(game?.system?.id ?? "ose", "maxEncumbrance");
+      if (typeof settingVal === "number" && !Number.isNaN(settingVal) && settingVal > 0) {
+        return settingVal;
+      }
+    } catch {
+      // Fall through to default if game.settings is uninitialized
+    }
+    return OseDataModelCharacterEncumbrance.#baseEncumbranceCap;
+  }
+
+  static set baseEncumbranceCap(val: number) {
+    OseDataModelCharacterEncumbrance.#baseEncumbranceCap = val;
+  }
 
   // Default encumbrance steps used by the 'complete' and 'detailed' encumbrance variants
   static encumbranceSteps = {

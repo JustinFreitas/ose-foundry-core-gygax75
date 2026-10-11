@@ -272,6 +272,8 @@
   "OSE.Setting.EncumbranceItemStrengthModHint": "Strength modifier is applied to the item-based encumbrance calculation.",
   "OSE.Setting.ignoreAttackBonusOnDamageRoll": "Globally Ignore Attack Bonus For Damage Rolls",
   "OSE.Setting.ignoreAttackBonusOnDamageRollHint": "Can also be enabled or disabled on a per actor basis via their sheet.",
+  "OSE.Setting.MaxEncumbrance": "Maximum Encumbrance Capacity (cn)",
+  "OSE.Setting.MaxEncumbranceHint": "Maximum carry capacity in coins (cn). Standard B/X is 1600 cn; Rules Compendium / BECMI is 2400 cn.",
 
   "OSE.items.Equip": "Equip",
   "OSE.items.Unequip": "Unequip",

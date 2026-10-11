@@ -1,5 +1,3 @@
-import type { ItemTag } from "./item-types";
-
 type AnyItemSystem = any;
 type OwningActor = any;
 
@@ -18,7 +16,7 @@ export default class OseItem extends Item {
         source.system.itemIds = deduped;
       }
     }
-    return typeof super.migrateData === "function" ? super.migrateData(source) : source;
+    return typeof Item.migrateData === "function" ? Item.migrateData(source) : source;
   }
 
   async _preCreate(data: any, options: any, user: any) {
@@ -212,7 +210,7 @@ export default class OseItem extends Item {
     return true;
   }
 
-  async rollFormula(options: { event?: Event } = {}) {
+  async rollFormula(_options: { event?: Event } = {}) {
     const itemData = this.system as any;
 
     if (!itemData.roll) {

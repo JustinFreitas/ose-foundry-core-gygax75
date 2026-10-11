@@ -89,7 +89,7 @@
   },
   "overrides": [
     {
-      "includes": ["src/e2e/index.ts"],
+      "includes": ["src/e2e/index.ts", "test/setup.ts", "src/module/item/entity.ts"],
       "linter": {
         "rules": {
           "suspicious": {

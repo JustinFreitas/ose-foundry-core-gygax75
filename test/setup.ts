@@ -183,9 +183,10 @@ class MockRoll {
   }
 }
 
-class MockChatMessage {
+class MockChatMessage extends MockDocument {
   static create = vi.fn().mockResolvedValue({});
   static getSpeaker = vi.fn().mockReturnValue({});
+  static getWhisperRecipients = vi.fn().mockReturnValue([]);
 }
 
 class MockFolder extends MockDocument {
@@ -233,10 +234,11 @@ global.game = {
     },
   },
   settings: {
-    get: vi.fn().mockImplementation((scope, key) => {
+    get: vi.fn().mockImplementation((_scope, key) => {
       if (key === "ascendingAC") return false;
       if (key === "initiative") return "group";
       if (key === "rerollInitiative") return "reset";
+      if (key === "maxEncumbrance") return 2400;
       return undefined;
     }),
     set: vi.fn().mockResolvedValue(true),

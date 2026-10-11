@@ -112,4 +112,15 @@ describe("Offline Item-based Encumbrance Model", () => {
     expect(enc2.atSecondBreakpoint).toBe(true);
     expect(enc2.atThirdBreakpoint).toBe(false);
   });
+
+  it("safely resets legacy coin caps (2400 or 1600) to default item slot limits (9 equipped, 16 packed)", () => {
+    // When switching from coin encumbrance to item-based encumbrance, actors may have max = 2400 or 1600
+    const enc2400 = new OseDataModelCharacterEncumbranceItemBased(2400, []);
+    expect(enc2400.max).toBe(9); // equipped max default
+    expect(enc2400.packedLabel).toBe("0/16");
+
+    const enc1600 = new OseDataModelCharacterEncumbranceItemBased(1600, []);
+    expect(enc1600.max).toBe(9);
+    expect(enc1600.packedLabel).toBe("0/16");
+  });
 });

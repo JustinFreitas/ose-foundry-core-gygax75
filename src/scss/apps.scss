@@ -23,6 +23,7 @@
   /* V1 Window Header: Transparent title bar matching Character Sheet */
   .window-header {
     background: transparent;
+    color: #f0f0e0;
     flex: 0 0 30px;
     height: 30px;
     padding: 0 8px;
@@ -38,7 +39,8 @@
       line-height: 30px;
     }
 
-    button.header-control {
+    button.header-control,
+    a.header-button {
       --button-text-color: #f0f0e0;
       color: #f0f0e0;
       line-height: 30px;
@@ -46,7 +48,7 @@
 
       &:hover {
         color: #ffffff;
-        text-shadow: 0 0 4px variables.$colorCrimson;
+        text-shadow: 0 0 8px var(--color-shadow-primary);
       }
     }
   }

@@ -16,9 +16,12 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
   /** @inheritDoc */
   async _prepareTrackerContext(context, options) {
     await super._prepareTrackerContext(context, options);
+    const combat = this.viewed;
     context.turns?.forEach((turn) => {
-      const combatant = game.combat.combatants.get(turn.id);
+      const combatant = combat?.combatants.get(turn.id);
+      if (!combatant) return;
       turn.isSlowed = turn.initiative === `${OSECombatant.INITIATIVE_VALUE_SLOWED}`;
+      turn.isFast = turn.initiative === `${OSECombatant.INITIATIVE_VALUE_FAST}`;
       turn.isCasting = !!combatant.getFlag(game.system.id, "prepareSpell");
       turn.isRetreating = !!combatant.getFlag(game.system.id, "moveInCombat");
       turn.isOwnedByUser = !!combatant.actor?.isOwner;
@@ -179,6 +182,8 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
 
       if (label === "slow") {
         initiativeCounter.innerHTML = `<i class="fa fa-weight-hanging"></i>`;
+      } else if (label === "fast") {
+        initiativeCounter.innerHTML = `<i class="fa fa-bolt-lightning"></i>`;
       } else {
         initiativeCounter.textContent = combatantGroup.initiative;
       }
@@ -197,7 +202,10 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
       diceIcon.className = "fas fa-dice-d6";
       nameStrong.append(diceIcon);
 
-      nameStrong.append(" ", game.i18n.localize(label === "slow" ? "OSE.items.Slow" : `OSE.colors.${label}`));
+      nameStrong.append(
+        " ",
+        game.i18n.localize(label === "slow" ? "OSE.items.Slow" : label === "fast" ? "OSE.combat.Fast" : `OSE.colors.${label}`),
+      );
 
       tokenName.append(nameStrong);
       groupHeader.append(tokenName);
@@ -213,7 +221,8 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
       groupContainer.append(groupHeader);
       groupContainer.append(wrapper);
       groupContainer.dataset.groupKey = label;
-      groupContainer.dataset.initiative = label === "slow" ? "-1" : combatantGroup.initiative;
+      groupContainer.dataset.initiative =
+        label === "slow" ? "-789" : label === "fast" ? "789" : combatantGroup.initiative;
       children[0].before(groupContainer);
       groupContainer.querySelector(".group-children")?.replaceChildren(...children);
     }

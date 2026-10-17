@@ -3,10 +3,12 @@
  */
 import { OSE } from "../config";
 import OSECombatGroupSelector from "./combat-set-groups";
+import { OSECombatant } from "./combatant";
 
 export const actionGroups = {
   slow: "OSE.items.Slow",
   cast: "OSE.spells.Cast",
+  fast: "OSE.combat.Fast",
 };
 
 /**
@@ -89,7 +91,11 @@ export class OSECombat extends foundry.documents.Combat {
     const updates = [];
     const messages = [];
     for (const group of this.groups) {
-      if (group.members.size === 0 || (excludeAlreadyRolled && group.initiative !== null) || group.name === "slow") {
+      if (
+        group.members.size === 0 ||
+        (excludeAlreadyRolled && group.initiative !== null) ||
+        ["slow", "fast"].includes(group.name)
+      ) {
         continue;
       }
       if (npcOnly && group.members.some((c) => c.hasPlayerOwner)) {
@@ -284,14 +290,20 @@ export class OSECombat extends foundry.documents.Combat {
   /** @override */
   _sortCombatants(a, b) {
     // First sort by initiative
-    const ia = Number.isNumeric(a.initiative) ? a.initiative : Number.NEGATIVE_INFINITY;
-    const ib = Number.isNumeric(b.initiative) ? b.initiative : Number.NEGATIVE_INFINITY;
+    const ia: number = OSECombat.getInitiativeForCombatant(a);
+    const ib: number = OSECombat.getInitiativeForCombatant(b);
     const initiativeDiff = ib - ia;
 
     if (initiativeDiff !== 0) return initiativeDiff;
 
     // If still tied, sort by group name if available
     if (a.group?.name && b.group?.name && a.group?.name !== b.group?.name) {
+      // Fast groups always sort first, slow groups always sort last.
+      // Use an explicit rank so the comparator stays transitive.
+      const groupRank = (name: string) => (name === "fast" ? -1 : name === "slow" ? 1 : 0);
+      const rankDiff = groupRank(a.group.name) - groupRank(b.group.name);
+      if (rankDiff !== 0) return rankDiff;
+
       const colorsKeys = Object.keys(OSECombat.GROUPS);
       const indexA = colorsKeys.indexOf(a.group.name);
       const indexB = colorsKeys.indexOf(b.group.name);
@@ -336,5 +348,12 @@ export class OSECombat extends foundry.documents.Combat {
     }
 
     return (a.name || "").localeCompare(b.name || "");
+  }
+
+  private static getInitiativeForCombatant(combatant: OSECombatant) {
+    if (combatant.isFast) return Number.POSITIVE_INFINITY;
+    // Foundry stores `initiative` as a string (or null when not yet rolled).
+    const init = Number(combatant.initiative);
+    return Number.isNaN(init) ? Number.NEGATIVE_INFINITY : init;
   }
 }

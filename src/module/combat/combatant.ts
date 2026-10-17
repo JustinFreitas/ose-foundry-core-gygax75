@@ -1,7 +1,7 @@
 export class OSECombatant extends Combatant {
   static INITIATIVE_VALUE_SLOWED = -789;
-
   static INITIATIVE_VALUE_DEFEATED = -790;
+  static INITIATIVE_VALUE_FAST = 789;
 
   // ===========================================================================
   // BOOLEAN FLAGS
@@ -22,7 +22,16 @@ export class OSECombatant extends Combatant {
   get isDefeated() {
     if (this.defeated) return true;
 
-    return !this.defeated && this.actor?.system?.hp?.value === 0;
+    return (this.actor?.system?.hp?.value ?? 1) <= 0;
+  }
+
+  get isFast() {
+    if (this.isSlow || this.isDefeated) return false;
+    if (this.actor?.system?.config?.fastCombat) return true;
+    // Auto-detect halflings (case-insensitive, tolerant of values like
+    // "Halfling (Thief)" or localized capitalization).
+    const actorClass = this.actor?.system?.details?.class;
+    return typeof actorClass === "string" && actorClass.toLowerCase().includes("halfling");
   }
 
   // ===========================================================================
@@ -31,6 +40,7 @@ export class OSECombatant extends Combatant {
 
   getInitiativeRoll(formula: string) {
     let term = formula || CONFIG.Combat.initiative.formula;
+    if (this.isFast) term = `${OSECombatant.INITIATIVE_VALUE_FAST}`;
     if (this.isSlow) term = `${OSECombatant.INITIATIVE_VALUE_SLOWED}`;
     if (this.isDefeated) term = `${OSECombatant.INITIATIVE_VALUE_DEFEATED}`;
     const rollData = this.actor?.getRollData() || {};
@@ -42,6 +52,7 @@ export class OSECombatant extends Combatant {
     return foundry.utils.mergeObject(context, {
       slow: this.isSlow,
       casting: this.isCasting,
+      fast: this.isFast,
     });
   }
 
@@ -68,6 +79,10 @@ export class OSECombatant extends Combatant {
   get groupRaw(): string {
     if (this.actor?.system?.isSlow) {
       return "slow";
+    }
+
+    if (this.isFast) {
+      return "fast";
     }
 
     const assignedGroup = this.group?.name;

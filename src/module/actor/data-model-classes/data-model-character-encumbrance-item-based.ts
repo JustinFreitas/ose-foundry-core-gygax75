@@ -91,6 +91,8 @@ export default class OseDataModelCharacterEncumbranceItemBased
     const isDefaultMax =
       !max ||
       max === OseDataModelCharacterEncumbrance.baseEncumbranceCap ||
+      max === 2400 ||
+      max === 1600 ||
       max === OseDataModelCharacterEncumbranceItemBased.alternateBaseEncumbranceCap;
 
     this.#packedMax = isDefaultMax ? 16 : max;
@@ -162,6 +164,8 @@ export default class OseDataModelCharacterEncumbranceItemBased
       atFirstBreakpoint: new BooleanField({ initial: false }),
       atSecondBreakpoint: new BooleanField({ initial: false }),
       atThirdBreakpoint: new BooleanField({ initial: false }),
+      nextBreakpointValue: new NumberField({ nullable: true, required: false, initial: null }),
+      untilNextBreakpoint: new NumberField({ nullable: true, required: false, initial: null }),
       equippedSteps: new ArrayField(new NumberField()),
       packedSteps: new ArrayField(new NumberField()),
       equippedPct: new NumberField({ integer: false, min: 0, max: 100 }),
@@ -207,6 +211,21 @@ export default class OseDataModelCharacterEncumbranceItemBased
 
   get atFirstBreakpoint(): boolean {
     return this.usingEquippedEncumbrance ? this.#atOneThird : this.#atFiveEighths;
+  }
+
+  get nextBreakpointValue() {
+    const steps = this.usingEquippedEncumbrance
+      ? Object.values(OseDataModelCharacterEncumbranceItemBased.equippedStepCounts)
+      : Object.values(OseDataModelCharacterEncumbranceItemBased.packedStepCounts);
+
+    const activeWeight = this.usingEquippedEncumbrance ? this.#equippedWeight : this.#packedWeight - this.#weightMod;
+
+    for (const step of steps) {
+      if (activeWeight <= step) {
+        return step + (this.usingEquippedEncumbrance ? 0 : this.#weightMod);
+      }
+    }
+    return null;
   }
 
   get atSecondBreakpoint(): boolean {

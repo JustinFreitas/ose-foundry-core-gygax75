@@ -65,27 +65,45 @@ export default class OseDataModelCharacterMove implements CharacterMove {
 
   #derivedSpeed() {
     if (this.#overEncumbranceLimit) return 0;
-    if (this.#atThirdBreakpoint) return this.#moveBase * 0.25;
-    if (this.#atSecondBreakpoint) return this.#moveBase * 0.5;
-    return this.#atFirstBreakpoint ? this.#moveBase * 0.75 : this.#moveBase;
+    if (this.#atThirdBreakpoint) return 30;
+    if (this.#atSecondBreakpoint) return 60;
+    return this.#atFirstBreakpoint ? 90 : 120;
+  }
+
+  #nextDerivedSpeed() {
+    if (this.#overEncumbranceLimit) return 0;
+    if (this.#atThirdBreakpoint) return 0;
+    if (this.#atSecondBreakpoint) return 30;
+    if (this.#atFirstBreakpoint) return 60;
+    return 90;
   }
 
   get base() {
     // Manual entry for movement
-    if (!this.#autocalculate || this.#encumbranceVariant === "disabled") return this.#moveBase;
+    if (!this.#autocalculate || this.#encumbranceVariant === "disabled") return Math.round(this.#moveBase);
     // Automatic calculation for movement
-    return this.#derivedSpeed();
+    return Math.round(this.#derivedSpeed());
   }
 
   set base(value) {
     this.#moveBase = value;
   }
 
+  get nextBase() {
+    if (!this.#autocalculate || this.#encumbranceVariant === "disabled") return null;
+    return Math.round(this.#nextDerivedSpeed());
+  }
+
+  get nextEncounter() {
+    const next = this.nextBase;
+    return next !== null ? Math.round(next / 3) : null;
+  }
+
   get encounter() {
-    return this.base / 3;
+    return Math.round(this.base / 3);
   }
 
   get overland() {
-    return this.base / 5;
+    return Math.round(this.base / 5);
   }
 }

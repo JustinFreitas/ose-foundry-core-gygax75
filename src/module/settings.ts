@@ -76,6 +76,16 @@ const registerSettings = () => {
     config: true,
   });
 
+  game.settings.register(game.system.id, "gygax75Encumbrance", {
+    name: game.i18n.localize("OSE.Setting.Gygax75Encumbrance"),
+    hint: game.i18n.localize("OSE.Setting.Gygax75EncumbranceHint"),
+    default: true,
+    scope: "world",
+    type: Boolean,
+    config: true,
+    requiresReload: true,
+  });
+
   game.settings.register(game.system.id, "significantTreasure", {
     name: game.i18n.localize("OSE.Setting.SignificantTreasure"),
     hint: game.i18n.localize("OSE.Setting.SignificantTreasureHint"),
@@ -139,6 +149,7 @@ declare global {
       "ose.ascendingAC": boolean;
       "ose.morale": boolean;
       "ose.encumbranceOption": EncumbranceOption;
+      "ose.gygax75Encumbrance": boolean;
       "ose.significantTreasure": number;
       "ose.languages": string;
       "ose.applyDamageOption": ApplyDamageOption;

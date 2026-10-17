@@ -36,20 +36,65 @@ export interface CharacterEncumbrance {
 
   /** Whether carried weight has reached the third movement-penalty threshold; `null` when the active variant defines none. */
   readonly atThirdBreakpoint: boolean | null;
+
+  /** Carried weight at which the next movement penalty takes effect; `null` when no further breakpoint applies. */
+  readonly nextBreakpointValue: number | null;
+
+  /** Weight that can still be carried before the next breakpoint; `null` when no further breakpoint applies. */
+  readonly untilNextBreakpoint: number | null;
 }
 
 /**
  * A class to handle character encumbrance.
  */
 export default class OseDataModelCharacterEncumbrance implements CharacterEncumbrance {
-  static baseEncumbranceCap = 1600;
+  // Gygax75 customization: BECMI / Rules Compendium encumbrance scale (2,400 cn max with
+  // 400 cn, 800 cn, and 1,200 cn tiers) vs official B/X (1,600 cn max with 400, 600, 800 cn tiers).
+  // Controlled via the 'gygax75Encumbrance' world setting (defaults to true).
+  static #gygax75Override: boolean | null = null;
 
-  // Default encumbrance steps used by the 'complete' and 'detailed' encumbrance variants
-  static encumbranceSteps = {
-    quarter: (1 / 4) * 100,
-    threeEighths: (3 / 8) * 100,
-    half: (1 / 2) * 100,
-  };
+  static get isGygax75(): boolean {
+    if (OseDataModelCharacterEncumbrance.#gygax75Override !== null) {
+      return OseDataModelCharacterEncumbrance.#gygax75Override;
+    }
+    try {
+      const settingVal = game?.settings?.get?.(game?.system?.id ?? "ose", "gygax75Encumbrance");
+      if (typeof settingVal === "boolean") {
+        return settingVal;
+      }
+    } catch {
+      // Fall through to true if game.settings is uninitialized
+    }
+    return true;
+  }
+
+  static set isGygax75(val: boolean | null) {
+    OseDataModelCharacterEncumbrance.#gygax75Override = val;
+  }
+
+  static get baseEncumbranceCap(): number {
+    return OseDataModelCharacterEncumbrance.isGygax75 ? 2400 : 1600;
+  }
+
+  static set baseEncumbranceCap(val: number) {
+    OseDataModelCharacterEncumbrance.isGygax75 = val > 1600;
+  }
+
+  // Encumbrance step percentages used by the 'complete' and 'detailed' encumbrance variants
+  static get encumbranceSteps() {
+    if (OseDataModelCharacterEncumbrance.isGygax75) {
+      return {
+        quarter: (400 / 2400) * 100, // 16.666...% -> 400 cn breakpoint (90')
+        threeEighths: (800 / 2400) * 100, // 33.333...% -> 800 cn breakpoint (60')
+        half: (1200 / 2400) * 100, // 50.0% -> 1,200 cn breakpoint (30')
+      };
+    }
+    return {
+      quarter: (1 / 4) * 100, // 25.0% -> 400 cn breakpoint (90')
+      threeEighths: (3 / 8) * 100, // 37.5% -> 600 cn breakpoint (60')
+      half: (1 / 2) * 100, // 50.0% -> 800 cn breakpoint (30')
+    };
+  }
 
   #encumbranceVariant;
 
@@ -87,6 +132,8 @@ export default class OseDataModelCharacterEncumbrance implements CharacterEncumb
       atFirstBreakpoint: new BooleanField({ initial: false }),
       atSecondBreakpoint: new BooleanField({ initial: false }),
       atThirdBreakpoint: new BooleanField({ initial: false }),
+      nextBreakpointValue: new NumberField({ nullable: true, required: false, initial: null }),
+      untilNextBreakpoint: new NumberField({ nullable: true, required: false, initial: null }),
     });
   }
 
@@ -133,6 +180,25 @@ export default class OseDataModelCharacterEncumbrance implements CharacterEncumb
 
   get atFirstBreakpoint() {
     return this.pct > OseDataModelCharacterEncumbrance.encumbranceSteps.quarter;
+  }
+
+  get nextBreakpointValue() {
+    const steps = [
+      OseDataModelCharacterEncumbrance.encumbranceSteps.quarter,
+      OseDataModelCharacterEncumbrance.encumbranceSteps.threeEighths,
+      OseDataModelCharacterEncumbrance.encumbranceSteps.half,
+      100,
+    ].map((pct) => Math.round((pct / 100) * this.max));
+
+    for (const step of steps) {
+      if (this.value <= step) return step;
+    }
+    return null;
+  }
+
+  get untilNextBreakpoint() {
+    const next = this.nextBreakpointValue;
+    return next !== null ? Math.max(0, next - this.value) : null;
   }
 
   // eslint-disable-next-line class-methods-use-this

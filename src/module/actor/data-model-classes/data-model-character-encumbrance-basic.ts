@@ -102,6 +102,8 @@ export default class OseDataModelCharacterEncumbranceBasic
       atFirstBreakpoint: new BooleanField({ initial: false }),
       atSecondBreakpoint: new BooleanField({ initial: false }),
       atThirdBreakpoint: new BooleanField({ initial: false }),
+      nextBreakpointValue: new NumberField({ nullable: true, required: false, initial: null }),
+      untilNextBreakpoint: new NumberField({ nullable: true, required: false, initial: null }),
     });
   }
 
@@ -141,5 +143,15 @@ export default class OseDataModelCharacterEncumbranceBasic
       this.#heaviestArmor === OseDataModelCharacterEncumbranceBasic.armorWeight.light ||
       this.overSignificantTreasureThreshold
     );
+  }
+
+  get nextBreakpointValue() {
+    if (this.value <= this.#treasureEncumbrance) {
+      return this.#treasureEncumbrance;
+    }
+    if (this.value <= this.max) {
+      return this.max;
+    }
+    return null;
   }
 }

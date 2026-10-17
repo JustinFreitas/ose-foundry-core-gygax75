@@ -6,6 +6,7 @@
  * `game.i18n.localize`. Anything beyond that is deliberately absent — a test
  * that needs more Foundry than this belongs in the Quench suite.
  */
+import { vi } from "vitest";
 import { OSE } from "../src/module/config";
 
 interface FieldOptions {
@@ -310,15 +311,15 @@ Object.assign(globalThis, {
       },
     },
     settings: {
-      get: (_scope: string, key: string) => {
+      get: vi.fn((_scope: string, key: string) => {
         if (key === "ascendingAC") return false;
         if (key === "initiative") return "group";
         if (key === "rerollInitiative") return "reset";
         if (key === "gygax75Encumbrance") return true;
         return undefined;
-      },
-      set: async () => true,
-      register: () => {},
+      }),
+      set: vi.fn().mockResolvedValue(true),
+      register: vi.fn(),
     },
   },
 });

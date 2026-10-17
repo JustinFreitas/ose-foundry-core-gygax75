@@ -12,10 +12,19 @@
       {{else}}
       <a
         class="blinking"
-        data-action="generateScores"
-        data-tooltip="OSE.dialog.generateScores"
+        data-action="autoGenerateScores"
+        data-tooltip="OSE.dialog.autoGenerateScores"
         ><i class="fa fa-dice"></i
       ></a>
+      {{#if isGM}}
+      <a
+        class="blinking"
+        style="margin-left: 5px; filter: hue-rotate(120deg) brightness(1.2);"
+        data-action="generateScores"
+        data-tooltip="OSE.dialog.showGenerateScoresDialogGM"
+        ><i class="fa fa-dice"></i
+      ></a>
+      {{/if}}
       {{/unless}}
     </div>
   {{/if}}

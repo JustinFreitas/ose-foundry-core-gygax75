@@ -16,6 +16,7 @@ export default class OseCharacterCreator extends HandlebarsApplicationMixin(Appl
     this.stats = { sum: 0, avg: 0, std: 0 };
     this.scores = {};
     this.gold = 0;
+    this.subParRerolls = 0;
   }
 
   /** Bring an open dialog forward (closing if it's for a different actor) before creating a new one. */
@@ -67,7 +68,14 @@ export default class OseCharacterCreator extends HandlebarsApplicationMixin(Appl
   /** Wire the score-value `change` listeners after each render (action map doesn't cover input events). */
   _onRender() {
     this.element.querySelectorAll("input.score-value").forEach((input) => {
-      input.addEventListener("change", () => this._recomputeStats());
+      input.addEventListener("change", (ev) => {
+        const { score } = ev.currentTarget.closest("[data-score]")?.dataset ?? {};
+        const value = Number.parseInt(ev.currentTarget.value, 10);
+        if (score && !Number.isNaN(value)) {
+          this.scores[score] = { value };
+        }
+        this._recomputeStats();
+      });
     });
   }
 
@@ -78,6 +86,7 @@ export default class OseCharacterCreator extends HandlebarsApplicationMixin(Appl
     if (options.skipMessage) {
       const skipMessageRoll = new Roll("3d6");
       await skipMessageRoll.evaluate();
+      return skipMessageRoll;
     }
     return OseDice.Roll({
       event: options.event,
@@ -97,15 +106,39 @@ export default class OseCharacterCreator extends HandlebarsApplicationMixin(Appl
     const sum = values.reduce((acc, next) => acc + next.value, 0);
     const mean = sum / n;
     const std = Math.sqrt(values.map((x) => (x.value - mean) ** 2).reduce((acc, next) => acc + next, 0) / n);
+    const lowScoresCount = values.filter((x) => x.value <= 8).length;
+    const isSubPar = n >= 6 && (sum <= 55 || lowScoresCount >= 2);
+
     this.stats = {
       sum,
       avg: Math.round((10 * sum) / n) / 10,
       std: Math.round(100 * std) / 100,
+      isSubPar,
     };
     // Update the display
-    this.element.querySelector(".roll-stats .sum").textContent = this.stats.sum;
-    this.element.querySelector(".roll-stats .avg").textContent = this.stats.avg;
-    this.element.querySelector(".roll-stats .std").textContent = this.stats.std;
+    const statsContainer = this.element.querySelector(".roll-stats");
+    if (statsContainer) {
+      const sumEl = statsContainer.querySelector(".sum");
+      if (sumEl) sumEl.textContent = this.stats.sum;
+      const avgEl = statsContainer.querySelector(".avg");
+      if (avgEl) avgEl.textContent = this.stats.avg;
+      const stdEl = statsContainer.querySelector(".std");
+      if (stdEl) stdEl.textContent = this.stats.std;
+
+      let warning = statsContainer.querySelector(".subpar-warning");
+      if (isSubPar) {
+        if (!warning) {
+          warning = document.createElement("div");
+          warning.className = "subpar-warning";
+          warning.style.cssText =
+            "color: #c9302c; font-weight: bold; font-size: 0.85em; margin-top: 6px; text-align: center;";
+          warning.textContent = "⚠️ Sub-Par Character (Total ≤ 55 or 2+ scores ≤ 8)";
+          statsContainer.appendChild(warning);
+        }
+      } else if (warning) {
+        warning.remove();
+      }
+    }
     // Enable the submit button once all six scores have been rolled
     if (n >= 6) {
       this.element.querySelector('button[type="submit"]')?.removeAttribute("disabled");
@@ -139,13 +172,35 @@ export default class OseCharacterCreator extends HandlebarsApplicationMixin(Appl
   }
 
   async _handleAutoRoll(event) {
+    let subPar = true;
+    let rerollCount = 0;
+    while (subPar) {
+      let total = 0;
+      let count8orLess = 0;
+      for (const score of SCORE_KEYS) {
+        const r = await this.rollScore(score, { event, skipMessage: true });
+        this.scores[score] = { value: r.total };
+        total += r.total;
+        if (r.total <= 8) {
+          count8orLess++;
+        }
+      }
+      if (total > 55 && count8orLess < 2) {
+        subPar = false;
+      } else {
+        rerollCount++;
+      }
+    }
+    this.subParRerolls = rerollCount;
     for (const score of SCORE_KEYS) {
-      const r = await this.rollScore(score, { event, skipMessage: true });
-      this.scores[score] = { value: r.total };
+      const input = this.element.querySelector(`[data-score="${score}"] input.score-value`);
+      if (input) input.value = this.scores[score].value;
     }
     this._recomputeStats();
     const goldRoll = await this.rollScore("gold", { event, skipMessage: true });
     this.gold = 10 * goldRoll.total;
+    const goldInput = this.element.querySelector(".roll-stats .gold-value");
+    if (goldInput) goldInput.value = this.gold;
     this.element.requestSubmit();
   }
 
@@ -165,30 +220,45 @@ export default class OseCharacterCreator extends HandlebarsApplicationMixin(Appl
       title: game.i18n.localize("OSE.dialog.generator"),
       stats: this.stats,
       gold: this.gold,
+      rerolls: this.subParRerolls,
     };
     const content = await foundry.applications.handlebars.renderTemplate(
       "systems/__SYSTEM_ID__/dist/templates/chat/roll-creation.html",
       templateData,
     );
     await ChatMessage.create({
-      style: CONST.CHAT_MESSAGE_STYLES.OTHER,
+      style: CONST.CHAT_MESSAGE_STYLES?.OTHER ?? 0,
       content,
       speaker,
     });
 
-    // Drop the rolled gold into inventory as a treasure item
-    await this.document.createEmbeddedDocuments("Item", [
-      {
-        name: game.i18n.localize("OSE.items.gp.short"),
-        type: "item",
-        img: `${OSE.assetsPath}/gold.png`,
-        system: {
-          treasure: true,
-          cost: 1,
-          weight: 1,
-          quantity: { value: this.gold },
-        },
-      },
-    ]);
+    // Drop the rolled gold into inventory as GP (Bank) if available
+    if (this.gold > 0) {
+      const gpBankItem = this.document.items.find((i) => i.name === "GP (Bank)");
+      if (gpBankItem) {
+        await gpBankItem.update({ "system.quantity.value": this.gold });
+      } else {
+        const worldGpBank = game.items.find((i) => i.name === "GP (Bank)" && i.type === "item");
+        if (worldGpBank) {
+          const itemData = worldGpBank.toObject();
+          itemData.system.quantity = itemData.system.quantity || {};
+          itemData.system.quantity.value = this.gold;
+          await this.document.createEmbeddedDocuments("Item", [itemData]);
+        } else {
+          const itemData = {
+            name: game.i18n.localize("OSE.items.gp.short") || "gp",
+            type: "item",
+            img: `${OSE.assetsPath}/gold.png`,
+            system: {
+              treasure: true,
+              cost: 1,
+              weight: 1,
+              quantity: { value: this.gold },
+            },
+          };
+          await this.document.createEmbeddedDocuments("Item", [itemData]);
+        }
+      }
+    }
   }
 }

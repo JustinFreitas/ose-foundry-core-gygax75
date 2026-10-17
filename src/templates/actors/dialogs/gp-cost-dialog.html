@@ -6,8 +6,7 @@
         <div class="item-header flexrow">
           <div class="item-image" style="background-image: url({{item.img}})"></div>
           <h4 class="item-name" data-tooltip="{{item.name}}">{{item.name~}}</h4>
-          <div class="field-short">
-            {{#if item.system.quantity.max}}{{item.system.quantity.value}} x {{/if}}
+          <div class="field-short" {{#if item.system.bundleTooltip}}data-tooltip="{{item.system.bundleTooltip}}"{{/if}}>
             {{item.system.cost}}
           </div>
         </div>
@@ -20,8 +19,7 @@
         <div class="item-header flexrow">
           <div class="item-image" style="background-image: url({{item.img}})"></div>
           <h4 class="item-name" data-tooltip="{{item.name}}">{{item.name~}}</h4>
-          <div class="field-short">
-            {{#if item.system.quantity.max}}{{item.system.quantity.value}} x {{/if}}
+          <div class="field-short" {{#if item.system.bundleTooltip}}data-tooltip="{{item.system.bundleTooltip}}"{{/if}}>
             {{item.system.cost}}
           </div>
         </div>
@@ -34,20 +32,18 @@
         <div class="item-header flexrow">
           <div class="item-image" style="background-image: url({{bag.img}})"></div>
           <h4 class="item-name" data-tooltip="{{bag.name}}">{{bag.name~}}</h4>
-          <div class="field-short">
-            {{#if bag.system.quantity.max}}{{bag.system.quantity.value}} x {{/if}}
+          <div class="field-short" {{#if bag.system.bundleTooltip}}data-tooltip="{{bag.system.bundleTooltip}}"{{/if}}>
             {{bag.system.cost}}
           </div>
         </div>
       </li>
-      {{#each bag.system.itemIds as |item|}}
+      {{#each bag.system.contents as |item|}}
       <ol>
         <li class="item-entry item" data-item-id="{{item.id}}">
           <div class="item-header flexrow">
             <div class="item-image" style="background-image: url({{item.img}})"></div>
             <h4 class="item-name" data-tooltip="{{item.name}}">{{item.name~}}</h4>
-            <div class="field-short">
-              {{#if item.system.quantity.max}}{{item.system.quantity.value}} x {{/if}}
+            <div class="field-short" {{#if item.system.bundleTooltip}}data-tooltip="{{item.system.bundleTooltip}}"{{/if}}>
               {{item.system.cost}}
             </div>
           </div>
@@ -62,8 +58,7 @@
         <div class="item-header flexrow">
           <div class="item-image" style="background-image: url({{item.img}})"></div>
           <h4 class="item-name" data-tooltip="{{item.name}}">{{item.name~}}</h4>
-          <div class="field-short">
-            {{#if item.system.quantity.max}}{{item.system.quantity.value}} x {{/if}}
+          <div class="field-short" {{#if item.system.bundleTooltip}}data-tooltip="{{item.system.bundleTooltip}}"{{/if}}>
             {{item.system.cost}}
           </div>
         </div>

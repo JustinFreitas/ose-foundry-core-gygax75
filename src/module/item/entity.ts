@@ -71,6 +71,36 @@ export default class OseItem extends Item {
     return source;
   }
 
+  // biome-ignore lint/suspicious/noExplicitAny: foundry Document lifecycle signatures
+  async _preCreate(data: any, options: any, user: any) {
+    const qtyValue = foundry.utils.getProperty(data, "system.quantity.value");
+    if (qtyValue !== undefined) {
+      const name = data.name;
+      if (name !== "GP (Bank)") {
+        this.updateSource({ "system.quantity.value": Math.floor(qtyValue) });
+      } else {
+        this.updateSource({ "system.quantity.value": Math.round(qtyValue * 100) / 100 });
+      }
+    }
+    // @ts-expect-error
+    return super._preCreate(data, options, user);
+  }
+
+  // biome-ignore lint/suspicious/noExplicitAny: foundry Document lifecycle signatures
+  async _preUpdate(changed: any, options: any, user: any) {
+    const qtyValue = foundry.utils.getProperty(changed, "system.quantity.value");
+    if (qtyValue !== undefined) {
+      const name = changed.name ?? this.name;
+      if (name !== "GP (Bank)") {
+        foundry.utils.setProperty(changed, "system.quantity.value", Math.floor(qtyValue));
+      } else {
+        foundry.utils.setProperty(changed, "system.quantity.value", Math.round(qtyValue * 100) / 100);
+      }
+    }
+    // @ts-expect-error
+    return super._preUpdate(changed, options, user);
+  }
+
   prepareData() {
     super.prepareData();
   }

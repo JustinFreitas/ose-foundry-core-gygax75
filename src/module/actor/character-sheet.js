@@ -21,6 +21,7 @@ export default class OseActorSheetCharacter extends OseActorSheet {
       modifiers: OseActorSheetCharacter._onShowModifiers,
       gpCost: OseActorSheetCharacter._onShowGpCost,
       generateScores: OseActorSheetCharacter._onGenerateScores,
+      autoGenerateScores: OseActorSheetCharacter._onAutoGenerateScores,
       pushLang: OseActorSheetCharacter._onPushLang,
       popLang: OseActorSheetCharacter._onPopLang,
       toggleEquipped: OseActorSheetCharacter._onToggleEquipped,
@@ -94,8 +95,107 @@ export default class OseActorSheetCharacter extends OseActorSheet {
     });
   }
 
+  async autoGenerateScores() {
+    const stats = ["str", "int", "dex", "wis", "con", "cha"];
+    let subPar = true;
+    let rerollCount = 0;
+    const scores = {};
+
+    while (subPar) {
+      let total = 0;
+      let count8orLess = 0;
+      for (const char of stats) {
+        const skipMessageRoll = new Roll("3d6");
+        await skipMessageRoll.evaluate();
+        scores[char] = { value: skipMessageRoll.total };
+        total += skipMessageRoll.total;
+        if (skipMessageRoll.total <= 8) {
+          count8orLess++;
+        }
+      }
+      if (total > 55 && count8orLess < 2) {
+        subPar = false;
+      } else {
+        rerollCount++;
+      }
+    }
+
+    const goldRoll = new Roll("3d6");
+    await goldRoll.evaluate();
+    const gold = 10 * goldRoll.total;
+
+    const scoresValues = Object.values(scores);
+    const n = scoresValues.length;
+    const sum = scoresValues.reduce((acc, next) => acc + next.value, 0);
+    const mean = Number.parseFloat(sum) / n;
+    const std = Math.sqrt(scoresValues.map((x) => (x.value - mean) ** 2).reduce((acc, next) => acc + next, 0) / n);
+
+    const objStats = {
+      sum,
+      avg: Math.round((10 * sum) / n) / 10,
+      std: Math.round(100 * std) / 100,
+      isSubPar: false,
+    };
+
+    await this.actor.update({
+      "system.scores": scores,
+    });
+
+    const speaker = ChatMessage.getSpeaker({ actor: this.actor });
+    const templateData = {
+      config: CONFIG.OSE,
+      scores,
+      title: game.i18n.localize("OSE.dialog.generator"),
+      stats: objStats,
+      gold,
+      rerolls: rerollCount,
+    };
+
+    const content = await foundry.applications.handlebars.renderTemplate(
+      "systems/__SYSTEM_ID__/dist/templates/chat/roll-creation.html",
+      templateData,
+    );
+
+    await ChatMessage.create({
+      style: CONST.CHAT_MESSAGE_STYLES?.OTHER ?? 0,
+      content,
+      speaker,
+    });
+
+    if (gold > 0) {
+      const gpBankItem = this.actor.items.find((i) => i.name === "GP (Bank)");
+      if (gpBankItem) {
+        await gpBankItem.update({ "system.quantity.value": gold });
+      } else {
+        const worldGpBank = game.items.find((i) => i.name === "GP (Bank)" && i.type === "item");
+        if (worldGpBank) {
+          const itemData = worldGpBank.toObject();
+          itemData.system.quantity = itemData.system.quantity || {};
+          itemData.system.quantity.value = gold;
+          await this.actor.createEmbeddedDocuments("Item", [itemData]);
+        } else {
+          const itemData = {
+            name: game.i18n.localize("OSE.items.gp.short") || "gp",
+            type: "item",
+            img: `${OSE.assetsPath}/gold.png`,
+            system: {
+              treasure: true,
+              cost: 1,
+              weight: 1,
+              quantity: {
+                value: gold,
+              },
+            },
+          };
+          await this.actor.createEmbeddedDocuments("Item", [itemData]);
+        }
+      }
+    }
+  }
+
   async _prepareContext(options) {
     const data = await super._prepareContext(options);
+    data.isGM = game.user.isGM;
 
     // Prepare owned items
     this._prepareItems(data);
@@ -229,6 +329,10 @@ export default class OseActorSheetCharacter extends OseActorSheet {
 
   static _onGenerateScores() {
     if (this.isEditable) this.generateScores();
+  }
+
+  static _onAutoGenerateScores() {
+    if (this.isEditable) return this.autoGenerateScores();
   }
 
   static _onPushLang(_event, target) {

@@ -217,6 +217,18 @@ class Item {
     this.flags = data.flags || {};
   }
 
+  updateSource(data: any) {
+    Object.assign(this.system, data);
+  }
+
+  async _preCreate(_data: any, _options: any, _user: any) {
+    return true;
+  }
+
+  async _preUpdate(_changed: any, _options: any, _user: any) {
+    return true;
+  }
+
   getFlag(scope: string, key: string) {
     return this.flags[scope]?.[key];
   }
@@ -249,14 +261,38 @@ Object.assign(globalThis, {
   Actor,
   Item,
   Combatant,
+  CONST: {
+    CHAT_MESSAGE_STYLES: {
+      OTHER: 0,
+    },
+  },
   OseDice: {
     Roll: (data: any) => data,
   },
   foundry: {
     abstract: { TypeDataModel },
     applications: {
+      handlebars: {
+        renderTemplate: vi.fn().mockResolvedValue("<div>Template</div>"),
+      },
       api: {
         DialogV2: MockDialogV2,
+        ApplicationV2: class ApplicationV2 {
+          options: any;
+          constructor(options: any = {}) {
+            this.options = options;
+          }
+          render() {
+            return this;
+          }
+          async close() {}
+        },
+        HandlebarsApplicationMixin: (Base: any) =>
+          class extends Base {
+            async _prepareContext() {
+              return {};
+            }
+          },
       },
     },
     data: {
@@ -265,6 +301,21 @@ Object.assign(globalThis, {
     utils: {
       mergeObject: (target: any, source: any) => Object.assign(target || {}, source),
       escapeHTML: (str: string) => str,
+      getProperty: (obj: any, path: string) => {
+        if (!obj || !path) return undefined;
+        return path.split(".").reduce((acc, part) => (acc && acc[part] !== undefined ? acc[part] : undefined), obj);
+      },
+      setProperty: (obj: any, path: string, value: any) => {
+        if (!obj || !path) return false;
+        const parts = path.split(".");
+        let cur = obj;
+        for (let i = 0; i < parts.length - 1; i++) {
+          if (!cur[parts[i]]) cur[parts[i]] = {};
+          cur = cur[parts[i]];
+        }
+        cur[parts[parts.length - 1]] = value;
+        return true;
+      },
     },
   },
   CONFIG: {
@@ -293,6 +344,7 @@ Object.assign(globalThis, {
   },
   ChatMessage: {
     getSpeaker: () => ({}),
+    create: vi.fn().mockResolvedValue({}),
   },
   ui: {
     notifications: {

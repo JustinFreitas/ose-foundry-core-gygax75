@@ -1,6 +1,20 @@
 <div class="party-sheet-content">
   <div class="actor header flexrow item-controls">
+    {{#if user.isGM}}
+    <div id="party-controls" class="flexrow">
+      <button
+        id="manage-parties"
+        class="item-control"
+        type="button"
+        data-action="manageParties"
+        title="{{localize 'OSE.dialog.party.manage'}}"
+      >
+        <i class="fas fa-users-gear"></i>
+      </button>
+    </div>
+    {{else}}
     <div id="empty"></div>
+    {{/if}}
     {{#if user.isGM}}
     <button
       id="deal-xp"
@@ -11,6 +25,18 @@
     >
       {{localize 'OSE.dialog.xp.label'}}
     </button>
+    {{#if hasDutyXP}}
+    <button
+      id="reset-duty-xp"
+      class="item-control warning"
+      type="button"
+      data-action="resetDutyXP"
+      style="background: #a94442; color: white; margin-left: 4px;"
+      title="{{localize 'OSE.dialog.party.resetDutyTitle'}}"
+    >
+      <i class="fas fa-rotate-left"></i> Reset Duty
+    </button>
+    {{/if}}
     {{/if}}
   </div>
   <div class="body party-members">
@@ -35,7 +61,12 @@
         </div>
         <div class="fields">
           <div class="flexrow field-row">
-            <div title="{{e.name}}" class="field-name flex2">{{e.name}}</div>
+            <div title="{{e.name}}" class="field-name flex2">
+              {{e.name}}
+              {{#if e.flags.dutyXP}}
+              <span class="duty-badge" title="Active Duty XP (+5%)" style="background: #f0ad4e; color: #000; font-size: 0.75em; padding: 1px 4px; border-radius: 3px; margin-left: 4px; font-weight: bold;">🏅 Duty</span>
+              {{/if}}
+            </div>
             <div class="field-long" title="{{localize 'OSE.Health'}}">
               <i class="fas fa-heart"></i>
               {{e.system.hp.value}}/{{e.system.hp.max}}

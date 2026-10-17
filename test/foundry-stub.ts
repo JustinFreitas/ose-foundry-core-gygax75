@@ -165,7 +165,7 @@ class Combatant {
     this.flags[scope][key] = value;
   }
 
-  async getData(options = {}) {
+  async getData(_options = {}) {
     return { ...this };
   }
 }
@@ -256,6 +256,14 @@ if (!Math.clamp) {
   Math.clamp = (val: number, min: number, max: number) => Math.min(Math.max(val, min), max);
 }
 
+const settingsStore = new Map<string, any>([
+  ["ose.ascendingAC", false],
+  ["ose.initiative", "group"],
+  ["ose.rerollInitiative", "reset"],
+  ["ose.gygax75Encumbrance", true],
+  ["ose.savedParties", {}],
+]);
+
 Object.assign(globalThis, {
   Roll,
   Actor,
@@ -294,6 +302,46 @@ Object.assign(globalThis, {
             }
           },
       },
+      sheets: {
+        ActorSheetV2: class ActorSheetV2 {
+          actor: any;
+          options: any;
+          tabGroups: any = {};
+          constructor(options: any = {}) {
+            this.options = options;
+            this.actor = options.document;
+          }
+          get isEditable() {
+            return true;
+          }
+          async _prepareContext(_options?: any) {
+            return {};
+          }
+          _getTabsConfig(_group: any) {
+            return null;
+          }
+          async _onFirstRender(_context: any, _options: any) {}
+          async _onRender(_context: any, _options: any) {}
+          _onPosition(_position: any) {}
+          _sizeResizables() {}
+          render() {
+            return this;
+          }
+        },
+      },
+      ux: {
+        DragDrop: {
+          implementation: class {
+            bind() {}
+          },
+        },
+        FormDataExtended: class {
+          object: any;
+          constructor(form: any) {
+            this.object = form || {};
+          }
+        },
+      },
     },
     data: {
       fields: { DataField, StringField, NumberField, BooleanField, ArrayField, ObjectField, SchemaField },
@@ -310,10 +358,13 @@ Object.assign(globalThis, {
         const parts = path.split(".");
         let cur = obj;
         for (let i = 0; i < parts.length - 1; i++) {
-          if (!cur[parts[i]]) cur[parts[i]] = {};
-          cur = cur[parts[i]];
+          const part = parts[i];
+          if (!part) continue;
+          if (!cur[part]) cur[part] = {};
+          cur = cur[part];
         }
-        cur[parts[parts.length - 1]] = value;
+        const lastPart = parts[parts.length - 1];
+        if (lastPart) cur[lastPart] = value;
         return true;
       },
     },
@@ -353,8 +404,11 @@ Object.assign(globalThis, {
       error: () => {},
     },
   },
+  settingsStore,
   game: {
     system: { id: "ose" },
+    user: { isGM: true },
+    actors: [] as any[],
     i18n: {
       localize: (key: string) => key,
       format: (key: string, data?: any) => {
@@ -363,14 +417,18 @@ Object.assign(globalThis, {
       },
     },
     settings: {
+      _store: settingsStore,
       get: vi.fn((_scope: string, key: string) => {
-        if (key === "ascendingAC") return false;
-        if (key === "initiative") return "group";
-        if (key === "rerollInitiative") return "reset";
-        if (key === "gygax75Encumbrance") return true;
+        const fullKey = `ose.${key}`;
+        if (settingsStore.has(fullKey)) return settingsStore.get(fullKey);
+        if (settingsStore.has(key)) return settingsStore.get(key);
         return undefined;
       }),
-      set: vi.fn().mockResolvedValue(true),
+      set: vi.fn().mockImplementation(async (_scope: string, key: string, value: any) => {
+        const fullKey = `ose.${key}`;
+        settingsStore.set(fullKey, value);
+        return value;
+      }),
       register: vi.fn(),
     },
   },

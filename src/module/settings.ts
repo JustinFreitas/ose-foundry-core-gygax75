@@ -138,6 +138,12 @@ const registerSettings = () => {
     scope: "world",
     type: Boolean,
   });
+  game.settings.register(game.system.id, "savedParties", {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {},
+  });
 };
 
 declare global {
@@ -150,6 +156,7 @@ declare global {
       "ose.morale": boolean;
       "ose.encumbranceOption": EncumbranceOption;
       "ose.gygax75Encumbrance": boolean;
+      "ose.savedParties": Record<string, string[]>;
       "ose.significantTreasure": number;
       "ose.languages": string;
       "ose.applyDamageOption": ApplyDamageOption;

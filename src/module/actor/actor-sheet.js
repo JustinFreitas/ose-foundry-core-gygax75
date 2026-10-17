@@ -6,12 +6,14 @@ import { bindInventoryContextMenu } from "../sheet/context-menu";
 import { prepareActorContext } from "../sheet/data-context";
 import { chooseItemType, openEntityTweaksFor, promptRemoveItemFromActor } from "../sheet/dialogs";
 import {
+  getTargetContainer,
   onContainerItemAdd,
   onContainerItemRemove,
   onDragStartItem,
   onDropFolder,
   onDropItem,
   onDropItemCreate,
+  transferItemBetweenContainers,
 } from "../sheet/drag-drop";
 import {
   createItem,
@@ -123,6 +125,12 @@ export default class OseActorSheet extends HandlebarsApplicationMixin(ActorSheet
   }
   _onContainerItemRemove(item, container) {
     return onContainerItemRemove(this, item, container);
+  }
+  _getTargetContainer(event) {
+    return getTargetContainer(this, event);
+  }
+  _transferItemBetweenContainers(item, sourceContainer, targetContainer) {
+    return transferItemBetweenContainers(this, item, sourceContainer, targetContainer);
   }
   _onDropItemCreate(droppedItem, targetContainer) {
     return onDropItemCreate(this, droppedItem, targetContainer);

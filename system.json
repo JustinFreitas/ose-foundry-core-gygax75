@@ -2,7 +2,7 @@
   "id": "ose",
   "title": "Old-School Essentials Development Build",
   "description": "Simple, robust rules compatible with decades of Basic/Expert material",
-  "version": "3.0.1-gygax75.2",
+  "version": "3.0.1-gygax75.3",
   "compatibility": {
     "minimum": "13",
     "verified": "14"
@@ -30,12 +30,8 @@
       "url": "https://github.com/NecroticGnome/ose-foundry-core#contributors-"
     }
   ],
-  "esmodules": [
-    "dist/ose.js"
-  ],
-  "styles": [
-    "dist/ose.css"
-  ],
+  "esmodules": ["dist/ose.js"],
+  "styles": ["dist/ose.css"],
   "packs": [],
   "languages": [
     {
@@ -123,12 +119,8 @@
   "flags": {
     "allowBugReporter": true,
     "hotReload": {
-      "extensions": [
-        "css"
-      ],
-      "paths": [
-        "dist/"
-      ]
+      "extensions": ["css"],
+      "paths": ["dist/"]
     }
   },
   "documentTypes": {

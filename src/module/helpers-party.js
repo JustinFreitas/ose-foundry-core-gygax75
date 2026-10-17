@@ -43,3 +43,5 @@ export const update = (actor) => {
 
   OsePartySheet.partySheet.render();
 };
+
+export { resetDutyXP } from "./party/duty-xp";

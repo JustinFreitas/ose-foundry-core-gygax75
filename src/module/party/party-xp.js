@@ -1,6 +1,7 @@
 /**
  * @file An application for dispensing XP to party members.
  */
+import { resetDutyXP } from "./duty-xp";
 import OseParty from "./party";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
@@ -70,12 +71,32 @@ export default class OsePartyXP extends HandlebarsApplicationMixin(ApplicationV2
   }
 
   async _submit() {
+    const promises = [];
     for (const row of this.element.querySelectorAll(".actor")) {
       const value = row.querySelector("input")?.value;
       const id = row.dataset.actorId;
       if (!value) continue;
       const actor = OseParty.currentParty.find((a) => a.id === id);
-      actor?.getExperience(Math.floor(Number.parseInt(value, 10)));
+      if (actor) {
+        promises.push(actor.getExperience(Math.floor(Number.parseInt(value, 10))));
+      }
+    }
+    await Promise.all(promises);
+
+    // Prompt GM to reset Duty XP bonuses if any party members have active duty XP
+    const dutyActors = OseParty.currentParty.filter((a) => a.flags?.dutyXP !== undefined);
+    if (dutyActors.length > 0) {
+      const confirmed = await foundry.applications.api.DialogV2.confirm({
+        classes: ["ose", "dialog"],
+        position: { width: 400, height: "auto" },
+        window: {
+          title: game.i18n.localize("OSE.dialog.party.resetDutyTitle") || "Reset Duty XP Bonuses?",
+        },
+        content: `<p>XP has been distributed! <strong>${dutyActors.length} character(s)</strong> currently have active Duty XP (+5%) bonuses. Would you like to reset their XP bonuses back to normal now?</p>`,
+      });
+      if (confirmed) {
+        await resetDutyXP(dutyActors);
+      }
     }
   }
 }

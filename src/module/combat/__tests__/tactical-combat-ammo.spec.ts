@@ -342,5 +342,91 @@ describe("Phase 3: Tactical Combat & Automated Ammunition", () => {
       await blowgun._handleAmmoConsumption(blowgunOpts);
       expect((blowgunOpts.ammoOptions as any[])[0].id).toBe("dart");
     });
+
+    it("clamps spent ammo quantity at minimum 0", async () => {
+      vi.spyOn(game.settings, "get").mockReturnValue("warn");
+
+      const arrow = new OseItem({
+        id: "last-arrow",
+        name: "Arrows",
+        type: "item",
+        system: { quantity: { value: 1 } },
+      });
+      const updateSpy = vi.spyOn(arrow, "update").mockResolvedValue(arrow);
+
+      const bow = new OseItem({ id: "bow", name: "Shortbow", type: "weapon", system: { missile: true } });
+      (bow as any).actor = {
+        items: {
+          filter: () => [arrow],
+          get: () => arrow,
+        },
+      };
+
+      const options: Record<string, unknown> = {};
+      await bow._handleAmmoConsumption(options);
+
+      // Confirm expenditure
+      await (options.onConfirm as Function)();
+      expect(updateSpy).toHaveBeenCalledWith({ "system.quantity.value": 0 });
+    });
+  });
+
+  describe("TargetAttack Forwarding & Monster Safety", () => {
+    it("forwards tactical combat options (twoWeapons, defenderRetreating, customBonus) through targetAttack to rollAttack", async () => {
+      let capturedOptions: any = null;
+      const actor = new OseActor({
+        id: "fighter-target",
+        type: "character",
+        system: {
+          scores: { str: { mod: 2 }, dex: { mod: 0 } },
+          thac0: { value: 19, bba: 0, mod: { melee: 0, missile: 0 } },
+          config: {},
+        },
+      });
+
+      vi.spyOn(actor, "rollAttack").mockImplementation((_data: any, options: any) => {
+        capturedOptions = options;
+        return Promise.resolve({} as any);
+      });
+
+      await actor.targetAttack({ roll: {} }, "melee", {
+        twoWeapons: true,
+        defenderRetreating: true,
+        customBonus: 3,
+        skipDialog: true,
+      });
+
+      expect(capturedOptions).not.toBeNull();
+      expect(capturedOptions.type).toBe("melee");
+      expect(capturedOptions.twoWeapons).toBe(true);
+      expect(capturedOptions.defenderRetreating).toBe(true);
+      expect(capturedOptions.customBonus).toBe(3);
+      expect(capturedOptions.skipDialog).toBe(true);
+    });
+
+    it("safely rolls attack for monsters without scores throwing TypeError", () => {
+      let capturedRollData: any = null;
+      vi.spyOn(OseDice, "Roll").mockImplementation((data: any) => {
+        capturedRollData = data;
+        return data;
+      });
+
+      const monster = new OseActor({
+        id: "goblin-1",
+        type: "monster",
+        system: {
+          thac0: { value: 19, bba: 0, mod: { melee: 1, missile: 0 } },
+          config: {},
+        },
+      });
+
+      expect(() => {
+        monster.rollAttack({ item: { system: { damage: "1d6", bonus: 0 } } }, { type: "melee", skipDialog: true });
+      }).not.toThrow();
+
+      expect(capturedRollData).not.toBeNull();
+      // Monster thac0.mod.melee (1) should be in roll parts without error on missing scores
+      expect(capturedRollData.parts).toContain(1);
+    });
   });
 });

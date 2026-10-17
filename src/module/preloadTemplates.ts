@@ -17,6 +17,7 @@ const preloadHandlebarsTemplates = async () => {
     `${OSE.systemPath()}/templates/actors/partials/character-inventory-tab.html`,
     `${OSE.systemPath()}/templates/actors/partials/actor-item-summary.html`,
     `${OSE.systemPath()}/templates/actors/partials/character-notes-tab.html`,
+    `${OSE.systemPath()}/templates/actors/partials/effects-tab.html`,
     `${OSE.systemPath()}/templates/actors/partials/monster-header.html`,
     `${OSE.systemPath()}/templates/actors/partials/monster-attributes-tab.html`,
     // Item Display

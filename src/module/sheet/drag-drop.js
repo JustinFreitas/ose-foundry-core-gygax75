@@ -11,24 +11,31 @@ export const onDragStartItem = (sheet, event) => {
 
   if (li.dataset.itemId) {
     const item = sheet.actor.items.get(li.dataset.itemId);
-    dragData = item.toDragData();
-    dragData.item = item;
-    dragData.type = "Item";
-    if (item.type === "container" && item.system.itemIds.length > 0) {
-      itemIdsArray = item.system.itemIds;
+    if (item) {
+      dragData = item.toDragData();
+      dragData.item = item;
+      dragData.type = "Item";
+      if (item.type === "container" && item.system?.itemIds?.length > 0) {
+        itemIdsArray = item.system.itemIds;
+      }
     }
   }
+
+  if (li.dataset.effectId) {
+    const effect = sheet.actor.effects.get(li.dataset.effectId);
+    if (effect) {
+      dragData =
+        typeof effect.toDragData === "function" ? effect.toDragData() : { type: "ActiveEffect", uuid: effect.uuid };
+      dragData.type = "ActiveEffect";
+    }
+  }
+
+  if (!dragData) return;
 
   dragData.actorId = sheet.actor.id;
   dragData.sceneId = sheet.actor.isToken ? canvas.scene?.id : null;
   dragData.tokenId = sheet.actor.isToken ? sheet.actor.token.id : null;
   dragData.pack = sheet.actor.pack;
-
-  if (li.dataset.effectId) {
-    const effect = sheet.actor.effects.get(li.dataset.effectId);
-    dragData.type = "ActiveEffect";
-    dragData.data = effect.data;
-  }
 
   event.dataTransfer.setData(
     "text/plain",

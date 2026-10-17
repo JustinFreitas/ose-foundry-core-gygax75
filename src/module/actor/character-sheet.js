@@ -33,7 +33,7 @@ export default class OseActorSheetCharacter extends OseActorSheet {
       root: true,
       template: "systems/__SYSTEM_ID__/dist/templates/actors/character-sheet.html",
       scrollable: [
-        ...["abilities", "spells", "inventory"].map((tab) => `.tab[data-tab="${tab}"] .resizable`),
+        ...["abilities", "spells", "inventory", "effects"].map((tab) => `.tab[data-tab="${tab}"] .resizable`),
         '.tab[data-tab="notes"]',
       ],
     },
@@ -46,6 +46,7 @@ export default class OseActorSheetCharacter extends OseActorSheet {
         { id: "abilities", label: "OSE.category.abilities" },
         { id: "spells", label: "OSE.category.spells" },
         { id: "inventory", label: "OSE.category.inventory" },
+        { id: "effects", label: "OSE.category.effects" },
         { id: "notes", label: "OSE.category.notes" },
       ],
       initial: "attributes",

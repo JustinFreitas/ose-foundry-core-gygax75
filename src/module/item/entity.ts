@@ -244,7 +244,7 @@ export default class OseItem extends Item {
       options.onConfirm = async () => {
         const qty = (this.system as AnyItemSystem).quantity?.value ?? 0;
         if (qty > 0) {
-          await this.update({ "system.quantity.value": qty - 1 });
+          await this.update({ "system.quantity.value": Math.max(0, qty - 1) });
           return null;
         }
         return game.i18n.format("OSE.error.outOfAmmo", { name: this.name });
@@ -292,7 +292,8 @@ export default class OseItem extends Item {
         (options.ammoOptions as any[])[0].id;
       const ammoItem = actor.items.get(ammoId);
       if (ammoItem) {
-        const newQty = ammoItem.system.quantity.value - 1;
+        const currentAmmoQty = ammoItem.system?.quantity?.value ?? 0;
+        const newQty = Math.max(0, currentAmmoQty - 1);
         await ammoItem.update({ "system.quantity.value": newQty });
         return `${ammoItem.name} (${newQty} left)`;
       }

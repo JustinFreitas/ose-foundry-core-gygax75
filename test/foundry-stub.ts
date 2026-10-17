@@ -330,6 +330,13 @@ Object.assign(globalThis, {
         },
       },
       ux: {
+        TextEditor: {
+          implementation: class {
+            static enrichHTML(content: string) {
+              return Promise.resolve(content);
+            }
+          },
+        },
         DragDrop: {
           implementation: class {
             bind() {}

@@ -28,7 +28,7 @@ export default class OseActorSheetMonster extends OseActorSheet {
     sheet: {
       root: true,
       template: "systems/__SYSTEM_ID__/dist/templates/actors/monster-sheet.html",
-      scrollable: ["attributes", "spells", "inventory"].map((tab) => `.tab[data-tab="${tab}"] .resizable`),
+      scrollable: ["attributes", "spells", "inventory", "effects"].map((tab) => `.tab[data-tab="${tab}"] .resizable`),
     },
   };
 
@@ -38,6 +38,7 @@ export default class OseActorSheetMonster extends OseActorSheet {
         { id: "attributes", label: "OSE.category.attributes" },
         { id: "inventory", label: "OSE.category.inventory" },
         { id: "spells", label: "OSE.category.spells" },
+        { id: "effects", label: "OSE.category.effects" },
         { id: "notes", label: "OSE.category.notes" },
       ],
       initial: "attributes",

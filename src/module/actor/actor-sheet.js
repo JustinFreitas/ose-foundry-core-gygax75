@@ -3,6 +3,7 @@
  */
 import { displayItemInChat } from "../sheet/chat-helpers";
 import { bindInventoryContextMenu } from "../sheet/context-menu";
+import { prepareActorContext } from "../sheet/data-context";
 import { chooseItemType, openEntityTweaksFor } from "../sheet/dialogs";
 import {
   getTargetContainer,
@@ -66,6 +67,11 @@ export default class OseActorSheet extends HandlebarsApplicationMixin(ActorSheet
       consumableSpend: OseActorSheet._onConsumableSpend,
       consumableRestore: OseActorSheet._onConsumableRestore,
       resetSpells: OseActorSheet._onResetSpells,
+      createEffect: OseActorSheet._onCreateEffect,
+      editEffect: OseActorSheet._onEditEffect,
+      deleteEffect: OseActorSheet._onDeleteEffect,
+      toggleEffect: OseActorSheet._onToggleEffect,
+      openEffectSource: OseActorSheet._onOpenEffectSource,
     },
   };
 
@@ -243,5 +249,49 @@ export default class OseActorSheet extends HandlebarsApplicationMixin(ActorSheet
 
   static _onResetSpells(_event, target) {
     if (this.isEditable) return resetSpells(this, target);
+  }
+
+  static async _onCreateEffect(_event, target) {
+    if (!this.isEditable) return;
+    const effectType = target.dataset.effectType;
+    const isTemporary = effectType === "temporary";
+    const isInactive = effectType === "inactive";
+    const created = await this.actor.createEmbeddedDocuments("ActiveEffect", [
+      {
+        name: game.i18n.localize("OSE.effect.new"),
+        img: "icons/svg/aura.svg",
+        origin: this.actor.uuid,
+        disabled: isInactive,
+        duration: isTemporary ? { rounds: 1 } : {},
+      },
+    ]);
+    return created[0]?.sheet?.render(true);
+  }
+
+  static _onEditEffect(_event, target) {
+    if (!this.isEditable) return;
+    const effectId = target.dataset.effectId || target.closest("[data-effect-id]")?.dataset.effectId;
+    const effect = this.actor.effects.get(effectId);
+    return effect?.sheet?.render(true);
+  }
+
+  static async _onDeleteEffect(_event, target) {
+    if (!this.isEditable) return;
+    const effectId = target.dataset.effectId || target.closest("[data-effect-id]")?.dataset.effectId;
+    const effect = this.actor.effects.get(effectId);
+    return effect?.delete();
+  }
+
+  static async _onToggleEffect(_event, target) {
+    if (!this.isEditable) return;
+    const effectId = target.dataset.effectId || target.closest("[data-effect-id]")?.dataset.effectId;
+    const effect = this.actor.effects.get(effectId);
+    return effect?.update({ disabled: !effect.disabled });
+  }
+
+  static _onOpenEffectSource(_event, target) {
+    const itemId = target.dataset.itemId || target.closest("[data-item-id]")?.dataset.itemId;
+    const item = this.actor.items.get(itemId);
+    return item?.sheet?.render(true);
   }
 }

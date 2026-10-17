@@ -223,6 +223,17 @@
   "OSE.category.languages": "Languages",
   "OSE.category.description": "Description",
   "OSE.category.equipment": "Equipment",
+  "OSE.category.effects": "Effects",
+
+  "OSE.effect.temporary": "Temporary Effects",
+  "OSE.effect.passive": "Passive Effects",
+  "OSE.effect.inactive": "Inactive Effects",
+  "OSE.effect.fromItems": "Effects Granted by Items",
+  "OSE.effect.new": "New Effect",
+  "OSE.effect.toggle": "Toggle Effect",
+  "OSE.effect.source": "View Source Item",
+  "OSE.effect.suppressedHint": "Disabled while item is unequipped",
+  "OSE.effect.unequipped": "unequipped",
 
   "OSE.Setting.Initiative": "Initiative",
   "OSE.Setting.InitiativeHint": "Grouped or individual initiative.",

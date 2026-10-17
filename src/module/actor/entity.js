@@ -580,23 +580,20 @@ export default class OseActor extends Actor {
     });
   }
 
-  async targetAttack(data, type, options) {
-    if (game.user.targets.size > 0) {
+  async targetAttack(data, type, options = {}) {
+    if (game.user.targets?.size > 0) {
       for (const t of game.user.targets.values()) {
+        if (!data.roll) data.roll = {};
         data.roll.target = t;
         await this.rollAttack(data, {
+          ...options,
           type,
-          skipDialog: options.skipDialog,
-          ammoOptions: options.ammoOptions,
-          onConfirm: options.onConfirm,
         });
       }
     } else {
       await this.rollAttack(data, {
+        ...options,
         type,
-        skipDialog: options.skipDialog,
-        ammoOptions: options.ammoOptions,
-        onConfirm: options.onConfirm,
       });
     }
   }
@@ -641,7 +638,7 @@ export default class OseActor extends Actor {
     const rollParts = ["1d20"];
     const ascending = game.settings.get(game.system.id, "ascendingAC");
 
-    if (ascending && data.thac0.bba) rollParts.push(data.thac0.bba);
+    if (ascending && data.thac0?.bba) rollParts.push(data.thac0.bba);
 
     // for each type of attack, add the Tweaks bonus
     // and str/dex modifier only if it's non-zero
@@ -650,16 +647,16 @@ export default class OseActor extends Actor {
     // Melee: str.mod + thac0.mod.melee go to the attack roll; only the Str
     // modifier also adds to damage (RAW). The melee attack tweak does not.
     if (options.type === "melee") {
-      attackMods = [data.scores.str.mod, data.thac0.mod.melee];
+      attackMods = [data.scores?.str?.mod, data.thac0?.mod?.melee];
       if (options.twoWeapons) attackMods.push(1);
-      if (data.scores.str.mod) dmgParts.push(data.scores.str.mod);
+      if (data.scores?.str?.mod) dmgParts.push(data.scores.str.mod);
     }
 
     // Missile: dex.mod + thac0.mod.missile go to the attack roll only (RAW: missile
     // attacks get no inherent bonus damage). An explicit damage.mod.missile lever
     // (e.g. from Bless) does add to missile damage.
     if (options.type === "missile") {
-      attackMods = [data.scores.dex.mod, data.thac0.mod.missile];
+      attackMods = [data.scores?.dex?.mod, data.thac0?.mod?.missile];
       if (data.damage?.mod?.missile) dmgParts.push(data.damage.mod.missile);
     }
 

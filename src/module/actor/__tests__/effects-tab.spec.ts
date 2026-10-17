@@ -278,6 +278,36 @@ describe("Phase 4: Active Effects Tab & Sheet Layout", () => {
       expect(item.sheet.render).toHaveBeenCalledWith(true);
     });
 
+    it("creates passive ActiveEffect with disabled: false and empty duration", async () => {
+      const target = {
+        dataset: { effectType: "passive" },
+      };
+
+      await OseActorSheet._onCreateEffect.call(mockSheet, {} as any, target as any);
+
+      expect(actor.createEmbeddedDocuments).toHaveBeenCalledWith("ActiveEffect", [
+        expect.objectContaining({
+          disabled: false,
+          duration: {},
+        }),
+      ]);
+    });
+
+    it("safely handles non-existent effect or item IDs as no-ops", async () => {
+      const missingTarget = {
+        dataset: { effectId: "non-existent" },
+      };
+
+      expect(() => OseActorSheet._onEditEffect.call(mockSheet, {} as any, missingTarget as any)).not.toThrow();
+      await expect(OseActorSheet._onDeleteEffect.call(mockSheet, {} as any, missingTarget as any)).resolves.not.toThrow();
+      await expect(OseActorSheet._onToggleEffect.call(mockSheet, {} as any, missingTarget as any)).resolves.not.toThrow();
+
+      const missingItemTarget = {
+        dataset: { itemId: "non-existent" },
+      };
+      expect(() => OseActorSheet._onOpenEffectSource.call(mockSheet, {} as any, missingItemTarget as any)).not.toThrow();
+    });
+
     it("does not execute mutations if sheet is not editable", async () => {
       mockSheet.isEditable = false;
       const target = { dataset: { effectType: "temporary" } };
@@ -313,6 +343,19 @@ describe("Phase 4: Active Effects Tab & Sheet Layout", () => {
       expect(parsed.type).toBe("ActiveEffect");
       expect(parsed.actorId).toBe(actor.id);
       expect(parsed.data.name).toBe("Invisibility");
+    });
+
+    it("returns early when li element has neither itemId nor effectId", () => {
+      const li = { dataset: {} };
+      const mockEvent: any = {
+        currentTarget: li,
+        target: { classList: { contains: () => false } },
+        dataTransfer: { setData: vi.fn() },
+      };
+      const dragSheet = { actor };
+
+      expect(() => onDragStartItem(dragSheet as any, mockEvent)).not.toThrow();
+      expect(mockEvent.dataTransfer.setData).not.toHaveBeenCalled();
     });
   });
 

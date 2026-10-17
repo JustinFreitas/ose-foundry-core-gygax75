@@ -1,3 +1,267 @@
+@import "./variables.scss";
+
+/* ----------------------------------------- */
+/*  Foundry V14 ApplicationV2 Dialog Styling */
+/* ----------------------------------------- */
+
+.application.dialog.ose,
+.ose.dialog {
+  --color-border: #000000;
+  --color-text: #191813;
+  --color-border-light-highlight: #f0f0e0;
+  --color-border-light-secondary: #c9c7b8;
+  --color-border-light-tertiary: #7a7971;
+
+  background: url("/ui/denim075.png") repeat;
+  border-radius: 5px;
+  border: 1px solid #000000;
+  box-shadow: 0 0 20px #000000;
+  color: #191813;
+  padding: 0;
+  overflow: hidden;
+
+  /* V1 Window Header: Transparent title bar matching Character Sheet */
+  .window-header {
+    background: transparent;
+    color: #f0f0e0;
+    flex: 0 0 30px;
+    height: 30px;
+    padding: 0 8px;
+    gap: 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.5);
+
+    .window-title {
+      margin: 0;
+      color: #f0f0e0;
+      font-family: var(--font-primary);
+      font-size: var(--font-size-14);
+      font-weight: normal;
+      line-height: 30px;
+    }
+
+    button.header-control,
+    a.header-button {
+      --button-text-color: #f0f0e0;
+      color: #f0f0e0;
+      line-height: 30px;
+      margin: 0 0 0 8px;
+
+      &:hover {
+        color: #ffffff;
+        text-shadow: 0 0 8px var(--color-shadow-primary);
+      }
+    }
+  }
+
+  /* V1 Window Content: Parchment background with 8px padding */
+  .window-content {
+    background: url("/ui/parchment.jpg") repeat;
+    padding: 8px;
+    color: #191813;
+    font-size: var(--font-size-14);
+    border-radius: 0 0 5px 5px;
+
+    p, span, label, div {
+      color: #191813;
+    }
+
+    .form-group {
+      margin-bottom: 0.5rem;
+      align-items: center;
+
+      label {
+        color: #191813;
+        font-weight: bold;
+      }
+    }
+
+    /* V1 Text Inputs: Clean underline with hover gradient */
+    input:not([type="checkbox"]) {
+      background: none;
+      border: none;
+      border-radius: 0;
+      border-bottom: 1px solid $colorTan;
+      box-shadow: none;
+      color: #191813;
+      text-align: center;
+
+      &:hover:not(:disabled),
+      &:focus:not(:disabled) {
+        background: $inputBackground;
+        outline: none;
+      }
+
+      &:disabled {
+        color: #191813;
+        opacity: 0.85;
+      }
+    }
+
+    /* V1 Select Dropdowns: Light translucent background with #dad8cc options */
+    select {
+      height: calc(var(--form-field-height, 26px) + 1px);
+      background: rgba(0, 0, 0, 0.05);
+      border: 1px solid $colorTan;
+      border-radius: 3px;
+      padding: 0 3px;
+      color: #191813;
+      font-family: inherit;
+      font-size: inherit;
+
+      &:focus {
+        box-shadow: 0 0 5px #ff6400;
+        outline: none;
+      }
+
+      option {
+        background: #dad8cc;
+        color: #191813;
+      }
+    }
+
+    /* Thematic Scrollbars */
+    &::-webkit-scrollbar,
+    *::-webkit-scrollbar {
+      width: 8px;
+    }
+    &::-webkit-scrollbar-track,
+    *::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    &::-webkit-scrollbar-thumb,
+    *::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 4px;
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.4);
+      }
+    }
+
+    /* V1 Dialog Buttons: Targets buttons inside .window-content */
+    .dialog-buttons,
+    .form-footer {
+      display: flex;
+      gap: 0;
+      margin-top: 8px;
+      padding: 0;
+      background: transparent;
+      border-top: none;
+
+      button {
+        --button-background-color: rgba(0, 0, 0, 0.1);
+        --button-border-color: #f0f0e0;
+        --button-text-color: #191813;
+
+        background: rgba(0, 0, 0, 0.1);
+        border: 2px groove #f0f0e0;
+        border-radius: 3px;
+        margin: 0 5px 0 0;
+        flex: 1;
+        height: 28px;
+        line-height: 24px;
+        font-size: var(--font-size-14);
+        font-family: var(--font-primary);
+        color: #191813;
+        cursor: pointer;
+
+        /* Unified Icon & Label Color */
+        i, svg, [class*="fa-"], span {
+          color: inherit;
+        }
+        i, svg, [class*="fa-"] {
+          margin-right: 4px;
+        }
+
+        &:last-child {
+          margin-right: 0;
+        }
+
+        &:hover,
+        &:focus {
+          outline: none;
+          box-shadow: 0 0 5px #ff6400;
+          background: rgba(0, 0, 0, 0.15);
+          color: #000000;
+        }
+
+        /* V1 Default Button: Subtle background, light secondary border */
+        &.default,
+        &[autofocus] {
+          background: rgba(0, 0, 0, 0.05);
+          border-color: #c9c7b8;
+          font-weight: bold;
+
+          &:hover,
+          &:focus {
+            box-shadow: 0 0 5px #ff6400;
+          }
+        }
+      }
+    }
+  }
+
+  /* Support for .dialog-buttons rendered outside .window-content */
+  .dialog-buttons,
+  .form-footer {
+    display: flex;
+    gap: 0;
+    margin: 0;
+    padding: 0 8px 8px 8px;
+    background: url("/ui/parchment.jpg") repeat;
+    border-top: none;
+
+    button {
+      --button-background-color: rgba(0, 0, 0, 0.1);
+      --button-border-color: #f0f0e0;
+      --button-text-color: #191813;
+
+      background: rgba(0, 0, 0, 0.1);
+      border: 2px groove #f0f0e0;
+      border-radius: 3px;
+      margin: 0 5px 0 0;
+      flex: 1;
+      height: 28px;
+      line-height: 24px;
+      font-size: var(--font-size-14);
+      font-family: var(--font-primary);
+      color: #191813;
+      cursor: pointer;
+
+      i, svg, [class*="fa-"], span {
+        color: inherit;
+      }
+      i, svg, [class*="fa-"] {
+        margin-right: 4px;
+      }
+
+      &:last-child {
+        margin-right: 0;
+      }
+
+      &:hover,
+      &:focus {
+        outline: none;
+        box-shadow: 0 0 5px #ff6400;
+        background: rgba(0, 0, 0, 0.15);
+        color: #000000;
+      }
+
+      &.default,
+      &[autofocus] {
+        background: rgba(0, 0, 0, 0.05);
+        border-color: #c9c7b8;
+        font-weight: bold;
+
+        &:hover,
+        &:focus {
+          box-shadow: 0 0 5px #ff6400;
+        }
+      }
+    }
+  }
+}
+
 .ose.roll-dialog {
   .roll-details {
     font-weight: bold;

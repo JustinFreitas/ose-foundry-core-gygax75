@@ -12,6 +12,7 @@ import trackableAttributes from "./module/actor/trackable-attributes";
 import { OSECombat } from "./module/combat/combat";
 import OSECombatTracker from "./module/combat/combat-tracker";
 import { OSECombatant } from "./module/combat/combatant";
+import { registerTacticalCombatHooks } from "./module/combat/tactical-combat-hooks";
 import { OSE } from "./module/config";
 import registerFVTTModuleAPIs from "./module/fvttModuleAPIs";
 import * as chat from "./module/helpers-chat";
@@ -162,6 +163,7 @@ Hooks.on("renderChatMessageHTML", chat.addChatMessageButtons);
 Hooks.on("renderRollTableSheet", treasure.augmentTable);
 Hooks.on("updateActor", party.update);
 Hooks.on("deleteActor", (actor) => OsePartySheet.onDeleteActor(actor));
+registerTacticalCombatHooks();
 /**
  * @param {OSECombatTracker} app - The combat tracker application
  * @param {HTMLElement} html - The HTML element of the combat tracker

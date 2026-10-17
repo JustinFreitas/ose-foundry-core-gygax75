@@ -428,5 +428,36 @@ describe("Phase 3: Tactical Combat & Automated Ammunition", () => {
       // Monster thac0.mod.melee (1) should be in roll parts without error on missing scores
       expect(capturedRollData.parts).toContain(1);
     });
+
+    it("safely rolls missile attack for monsters without scores", () => {
+      let capturedRollData: any = null;
+      vi.spyOn(OseDice, "Roll").mockImplementation((data: any) => {
+        capturedRollData = data;
+        return data;
+      });
+
+      const monster = new OseActor({
+        id: "goblin-archer",
+        type: "monster",
+        system: {
+          thac0: { value: 19, bba: 0, mod: { melee: 0, missile: 2 } },
+          damage: { mod: { missile: 1 } },
+          config: {},
+        },
+      });
+
+      expect(() => {
+        monster.rollAttack(
+          { item: { system: { damage: "1d6", bonus: 0, missile: true } } },
+          { type: "missile", skipDialog: true },
+        );
+      }).not.toThrow();
+
+      expect(capturedRollData).not.toBeNull();
+      // Monster thac0.mod.missile (2) should be in attack roll parts
+      expect(capturedRollData.parts).toEqual(["1d20", 2]);
+      // Monster damage.mod.missile (1) should be in damage parts
+      expect(capturedRollData.data.roll.dmg).toEqual(["1d6", 1]);
+    });
   });
 });

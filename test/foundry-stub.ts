@@ -264,11 +264,35 @@ const settingsStore = new Map<string, any>([
   ["ose.savedParties", {}],
 ]);
 
+const hookRegistry = new Map<string, Function[]>();
+const Hooks = {
+  events: hookRegistry,
+  on: vi.fn((event: string, fn: Function) => {
+    if (!hookRegistry.has(event)) hookRegistry.set(event, []);
+    hookRegistry.get(event)!.push(fn);
+  }),
+  once: vi.fn((event: string, fn: Function) => {
+    if (!hookRegistry.has(event)) hookRegistry.set(event, []);
+    hookRegistry.get(event)!.push(fn);
+  }),
+  callAll: vi.fn((event: string, ...args: any[]) => {
+    const callbacks = hookRegistry.get(event) || [];
+    for (const cb of callbacks) cb(...args);
+    return true;
+  }),
+  call: vi.fn((event: string, ...args: any[]) => {
+    const callbacks = hookRegistry.get(event) || [];
+    for (const cb of callbacks) cb(...args);
+    return true;
+  }),
+};
+
 Object.assign(globalThis, {
   Roll,
   Actor,
   Item,
   Combatant,
+  Hooks,
   CONST: {
     CHAT_MESSAGE_STYLES: {
       OTHER: 0,
@@ -402,6 +426,7 @@ Object.assign(globalThis, {
   },
   ChatMessage: {
     getSpeaker: () => ({}),
+    getSpeakerActor: vi.fn((speaker: any) => speaker?._actor || null),
     create: vi.fn().mockResolvedValue({}),
   },
   ui: {

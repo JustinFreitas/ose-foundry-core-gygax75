@@ -270,27 +270,27 @@ export default class OseActorSheet extends HandlebarsApplicationMixin(ActorSheet
 
   static _onEditEffect(_event, target) {
     if (!this.isEditable) return;
-    const effectId = target.dataset.effectId || target.closest("[data-effect-id]")?.dataset.effectId;
+    const effectId = target.dataset.effectId || target.closest?.("[data-effect-id]")?.dataset.effectId;
     const effect = this.actor.effects.get(effectId);
     return effect?.sheet?.render(true);
   }
 
   static async _onDeleteEffect(_event, target) {
     if (!this.isEditable) return;
-    const effectId = target.dataset.effectId || target.closest("[data-effect-id]")?.dataset.effectId;
+    const effectId = target.dataset.effectId || target.closest?.("[data-effect-id]")?.dataset.effectId;
     const effect = this.actor.effects.get(effectId);
     return effect?.delete();
   }
 
   static async _onToggleEffect(_event, target) {
     if (!this.isEditable) return;
-    const effectId = target.dataset.effectId || target.closest("[data-effect-id]")?.dataset.effectId;
+    const effectId = target.dataset.effectId || target.closest?.("[data-effect-id]")?.dataset.effectId;
     const effect = this.actor.effects.get(effectId);
     return effect?.update({ disabled: !effect.disabled });
   }
 
   static _onOpenEffectSource(_event, target) {
-    const itemId = target.dataset.itemId || target.closest("[data-item-id]")?.dataset.itemId;
+    const itemId = target.dataset.itemId || target.closest?.("[data-item-id]")?.dataset.itemId;
     const item = this.actor.items.get(itemId);
     return item?.sheet?.render(true);
   }

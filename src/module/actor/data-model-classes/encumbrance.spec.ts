@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import OseDataModelCharacterEncumbrance from "./data-model-character-encumbrance";
 import OseDataModelCharacterEncumbranceBasic from "./data-model-character-encumbrance-basic";
 import OseDataModelCharacterEncumbranceComplete from "./data-model-character-encumbrance-complete";

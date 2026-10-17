@@ -1,84 +1,134 @@
-type AnyItemSystem = any;
-type OwningActor = any;
+/**
+ * @file The system-specific Item entity, containing logic for operating on all available Item types.
+ */
+import OSE from "../config";
+import OseDice from "../helpers-dice";
+import { getRollMode } from "../helpers-message-mode";
+import type { ITEM_DATA_MODELS } from "./data-models";
+import type { DisplayTag, ItemTag } from "./item-types";
 
-declare const foundry: any;
-declare const game: any;
-declare const ui: any;
-declare const CONFIG: any;
-declare const ChatMessage: any;
-declare const Item: any;
+/** The Item subtypes this system registers. */
+type OseItemType = keyof typeof ITEM_DATA_MODELS;
 
+/**
+ * The union of every registered item's system data.
+ *
+ * Methods below switch on `this.type` before reading subtype-specific fields,
+ * but TypeScript cannot narrow `this.system` from `this.type` — `this` is not a
+ * discriminated union — so those reads assert the shape the switch guarantees.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: the union is read field-by-field after a type switch
+type AnyItemSystem = Item["system"] & Record<string, any>;
+
+/**
+ * The owning Actor, as this file needs it. The actor entity is still JavaScript
+ * and its data models are not registered with fvtt-types, so members like
+ * `targetAttack` and `rollSave` are not yet visible on Foundry's `Actor`.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: until the actor entity is TypeScript
+type OwningActor = Actor & Record<string, any>;
+
+/**
+ * Override and extend the basic :class:`Item` implementation
+ */
 export default class OseItem extends Item {
-  static migrateData(source: any) {
-    if (source?.type === "container" && Array.isArray(source.system?.itemIds)) {
-      const deduped = [...new Set(source.system.itemIds)];
-      if (deduped.length !== source.system.itemIds.length) {
-        source.system.itemIds = deduped;
-      }
-    }
-    return typeof Item.migrateData === "function" ? Item.migrateData(source) : source;
+  // Replacing default image */
+  static get defaultIcons(): Record<OseItemType, string> {
+    return {
+      spell: `${OSE.assetsPath}/default/spell.png`,
+      ability: `${OSE.assetsPath}/default/ability.png`,
+      armor: `${OSE.assetsPath}/default/armor.png`,
+      weapon: `${OSE.assetsPath}/default/weapon.png`,
+      item: `${OSE.assetsPath}/default/item.png`,
+      container: `${OSE.assetsPath}/default/bag.png`,
+    };
   }
 
-  async _preCreate(data: any, options: any, user: any) {
-    const qtyValue = foundry.utils.getProperty(data, "system.quantity.value");
-    if (qtyValue !== undefined) {
-      const name = data.name;
-      if (name !== "GP (Bank)") {
-        this.updateSource({ "system.quantity.value": Math.floor(qtyValue) });
-      } else {
-        this.updateSource({ "system.quantity.value": Math.round(qtyValue * 100) / 100 });
-      }
+  // Narrowing these to Item.CreateData / CreateOperation breaks static-side
+  // compatibility with Item.create's generic overloads (TS2417).
+  // biome-ignore lint/suspicious/noExplicitAny: see above
+  static async create(data: any, context: any = {}) {
+    if (data.img === undefined) {
+      data.img = OseItem.defaultIcons[data.type as OseItemType];
     }
-    return super._preCreate(data, options, user);
+    return Item.create(data, context);
   }
 
-  async _preUpdate(changed: any, options: any, user: any) {
-    const qtyValue = foundry.utils.getProperty(changed, "system.quantity.value");
-    if (qtyValue !== undefined) {
-      const name = changed.name ?? this.name;
-      if (name !== "GP (Bank)") {
-        foundry.utils.setProperty(changed, "system.quantity.value", Math.floor(qtyValue));
-      } else {
-        foundry.utils.setProperty(changed, "system.quantity.value", Math.round(qtyValue * 100) / 100);
-      }
+  static migrateData(source: {
+    img?: string;
+    type?: string;
+    system?: { itemslots?: number; tags?: ItemTag[]; type?: string };
+  }) {
+    if (source?.img === "" && source.type) {
+      source.img = OseItem.defaultIcons[source.type as OseItemType];
     }
-    return super._preUpdate(changed, options, user);
+    if (source?.system?.itemslots === undefined) {
+      if ((source?.system?.tags ?? []).some((tag: ItemTag) => tag.value === "Two-handed") && source?.type === "weapon")
+        (source.system as { itemslots?: number }).itemslots = 2;
+      if (source?.system?.type === "heavy" && source.type === "armor") source.system.itemslots = 2;
+    }
+
+    return source;
+  }
+
+  prepareData() {
+    super.prepareData();
   }
 
   async prepareDerivedData(): Promise<void> {
     // Rich text description
     (this.system as AnyItemSystem).enrichedDescription =
-      // `async` was removed from EnrichmentOptions in v13; kept so the call is
-      // byte-identical to the JavaScript this replaces.
       await foundry.applications.ux.TextEditor.implementation.enrichHTML((this.system as AnyItemSystem).description, {
-        async: true,
-      } as never);
+        secrets: game.user?.isGM,
+      });
   }
 
-  async roll(options: Record<string, unknown> = {}) {
-    const itemData = this.system as any;
-    switch (this.type) {
-      case "weapon":
-        return this.rollWeapon(options);
-      case "spell":
-        return this.rollSpell(options);
-      case "ability":
-        if (itemData.roll) {
-          return this.rollFormula(options);
-        }
-        return this.show(options);
-      case "item":
-      case "armor":
-        return this.show(options);
-      default:
-        return this.rollFormula(options);
+  static chatListeners(html: HTMLElement) {
+    // Use event delegation for buttons
+    html.addEventListener("click", (event: MouseEvent) => {
+      const button = (event.target as HTMLElement).closest(".card-buttons button");
+      if (button) {
+        OseItem._onChatCardAction(event);
+      }
+
+      const header = (event.target as HTMLElement).closest(
+        ".ose.chat-card.collapsible :is(.chat-header, .card-header)",
+      );
+      if (header) {
+        OseItem._onChatCardToggleContent(event);
+      }
+    });
+  }
+
+  async getChatData(_htmlOptions?: unknown) {
+    const itemType = this.type;
+
+    const itemData = this.system as AnyItemSystem;
+
+    // Item properties
+    const props = [];
+
+    if (itemType === "weapon") {
+      for (const t of itemData.tags) {
+        props.push(t.value);
+      }
     }
+    if (itemType === "spell") {
+      props.push(`${itemData.class} ${itemData.lvl}`, itemData.range, itemData.duration);
+    }
+    if (Object.hasOwn(itemData, "equipped")) {
+      props.push(itemData.equipped ? "Equipped" : "Not Equipped");
+    }
+
+    // Filter properties and return
+    itemData.properties = props.filter((p) => !!p);
+    return itemData;
   }
 
-  async rollWeapon(options: Record<string, unknown> = {}) {
+  rollWeapon(options: Record<string, unknown> = {}) {
     const actor = this.actor as OwningActor;
-    const isNPC = (actor?.type as string) !== "character";
-    const itemData = this.system as any;
+    const isNPC = (actor.type as string) !== "character";
+    const itemData = this.system;
 
     let type = isNPC ? "attack" : "melee";
     const rollData = {
@@ -91,10 +141,9 @@ export default class OseItem extends Item {
     };
 
     if (itemData.missile && itemData.melee && !isNPC) {
-      new (foundry.applications.api as any).DialogV2({
-        classes: ["ose", "dialog"],
+      // Dialog
+      new foundry.applications.api.DialogV2({
         window: { title: "Choose Attack Range" },
-        position: { width: 400, height: "auto" },
         content: "",
         buttons: [
           {
@@ -103,146 +152,74 @@ export default class OseItem extends Item {
             label: game.i18n.localize("OSE.Melee"),
             default: true,
             callback: () => {
-              (actor as any).targetAttack(rollData, "melee", options);
+              actor.targetAttack(rollData, "melee", options);
             },
           },
           {
             action: "missile",
             icon: "fas fa-bullseye",
             label: game.i18n.localize("OSE.Missile"),
-            callback: async () => {
-              if (await this._handleAmmoConsumption(options)) {
-                (actor as any).targetAttack(rollData, "missile", options);
-              }
+            callback: () => {
+              actor.targetAttack(rollData, "missile", options);
             },
           },
         ],
-      }).render(true);
+      }).render({ force: true });
       return true;
     }
     if (itemData.missile && !isNPC) {
       type = "missile";
-      if (!(await this._handleAmmoConsumption(options))) {
-        return false;
-      }
     }
-    (actor as any).targetAttack(rollData, type, options);
+    actor.targetAttack(rollData, type, options);
     return true;
   }
 
-  async _handleAmmoConsumption(options: any) {
-    const mode = game.settings?.get(game.system.id, "automateAmmo") ?? "disabled";
-    if (mode === "disabled") return true;
-
-    const itemName = this.name.toLowerCase();
-
-    let requiredAmmo: string[] | null = null;
-    let isThrown = false;
-
-    if (itemName.includes("crossbow")) {
-      requiredAmmo = ["bolt", "quarrel"];
-    } else if (itemName.includes("bow")) {
-      requiredAmmo = ["arrow"];
-    } else if (itemName.includes("sling")) {
-      requiredAmmo = ["stone", "bullet"];
-    } else if (itemName.includes("blowpipe") || itemName.includes("blowgun")) {
-      requiredAmmo = ["dart"];
-    } else {
-      isThrown = true;
-    }
-
-    if (isThrown) {
-      if ((this.system as any).quantity?.value <= 0 && mode === "enforce") {
-        ui.notifications?.error(game.i18n.format("OSE.error.outOfAmmo", { name: this.name }));
-        return false;
-      }
-      options.onConfirm = async () => {
-        if ((this.system as any).quantity?.value > 0) {
-          await this.update({ "system.quantity.value": (this.system as any).quantity.value - 1 });
-          return null;
-        }
-        return game.i18n.format("OSE.error.outOfAmmo", { name: this.name });
-      };
-      return true;
-    }
-    const validAmmo = (this.actor as any).items.filter((i: any) => {
-      if (i.type !== "item" && i.type !== "weapon") return false;
-      const iName = i.name.toLowerCase();
-      return requiredAmmo?.some((req) => iName.includes(req));
-    });
-
-    const availableAmmo = validAmmo.filter((i: any) => i.system.quantity?.value > 0);
-
-    if (availableAmmo.length === 0) {
-      if (mode === "enforce") {
-        ui.notifications?.error(game.i18n.format("OSE.error.noAmmoFound", { type: requiredAmmo?.[0] }));
-        return false;
-      }
-      options.onConfirm = async () => {
-        return game.i18n.format("OSE.error.noAmmoFound", { type: requiredAmmo?.[0] });
-      };
-      return true;
-    }
-
-    availableAmmo.sort((a: any, b: any) => {
-      const aMagic = a.name.includes("+");
-      const bMagic = b.name.includes("+");
-      if (aMagic && !bMagic) return 1;
-      if (!aMagic && bMagic) return -1;
-      return a.name.localeCompare(b.name);
-    });
-
-    options.ammoOptions = availableAmmo.map((a: any) => ({
-      id: a.id,
-      name: a.name,
-      quantity: a.system.quantity.value,
-    }));
-    options.onConfirm = async (form: any) => {
-      // If skipDialog was used, form is null, so use the first ammo
-      const ammoId = form?.elements?.ammoId?.value || options.ammoOptions[0].id;
-      const ammoItem = (this.actor as any).items.get(ammoId);
-      if (ammoItem) {
-        await ammoItem.update({ "system.quantity.value": ammoItem.system.quantity.value - 1 });
-        return `${ammoItem.name} (${ammoItem.system.quantity.value - 1} left)`;
-      }
-      return null;
-    };
-    return true;
-  }
-
-  async rollFormula(_options: { event?: Event } = {}) {
-    const itemData = this.system as any;
+  async rollFormula(options: { event?: Event } = {}) {
+    const itemData = this.system;
 
     if (!itemData.roll) {
-      throw new Error("This item does not have a formula to roll!");
+      throw new Error("This Item does not have a formula to roll!");
     }
 
     const label = `${this.name}`;
     const rollParts = [itemData.roll];
-    const rollData = {
-      actor: this.actor,
-      item: this,
+
+    const type = itemData.rollType;
+
+    const rollData: Record<string, unknown> = {
+      actor: this.actor as OwningActor,
+      item: this._source,
+      description: null,
+      save: itemData.save,
+      properties: this.system.autoTags,
+      roll: {
+        type,
+        target: itemData.rollTarget,
+        blindroll: itemData.blindroll,
+      },
     };
 
-    return (this.actor as any)?.rollFormula({
+    if (this.type === "spell") {
+      rollData.description = itemData.description;
+    }
+
+    // Roll and return
+    return OseDice.Roll({
+      event: options.event,
       parts: rollParts,
       data: rollData,
       skipDialog: true,
+      // biome-ignore lint/suspicious/noExplicitAny: getSpeaker expects an Actor; this passes the Item, as the original did
       speaker: ChatMessage.getSpeaker({ actor: this as any }),
       flavor: game.i18n.format("OSE.roll.formula", { label }),
       title: game.i18n.format("OSE.roll.formula", { label }),
     } as never);
   }
 
-  async spendSpell(options: Record<string, unknown> = {}) {
+  async spendSpell() {
     if (this.type !== "spell") throw new Error("Trying to spend a spell on an item that is not a spell.");
 
-    const itemData = this.system as any;
-    if (itemData.cast <= 0) {
-      ui.notifications?.warn("This spell has no remaining casts.");
-      return;
-    }
-
+    const itemData = this.system;
     await this.update({
       system: {
         cast: (itemData.cast ?? 0) - 1,
@@ -250,40 +227,212 @@ export default class OseItem extends Item {
     });
 
     if (itemData.roll) {
-      await this.rollFormula(options);
+      await this.rollFormula();
     } else {
-      await this.show(options);
+      await this.show({ skipDialog: true });
     }
   }
 
-  async rollSpell(options: Record<string, unknown> = {}) {
-    return this.spendSpell(options);
+  _getRollTag(data: AnyItemSystem): DisplayTag | undefined {
+    if (data.roll) {
+      const roll = `${data.roll}${
+        data.rollTarget ? CONFIG.OSE.roll_type[data.rollType as keyof typeof CONFIG.OSE.roll_type] : ""
+      }${data.rollTarget ? data.rollTarget : ""}`;
+      return {
+        label: `${game.i18n.localize("OSE.items.Roll")} ${roll}`,
+      };
+    }
+    return undefined;
   }
 
-  async getChatData(_htmlOptions?: unknown) {
+  _getSaveTag(data: AnyItemSystem): DisplayTag | undefined {
+    if (data.save) {
+      return {
+        label: CONFIG.OSE.saves_long[data.save],
+        icon: "fa-skull",
+      };
+    }
+    return undefined;
+  }
+
+  getAutoTagList(): DisplayTag[] {
+    const tagList: DisplayTag[] = [];
+    const data = this.system as AnyItemSystem;
     const itemType = this.type;
-    const itemData = this.system as AnyItemSystem;
 
-    // Item properties
-    const props = [];
+    switch (itemType) {
+      case "container":
+      case "item": {
+        break;
+      }
 
-    if (itemType === "weapon") {
-      for (const t of itemData.tags ?? []) {
-        props.push(t.value);
+      case "weapon": {
+        tagList.push({ label: data.damage as string, icon: "fa-tint" });
+        if (data.missile) {
+          tagList.push({
+            label: `${data.range.short}/${data.range.medium}/${data.range.long}`,
+            icon: "fa-bullseye",
+          });
+        }
+
+        // Push manual tags
+        data.tags.forEach((t) => {
+          tagList.push({ label: t.value });
+        });
+        break;
+      }
+
+      case "armor": {
+        tagList.push({ label: CONFIG.OSE.armor[data.type as keyof typeof CONFIG.OSE.armor], icon: "fa-tshirt" });
+        break;
+      }
+
+      case "spell": {
+        tagList.push({ label: data.class }, { label: data.range as string }, { label: data.duration });
+        break;
+      }
+
+      case "ability": {
+        const reqs = (data.requirements ?? "").split(",");
+        for (const req of reqs) {
+          tagList.push({ label: req });
+        }
+        break;
       }
     }
-    if (itemType === "spell") {
-      props.push(`${itemData.class} ${itemData.lvl}`, itemData.range, itemData.duration);
-    }
-    if (Object.hasOwn(itemData, "equipped")) {
-      props.push(itemData.equipped ? "Equipped" : "Not Equipped");
+
+    const rollTag = this._getRollTag(data);
+    if (rollTag) {
+      tagList.push(rollTag);
     }
 
-    // Filter properties and return
-    itemData.properties = props.filter((p: any) => !!p);
-    return itemData;
+    const saveTag = this._getSaveTag(data);
+    if (saveTag) {
+      tagList.push(saveTag);
+    }
+
+    return tagList;
   }
 
+  /**
+   * Push a manual tag to the item.
+   * This will automatically fill in the checkboxes for melee, slow, and missile tags, skipping the tag list.
+   * If the tag has one of these special tags in parentheses (e.g. "Bulky (Slow)"), the Slow checkbox
+   * will be checked, and the tag will be added to the list with the title "Bulky".
+   *
+   * @param {string[]} values - The values of the tags to add.
+   * @returns {Promise<OseItem|undefined>>} - The updated Document instance, or undefined if not updated
+   */
+  async pushManualTag(values: string[]) {
+    const data = this?.system as AnyItemSystem;
+    let update: ItemTag[] = [];
+    if (data.tags) {
+      update = data.tags;
+    }
+    const newData: Record<string, unknown> = {};
+    const regExp = /\(([^)]+)\)/;
+    values.forEach((val) => {
+      // Catch infos in brackets
+      const matches = regExp.exec(val);
+      let title = "";
+      let trimmedVal = "";
+      if (matches) {
+        title = matches[1] ?? "";
+        trimmedVal = val.slice(0, Math.max(0, matches.index)).trim();
+      } else {
+        trimmedVal = val.trim();
+        title = trimmedVal;
+      }
+      // Auto fill checkboxes
+      switch (title.toLowerCase()) {
+        case CONFIG.OSE.tags.melee.toLowerCase(): {
+          newData.melee = true;
+          break;
+        }
+
+        case CONFIG.OSE.tags.slow.toLowerCase(): {
+          newData.slow = true;
+          break;
+        }
+
+        case CONFIG.OSE.tags.missile.toLowerCase(): {
+          newData.missile = true;
+          break;
+        }
+      }
+
+      // Add the tag if it has a specific title or if it is not a checkbox
+      if (title !== trimmedVal || (!newData.melee && !newData.slow && !newData.missile)) {
+        update.push({
+          title,
+          value: trimmedVal,
+          label: trimmedVal,
+        });
+      }
+
+      if (trimmedVal === "Two-handed" && (this.type as string) === "weapon") {
+        newData.itemslots = 2;
+      }
+    });
+    newData.tags = update;
+    return this.update({ system: newData });
+  }
+
+  /**
+   * Remove a manual tag from the item.
+   *
+   * @param {string} value - The value of the tag to remove.
+   * @returns {Promise<OseItem|undefined>} - The updated Document instance, or undefined if not updated
+   */
+  popManualTag(value: string) {
+    const itemData = this.system as AnyItemSystem;
+
+    const { tags } = itemData;
+    if (!tags) return;
+
+    const update = tags.filter((el: ItemTag) => el.value.toLowerCase() !== value.toLowerCase());
+    const newData = {
+      tags: update,
+    };
+    return this.update({ system: newData });
+  }
+
+  roll(options: Record<string, unknown> = {}) {
+    const itemData = this.system as AnyItemSystem;
+    switch (this.type) {
+      case "weapon": {
+        this.rollWeapon(options);
+        break;
+      }
+
+      case "spell": {
+        this.spendSpell();
+        break;
+      }
+
+      case "ability": {
+        if (itemData.roll) {
+          this.rollFormula();
+        } else {
+          this.show();
+        }
+        break;
+      }
+
+      case "item":
+      case "armor": {
+        this.show();
+        break;
+      }
+      // No default
+    }
+  }
+
+  /**
+   * Show the item to Chat, creating a chat card which contains follow up attack or damage roll options
+   *
+   * @returns {Promise}
+   */
   async show(_options: Record<string, unknown> = {}) {
     const itemType = this.type;
     // Basic template rendering data
@@ -302,19 +451,17 @@ export default class OseItem extends Item {
       config: CONFIG.OSE,
     };
     const chatItemData = templateData.data as AnyItemSystem;
-    if (chatItemData.roll) {
-      templateData.rollFormula = new (globalThis as any).Roll(chatItemData.roll ?? "", templateData).formula;
-    }
-    chatItemData.properties = (this.system as any).autoTags;
+    templateData.rollFormula = new Roll(chatItemData.roll ?? "", templateData).formula;
+    chatItemData.properties = this.system.autoTags;
 
     // Render the chat card template
-    const template = `${(CONFIG as any).OSE?.systemPath?.() ?? "systems/ose"}/templates/chat/item-card.html`;
+    const template = `${OSE.systemPath()}/templates/chat/item-card.html`;
     const html = await foundry.applications.handlebars.renderTemplate(template, templateData);
 
     // Basic chat message data
     const chatData: Record<string, unknown> = {
       user: game.user.id,
-      style: (CONST as any).CHAT_MESSAGE_STYLES?.OTHER ?? 0,
+      style: CONST.CHAT_MESSAGE_STYLES.OTHER,
       content: html,
       speaker: {
         actor: (this.actor as OwningActor | null)?.id,
@@ -324,161 +471,95 @@ export default class OseItem extends Item {
     };
 
     // Toggle default roll mode
-    const rollMode =
-      typeof (game as any).settings?.get === "function" ? (game as any).settings.get("core", "rollMode") : "publicroll";
-    if (["gmroll", "blindroll"].includes(rollMode)) (chatData as any).whisper = ChatMessage.getWhisperRecipients("GM");
-    if (rollMode === "selfroll") (chatData as any).whisper = [game.user.id];
-    if (rollMode === "blindroll") (chatData as any).blind = true;
+    const rollMode = getRollMode();
+    if (["gmroll", "blindroll"].includes(rollMode)) chatData.whisper = ChatMessage.getWhisperRecipients("GM");
+    if (rollMode === "selfroll") chatData.whisper = [game.user.id];
+    if (rollMode === "blindroll") chatData.blind = true;
 
     // Create the chat message
     return ChatMessage.create(chatData as never);
   }
 
-  async pushManualTag(values: string[]) {
-    const data = this?.system as any;
-    const update = data.tags ? [...data.tags] : [];
-    const newData: Record<string, any> = {};
-    const regExp = /\(([^)]+)\)/;
-    values.forEach((val) => {
-      // Catch infos in brackets
-      const matches = regExp.exec(val);
-      let title = "";
-      let trimmedVal = "";
-      if (matches) {
-        title = matches[1];
-        trimmedVal = val.slice(0, Math.max(0, matches.index)).trim();
-      } else {
-        trimmedVal = val.trim();
-        title = trimmedVal;
-      }
-      // Auto fill checkboxes
-      let isCheckboxTag = false;
-      const meleeTag = (CONFIG.OSE?.tags?.melee ?? "Melee").toLowerCase();
-      const slowTag = (CONFIG.OSE?.tags?.slow ?? "Slow").toLowerCase();
-      const missileTag = (CONFIG.OSE?.tags?.missile ?? "Missile").toLowerCase();
-
-      switch (title.toLowerCase()) {
-        case meleeTag: {
-          newData.melee = true;
-          isCheckboxTag = true;
-          break;
-        }
-
-        case slowTag: {
-          newData.slow = true;
-          isCheckboxTag = true;
-          break;
-        }
-
-        case missileTag: {
-          newData.missile = true;
-          isCheckboxTag = true;
-          break;
-        }
-      }
-
-      // Add the tag if it has a specific title or if it is not a checkbox
-      if (title !== trimmedVal || !isCheckboxTag) {
-        update.push({
-          title,
-          value: trimmedVal,
-          label: trimmedVal,
-        });
-      }
-
-      if (trimmedVal === "Two-handed" && this.type === "weapon") {
-        newData.itemslots = 2;
-      }
-    });
-    newData.tags = update;
-    return this.update({ system: newData });
+  /**
+   * Handle toggling the visibility of chat card content when the header is clicked
+   *
+   * @param {Event} event - The originating click event
+   * @private
+   */
+  static _onChatCardToggleContent(event: Event) {
+    event.preventDefault();
+    (event.target as HTMLElement).closest(".chat-card")?.classList.toggle("collapsed");
   }
 
-  async popManualTag(value: string) {
-    const itemData = this.system as any;
-    const { tags } = itemData;
-    if (!tags) return;
-
-    const update = tags.filter((el: any) => el.value.toLowerCase() !== value.toLowerCase());
-    const newData = {
-      tags: update,
-    };
-    return this.update({ system: newData });
-  }
-
-  static async _onChatCardAction(event: Event) {
+  static async _onChatCardAction(event: Event): Promise<unknown> {
     event.preventDefault();
 
     // Extract card data
     const button = (event.target as HTMLElement).closest(".card-buttons button") as HTMLButtonElement;
     button.disabled = true;
-    try {
-      const card = button.closest(".chat-card") as HTMLElement;
-      const { messageId } = (card.closest(".message") as HTMLElement).dataset;
-      const message = game.messages.get(messageId as string);
-      const { action } = button.dataset;
+    const card = button.closest(".chat-card") as HTMLElement;
+    const { messageId } = (card.closest(".message") as HTMLElement).dataset;
+    const message = game.messages.get(messageId as string);
+    const { action } = button.dataset;
 
-      // Validate permission to proceed with the roll
-      const isTargetted = action === "save";
-      if (!(isTargetted || game.user.isGM || message?.isAuthor)) return;
+    // Validate permission to proceed with the roll
+    const isTargetted = action === "save";
+    if (!(isTargetted || game.user.isGM || message?.isAuthor)) return;
 
-      // Get the Actor from a synthetic Token
-      const actor = OseItem._getChatCardActor(card);
-      if (!actor) return;
+    // Get the Actor from a synthetic Token
+    const actor = OseItem._getChatCardActor(card);
+    if (!actor) return;
 
-      // Get the Item
-      const item = (actor as any).items.get(card.dataset.itemId as string) as
-        | (OseItem & Record<string, any>)
-        | undefined;
-      if (!item) {
-        return ui.notifications?.error(
-          game.i18n.format("OSE.error.itemNoLongerExistsOnActor", {
-            actorName: (actor as any).name,
-            itemId: card.dataset.itemId ?? "",
-          }),
-        );
-      }
-
-      // Get card targets
-      let targets: OwningActor[] = [];
-      if (isTargetted) {
-        targets = OseItem._getChatCardTargets(card);
-      }
-
-      // Attack and Damage Rolls
-      switch (action) {
-        case "damage": {
-          const attData = {
-            item: (item as any)._source,
-            roll: {
-              dmg: (item.system as any).damage,
-              type: (item.system as any).missile && !(item.system as any).melee ? "missile" : "melee",
-            },
-            label: item.name,
-          };
-          await (actor as any).rollDamage(attData, { event });
-          break;
-        }
-
-        case "formula": {
-          await item.rollFormula({ event });
-          break;
-        }
-
-        case "save": {
-          if (targets.length === 0) {
-            ui.notifications?.error(game.i18n.localize("OSE.error.noTokenControlled"));
-            return;
-          }
-          for (const t of targets) {
-            await (t as any).rollSave(button.dataset.save as string, { event });
-          }
-          break;
-        }
-      }
-    } finally {
-      button.disabled = false;
+    // Get the Item
+    // Widened because the "damage" branch below calls item.rollDamage, which is
+    // defined on the Actor, not the Item — preserved from the JavaScript.
+    // biome-ignore lint/suspicious/noExplicitAny: see above
+    const item = actor.items.get(card.dataset.itemId as string) as (OseItem & Record<string, any>) | undefined;
+    if (!item) {
+      return ui.notifications.error(
+        game.i18n.format("OSE.error.itemNoLongerExistsOnActor", {
+          actorName: actor.name,
+          itemId: card.dataset.itemId ?? "",
+        }),
+      );
     }
+
+    // Get card targets
+    let targets: OwningActor[] = [];
+    if (isTargetted) {
+      targets = OseItem._getChatCardTargets(card);
+    }
+
+    // Attack and Damage Rolls
+    switch (action) {
+      case "damage": {
+        await item.rollDamage({ event });
+        break;
+      }
+
+      case "formula": {
+        await item.rollFormula({ event });
+        break;
+      }
+
+      case "save": {
+        if (targets.length === 0) {
+          ui.notifications.error(game.i18n.localize("OSE.error.noTokenControlled"));
+          button.disabled = false;
+          return button.disabled;
+        }
+        for (const t of targets) {
+          await t.rollSave(button.dataset.save, { event });
+        }
+
+        break;
+      }
+      // No default
+    }
+
+    // Re-enable the button
+    button.disabled = false;
+    return undefined;
   }
 
   static _getChatCardActor(card: HTMLElement): OwningActor | null {
@@ -488,23 +569,22 @@ export default class OseItem extends Item {
       const [sceneId, tokenId] = tokenKey.split(".");
       const scene = game.scenes.get(sceneId as string);
       if (!scene) return null;
-      const tokenDocument = scene.getEmbeddedDocument("Token", tokenId as string);
-      return (tokenDocument as any)?.actor ?? null;
+      const tokenData = scene.getEmbeddedDocument("Token", tokenId as string, {});
+      if (!tokenData) return null;
+      const token = new (Token as unknown as new (data: unknown) => { actor: OwningActor })(tokenData);
+      return token.actor;
     }
 
     // Case 2 - use Actor ID directory
-    const actorId = card.dataset.actorId;
-    return game.actors.get(actorId as string) ?? null;
+    const { actorId } = card.dataset;
+    return game.actors.get(actorId as string) || null;
   }
 
-  static _getChatCardTargets(_card: HTMLElement): OwningActor[] {
-    const character = game.user.character;
-    const controlled = canvas?.tokens?.controlled ?? [];
-    let targets = controlled.reduce((acc: OwningActor[], t: any) => {
-      if (t.actor) acc.push(t.actor as OwningActor);
-      return acc;
-    }, []);
-    if (character && targets.length === 0) targets = [character];
+  static _getChatCardTargets(_card: HTMLElement) {
+    const { character } = game.user;
+    const { controlled } = canvas.tokens as unknown as { controlled: { actor?: OwningActor }[] };
+    const targets = controlled.flatMap((t) => (t.actor ? [t.actor] : []));
+    if (character && controlled.length === 0) targets.push(character);
     return targets;
   }
 }

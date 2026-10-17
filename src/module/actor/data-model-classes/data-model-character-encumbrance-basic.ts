@@ -65,10 +65,11 @@ export default class OseDataModelCharacterEncumbranceBasic
     this.#treasureEncumbrance =
       options?.significantTreasure || OseDataModelCharacterEncumbranceBasic.significantTreasure;
 
-    this.#weight = items.reduce((acc: number, { type, system }: Item) => {
-      const itemWeight = system.cumulativeWeight ?? (system.weight ?? 0) * (system.quantity?.value ?? 1);
-      return type !== "item" || !system.treasure ? acc : acc + itemWeight;
-    }, 0);
+    this.#weight = items.reduce(
+      (acc: number, { type, system: { treasure, quantity, weight } }: Item) =>
+        type !== "item" || !treasure ? acc : acc + (quantity.value ?? 0) * (weight ?? 0),
+      0,
+    );
 
     this.#heaviestArmor = items.reduce((heaviest, { type, system: { type: armorType, equipped } }) => {
       if (type !== "armor" || !equipped) return heaviest;
@@ -118,13 +119,6 @@ export default class OseDataModelCharacterEncumbranceBasic
     return this.#weight;
   }
 
-  get nextBreakpointValue() {
-    if (this.value < this.#treasureEncumbrance) {
-      return this.#treasureEncumbrance;
-    }
-    return null;
-  }
-
   get overSignificantTreasureThreshold() {
     return this.value >= this.#treasureEncumbrance;
   }
@@ -149,5 +143,15 @@ export default class OseDataModelCharacterEncumbranceBasic
       this.#heaviestArmor === OseDataModelCharacterEncumbranceBasic.armorWeight.light ||
       this.overSignificantTreasureThreshold
     );
+  }
+
+  get nextBreakpointValue() {
+    if (this.value <= this.#treasureEncumbrance) {
+      return this.#treasureEncumbrance;
+    }
+    if (this.value <= this.max) {
+      return this.max;
+    }
+    return null;
   }
 }

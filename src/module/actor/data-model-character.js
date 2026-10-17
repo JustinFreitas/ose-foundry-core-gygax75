@@ -64,13 +64,10 @@ export default class OseDataModelCharacter extends foundry.abstract.TypeDataMode
       }),
       hp: new SchemaField({
         hd: new StringField(),
-        value: new NumberField({ integer: true, initial: 1 }),
-        max: new NumberField({ integer: true, initial: 1 }),
+        value: new NumberField({ integer: true }),
+        max: new NumberField({ integer: true }),
       }),
       thac0: new ObjectField(),
-      // Damage modifiers (e.g. damage.mod.missile), applied via Active Effects.
-      // Read in rollAttack; mirrors the untyped thac0 ObjectField.
-      damage: new ObjectField(),
       languages: new ObjectField(),
       saves: new SchemaField({
         breath: new SchemaField({ value: new NumberField({ integer: true }) }),
@@ -110,7 +107,6 @@ export default class OseDataModelCharacter extends foundry.abstract.TypeDataMode
       };
     }
 
-    // biome-ignore lint/complexity/noThisInStatic: super.migrateData() correctly calls parent static method
     return super.migrateData(source);
   }
 
@@ -136,12 +132,12 @@ export default class OseDataModelCharacter extends foundry.abstract.TypeDataMode
   }
 
   get meleeMod() {
-    const ascendingAcMod = this.usesAscendingAC ? (this.thac0?.bba ?? -1) : 0;
+    const ascendingAcMod = this.usesAscendingAC ? this.thac0.bba || 0 : 0;
     return (this.scores.str?.mod || 0) + (this.thac0?.mod?.melee || 0) + ascendingAcMod;
   }
 
   get rangedMod() {
-    const ascendingAcMod = this.usesAscendingAC ? (this.thac0?.bba ?? -1) : 0;
+    const ascendingAcMod = this.usesAscendingAC ? this.thac0.bba || 0 : 0;
     return (this.scores.dex?.mod || 0) + (this.thac0?.mod?.missile || 0) + ascendingAcMod;
   }
 

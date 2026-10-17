@@ -63,13 +63,12 @@ export default class OseActor extends Actor {
   }
 
   async createEmbeddedDocuments(embeddedName, data = [], context = {}) {
-    let creationData = data;
-    if (embeddedName === "Item") {
-      creationData = data.map((item) =>
-        item.img === undefined ? { ...item, img: OseItem.defaultIcons[item.type] } : item,
-      );
-    }
-    return super.createEmbeddedDocuments(embeddedName, creationData, context);
+    data.forEach((item) => {
+      if (item.img === undefined) {
+        item.img = OseItem.defaultIcons[item.type];
+      }
+    });
+    return super.createEmbeddedDocuments(embeddedName, data, context);
   }
 
   /* -------------------------------------------- */
@@ -133,12 +132,8 @@ export default class OseActor extends Actor {
     return this.isOwner || this.testUserPermission(game.user, CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER);
   }
 
-  async generateSave(hd) {
-    // HD arrives as a string that may carry a bonus (e.g. "3+1"); a bonus
-    // bumps the creature into the next HD bracket for saves and THAC0.
-    const hdString = String(hd ?? "");
-    const baseHd = Number.parseInt(hdString, 10) || 0;
-    const parsedHd = hdString.includes("+") ? baseHd + 1 : baseHd;
+  generateSave(hd) {
+    const parsedHd = hd.includes("+") ? Number.parseInt(hd, 10) + 1 : Number.parseInt(hd, 10);
 
     // Compute saves
     let saves = {};
@@ -152,11 +147,11 @@ export default class OseActor extends Actor {
     // Compute Thac0
     let thac0 = 20;
     Object.keys(CONFIG.OSE.monster_thac0).forEach((k) => {
-      if (parsedHd < Number.parseInt(k, 10)) return;
+      if (hd < Number.parseInt(k, 10)) return;
       thac0 = CONFIG.OSE.monster_thac0[k];
     });
 
-    await this.update({
+    this.update({
       "system.thac0.value": thac0,
       "system.thac0.bba": 19 - thac0,
       "system.saves": {
@@ -184,7 +179,7 @@ export default class OseActor extends Actor {
   /* -------------------------------------------- */
 
   async rollHP(_options = {}) {
-    const { total } = await new Roll(this.system.hp.hd).roll();
+    const { total } = await new Roll(this.system.hp.hd).evaluate();
     return this.update({ "system.hp": { max: total, value: total } });
   }
 
@@ -592,17 +587,10 @@ export default class OseActor extends Actor {
         await this.rollAttack(data, {
           type,
           skipDialog: options.skipDialog,
-          ammoOptions: options.ammoOptions,
-          onConfirm: options.onConfirm,
         });
       }
     } else {
-      await this.rollAttack(data, {
-        type,
-        skipDialog: options.skipDialog,
-        ammoOptions: options.ammoOptions,
-        onConfirm: options.onConfirm,
-      });
+      await this.rollAttack(data, { type, skipDialog: options.skipDialog });
     }
   }
 
@@ -646,32 +634,18 @@ export default class OseActor extends Actor {
     const rollParts = ["1d20"];
     const ascending = game.settings.get(game.system.id, "ascendingAC");
 
-    const bba = data.thac0?.bba ?? -1;
-    if (ascending && bba) rollParts.push(bba);
+    if (ascending && data.thac0.bba) rollParts.push(data.thac0.bba);
 
     // for each type of attack, add the Tweaks bonus
     // and str/dex modifier only if it's non-zero
     let attackMods = [];
 
-    // Melee: str.mod + thac0.mod.melee go to the attack roll; only the Str
-    // modifier also adds to damage (RAW). The melee attack tweak does not.
-    if (options.type === "melee") {
-      attackMods = [data.scores.str.mod, data.thac0?.mod?.melee];
-      if (options.twoWeapons) attackMods.push(1);
-      if (data.scores.str.mod) dmgParts.push(data.scores.str.mod);
-    }
+    if (options.type === "melee") attackMods = [data.scores.str.mod, data.thac0.mod.melee];
 
-    // Missile: dex.mod + thac0.mod.missile go to the attack roll only (RAW: missile
-    // attacks get no inherent bonus damage). An explicit damage.mod.missile lever
-    // (e.g. from Bless) does add to missile damage.
-    if (options.type === "missile") {
-      attackMods = [data.scores.dex.mod, data.thac0?.mod?.missile];
-      if (data.damage?.mod?.missile) dmgParts.push(data.damage.mod.missile);
-    }
+    dmgParts.push(...removeFalsyElements(attackMods));
 
-    // Tactical combat modifiers (Retreat / Custom)
-    if (options.defenderRetreating) attackMods.push(2);
-    if (options.customBonus) attackMods.push(options.customBonus);
+    // Add missile mod to attack roll only (missile attacks don't get bonus damage)
+    if (options.type === "missile") attackMods = [data.scores.dex.mod, data.thac0.mod.missile];
 
     // Add weapon bonus to attack roll only (already added to dmgParts)
     if (attData.item) attackMods.push(attData.item?.system?.bonus);
@@ -684,7 +658,7 @@ export default class OseActor extends Actor {
       itemId: attData.item?._id,
       roll: {
         type: options.type,
-        thac0: data.thac0?.value ?? 20,
+        thac0: data.thac0.value,
         dmg: dmgParts,
         save: attData.roll.save,
         target: attData.roll.target,
@@ -700,8 +674,6 @@ export default class OseActor extends Actor {
       flavor: label,
       flags: { ose: { roll: "attack", itemId: attData.item?._id } },
       title: label,
-      ammoOptions: options.ammoOptions,
-      onConfirm: options.onConfirm,
     });
   }
 

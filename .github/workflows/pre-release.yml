@@ -8,9 +8,7 @@ name: Build and Release (Pre-Release)
 on:
   push:
     tags:
-      # Tag filters are globs, not regex (e.g. '\.' and '+' are literals here).
-      # Match any -rc.N pre-release tag, e.g. 2.2.2-rc.1.
-      - '*-rc.*'
+      - '[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+'  # Pre-release tags
 
 jobs:
   build:
@@ -18,10 +16,10 @@ jobs:
     steps:
       # Standard required steps for a Node.js package
       - name: Checkout repository to add to workspace
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup Node.js version 22
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: 'npm'
@@ -29,10 +27,6 @@ jobs:
       # Get dev dependencies for the package, including Gulp and Rollup
       - name: Install dev dependencies
         run: npm ci #--cache .npm --prefer-offline --ignore-scripts
-
-      # Run unit tests before building
-      - name: Run unit tests
-        run: npm run test
 
       # Create a build using Gulp build script
       - name: Run Gulp build script
@@ -42,26 +36,16 @@ jobs:
       # Doing it this way works for forks as well
       - name: Insert release-specific values in manifest file
         id: sub_manifest_link_version
+        uses: microsoft/variable-substitution@v1
+        with:
+          files: "system.json"
         env:
-          ID: ose
-          TITLE: "Old-School Essentials"
-          VERSION: ${{github.ref_name}}
-          URL: https://github.com/${{github.repository}}
-          MANIFEST: https://github.com/${{github.repository}}/releases/download/${{github.ref_name}}/system.json
-          DOWNLOAD: https://github.com/${{github.repository}}/releases/download/${{github.ref_name}}/system.zip
-        run: |
-          node -e '
-            const fs = require("fs");
-            const f = "system.json";
-            const m = JSON.parse(fs.readFileSync(f, "utf8"));
-            m.id = process.env.ID;
-            m.title = process.env.TITLE;
-            m.version = process.env.VERSION;
-            m.url = process.env.URL;
-            m.manifest = process.env.MANIFEST;
-            m.download = process.env.DOWNLOAD;
-            fs.writeFileSync(f, JSON.stringify(m, null, 2) + "\n");
-          '
+          id: ose
+          title: "Old-School Essentials"
+          version: ${{github.ref_name}}
+          url: https://github.com/${{github.repository}}
+          manifest: https://github.com/${{github.repository}}/releases/download/${{github.ref_name}}/system.json
+          download: https://github.com/${{github.repository}}/releases/download/${{github.ref_name}}/system.zip
 
       # Replace "ose-dev" with "ose" in all files inside the dist folder
       - name: Replace 'ose-dev' with 'ose' in dist folder
@@ -71,7 +55,7 @@ jobs:
       # Create a zip file with all files required by the module to add to the release
       - name: Create zip file
         # Remember to update the below line when there's a change in repository files/directories
-        run: zip -r ./system.zip system.json dist/ assets/ LICENSE.OGL LICENSE.GPL LICENSE.OTHER.OSE_THIRD_PARTY_V1_5 AUTHORS
+        run: zip -r ./system.zip system.json template.json dist/ assets/ LICENSE.OGL LICENSE.GPL LICENSE.OTHER.OSE_THIRD_PARTY_V1_5 AUTHORS
 
       - name: Prepare release notes
         id: prepare_notes
@@ -84,15 +68,13 @@ jobs:
           echo "https://github.com/${{github.repository}}/releases/download/${{github.ref_name}}/system.json" >> release_notes.txt
 
       - name: Create GitHub pre-release
-        uses: softprops/action-gh-release@v3
+        uses: ncipollo/release-action@v1
         with:
+          allowUpdates: true
           name: "Pre-Release ${{ github.ref_name }}"
           draft: false
           prerelease: true
-          make_latest: false
           token: ${{ secrets.GITHUB_TOKEN }}
-          files: |
-            ./system.json
-            ./system.zip
-          tag_name: ${{ github.ref_name }}
-          body_path: release_notes.txt
+          artifacts: "./system.json, ./system.zip"
+          tag: ${{ github.ref_name }}
+          bodyfile: release_notes.txt

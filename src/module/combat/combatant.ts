@@ -92,13 +92,13 @@ export class OSECombatant extends Combatant {
 
     switch (this.token?.disposition) {
       case -1:
-        return "red"; // hostile
+        return "red";
       case 0:
-        return "purple"; // neutral
+        return "purple";
       case 1:
-        return "green"; // friendly
+        return "green";
       default:
-        return "white"; // secret
+        return "white";
     }
   }
 }

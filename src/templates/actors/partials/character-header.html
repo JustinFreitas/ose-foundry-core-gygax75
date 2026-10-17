@@ -1,28 +1,21 @@
 <div class="profile">
-  <img class="profile-img" src="{{img}}" data-edit="img" title="{{name}}" />
+  <img class="profile-img" src="{{img}}" data-action="editImage" data-edit="img" data-tooltip="{{name}}" />
   {{#if isOwnerOrObserver}}
     <div class="modifiers-btn">
       {{#unless isNew}}
-      <a data-action="modifiers" title="{{localize 'OSE.Modifiers'}}"
+      <a data-action="modifiers" data-tooltip="OSE.Modifiers"
         ><i class="fas fa-book"></i
       ></a>
-      <a data-action="gp-cost" title="{{localize 'OSE.dialog.shoppingCart'}}"
+      <a data-action="gpCost" data-tooltip="OSE.dialog.shoppingCart"
         ><i class="fas fa-coins"></i
       ></a>
       {{else}}
       <a
         class="blinking"
-        data-action="auto-generate-scores"
-        title="{{localize 'OSE.dialog.autoGenerateScores'}}"
-        ><i class="fa fa-dice"></i></a>
-      {{#if isGM}}
-      <a
-        class="blinking"
-        style="margin-left: 5px; filter: hue-rotate(120deg) brightness(1.2);"
-        data-action="generate-scores"
-        title="{{localize 'OSE.dialog.showGenerateScoresDialogGM'}}"
-        ><i class="fa fa-dice"></i></a>
-      {{/if}}
+        data-action="generateScores"
+        data-tooltip="OSE.dialog.generateScores"
+        ><i class="fa fa-dice"></i
+      ></a>
       {{/unless}}
     </div>
   {{/if}}

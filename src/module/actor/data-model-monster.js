@@ -24,7 +24,6 @@ export default class OseDataModelMonster extends foundry.abstract.TypeDataModel 
     OseDataModelMonster.#migrateMonsterLanguages(source);
     OseDataModelMonster.#migrateCantrips(source);
 
-    // biome-ignore lint/complexity/noThisInStatic: super.migrateData() correctly calls parent static method
     return super.migrateData(source);
   }
 
@@ -82,9 +81,6 @@ export default class OseDataModelMonster extends foundry.abstract.TypeDataModel 
         max: new NumberField({ integer: true }),
       }),
       thac0: new ObjectField(),
-      // Damage modifiers (e.g. damage.mod.missile), applied via Active Effects.
-      // Read in rollAttack; mirrors the untyped thac0 ObjectField.
-      damage: new ObjectField(),
       languages: new ObjectField(),
       saves: new SchemaField({
         breath: new SchemaField({ value: new NumberField({ integer: true }) }),

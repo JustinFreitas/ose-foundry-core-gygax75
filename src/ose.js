@@ -8,6 +8,7 @@ import OseDataModelMonster from "./module/actor/data-model-monster";
 import OseActor from "./module/actor/entity";
 import OseActorSheetMonster from "./module/actor/monster-sheet";
 import TokenRulerOSE from "./module/actor/token-ruler";
+import trackableAttributes from "./module/actor/trackable-attributes";
 import { OSECombat } from "./module/combat/combat";
 import OSECombatTracker from "./module/combat/combat-tracker";
 import { OSECombatant } from "./module/combat/combatant";
@@ -83,10 +84,10 @@ Hooks.once("init", async () => {
     character: OseDataModelCharacter,
     monster: OseDataModelMonster,
   };
+  CONFIG.Actor.trackableAttributes = trackableAttributes;
   CONFIG.Item.dataModels = ITEM_DATA_MODELS;
 
   // Register sheet application classes
-  foundry.documents.collections.Actors.unregisterSheet("core", foundry.appv1.sheets.ActorSheet);
   foundry.documents.collections.Actors.registerSheet(game.system.id, OseActorSheetCharacter, {
     types: ["character"],
     makeDefault: true,
@@ -98,7 +99,6 @@ Hooks.once("init", async () => {
     label: "OSE.SheetClassMonster",
   });
 
-  foundry.documents.collections.Items.unregisterSheet("core", foundry.appv1.sheets.ItemSheet);
   foundry.documents.collections.Items.registerSheet(game.system.id, OseItemSheet, {
     makeDefault: true,
     label: "OSE.SheetClassItem",
@@ -156,64 +156,16 @@ Hooks.on("renderSettings", async (_app, html) => {
 });
 
 Hooks.on("renderChatLog", (_app, html) => OseItem.chatListeners(html));
+Hooks.on("getChatLogEntryContext", chat.addChatMessageContextOptions);
 Hooks.on("getChatMessageContextOptions", chat.addChatMessageContextOptions);
 Hooks.on("renderChatMessageHTML", chat.addChatMessageButtons);
 Hooks.on("renderRollTableSheet", treasure.augmentTable);
 Hooks.on("updateActor", party.update);
-Hooks.on("preUpdateActor", (actor, updateData, _options, userId) => {
-  const hpChange = foundry.utils.getProperty(updateData, "system.hp.value");
-  if (hpChange !== undefined) {
-    const oldHp = actor.system.hp?.value ?? 0;
-    if (hpChange > oldHp) {
-      const preventsHealing = actor.effects?.some(
-        (e) => e.flags?.ose?.preventsHealing || e.name?.includes("Poison") || e.name?.includes("Diseased"),
-      );
-      if (preventsHealing) {
-        const user = game.users.get(userId);
-        const userName = user?.name || "A player";
-        ChatMessage.create({
-          content: `<div class="ose chat-card">
-            <h3>⚠️ Healing Warning</h3>
-            <p><b>${actor.name}</b> HP was modified from <b>${oldHp}</b> to <b>${hpChange}</b> by <i>${userName}</i>, but this character has an active <b>Poisoned / Diseased</b> effect preventing healing!</p>
-          </div>`,
-        });
-      }
-    }
-  }
-});
-Hooks.on("preCreateChatMessage", (message, data, _options, _userId) => {
-  const speaker = message.speaker;
-  if (!speaker) return;
-  const actor = ChatMessage.getSpeakerActor(speaker);
-  if (!actor) return;
-
-  const hasSpeed = actor.effects?.some(
-    (e) =>
-      e.name?.includes("Speed of the Heroes") ||
-      e.name?.includes("Haste") ||
-      e.name?.includes("Speed") ||
-      e.flags?.ose?.isSpeedOfHeroes ||
-      e.flags?.ose?.isHasted ||
-      e.flags?.ose?.isSpeed,
-  );
-
-  if (hasSpeed) {
-    const flavorStr = message.flavor || message.title || "";
-    const isAttack = message.flags?.ose?.rollType === "attack" || flavorStr.toLowerCase().includes("attack");
-
-    if (isAttack) {
-      const contentStr = data.content || message.content || "";
-      const hastedNote = `<div class="ose-hasted-note" style="margin-top: 4px; padding: 4px 8px; background: #fff8dc; border: 1px solid #d4af37; border-radius: 4px; color: #5a3e1b; font-size: 0.85em; text-align: center;">⚡ <b>Extra Attack:</b> Character may make an additional attack this round!</div>`;
-      message.updateSource({ content: contentStr + hastedNote });
-    }
-  }
-});
-Hooks.on("deleteActor", (actor) => OsePartySheet._pruneDeletedActorFromSavedParties(actor.id));
 /**
  * @param {OSECombatTracker} app - The combat tracker application
  * @param {HTMLElement} html - The HTML element of the combat tracker
  */
-Hooks.on("renderCombatTracker", (app, html) => app.renderGroups(html instanceof HTMLElement ? html : html[0]));
+Hooks.on("renderCombatTracker", (app, html) => app.renderGroups(html));
 /**
  * @param {foundry.documents.CombatantGroup} combatantGroup - The combatant group being updated
  */
@@ -222,95 +174,10 @@ Hooks.on("updateCombatantGroup", async (combatantGroup) => {
 });
 /** @param {OSECombatant} combatant */
 Hooks.on("createCombatant", (combatant) => {
-  if (game.settings.get(game.system.id, "initiative") !== "group" || !game.user.isGM) {
+  if (game.settings.get(game.system.id, "initiative") !== "group" || !game.users.activeGM?.isSelf) {
     return;
   }
   combatant.assignGroup();
-});
-
-/**
- * @param {Application} app - The actor sheet application
- * @param {HTMLElement|JQuery} html - Sheet root (v1 hooks may still pass jQuery)
- */
-Hooks.on("renderActorSheet", (app, html) => {
-  if (!app?.object?.isOwnerOrObserver) return;
-
-  // ContextMenu no longer accepts jQuery roots (deprecated since Foundry v13).
-  const root = html instanceof HTMLElement ? html : html?.[0];
-  if (!(root instanceof HTMLElement)) return;
-
-  // The sheet's outer element survives re-renders; only bind the menu once.
-  if (root.dataset.oseItemContextMenu) return;
-  root.dataset.oseItemContextMenu = "true";
-
-  new foundry.applications.ux.ContextMenu(
-    root,
-    ".item",
-    [
-      {
-        name: "OSE.Show",
-        icon: "<i class='fas fa-eye'></i>",
-        callback: (el) => {
-          const id = el.dataset?.itemId;
-          const item = app.actor?.items?.get(id);
-          if (item) {
-            item.show();
-          }
-        },
-      },
-      {
-        name: "OSE.items.Equip",
-        icon: "<i class='fas fa-hand'></i>",
-        condition: (el) => {
-          if (app.actor?.type !== "character" || !app.object?.sheet?.isEditable) {
-            return false;
-          }
-
-          const id = el.dataset?.itemId;
-          const item = app.actor?.items?.get(id);
-          return ["item", "armor", "weapon", "treasure", "container"].includes(item?.type);
-        },
-        callback: async (el) => {
-          const id = el.dataset?.itemId;
-          const item = app.actor?.items?.get(id);
-          if (item) {
-            await item.update({
-              system: {
-                equipped: !item.system.equipped,
-              },
-            });
-          }
-        },
-      },
-      {
-        name: "OSE.Edit",
-        icon: "<i class='fas fa-edit'></i>",
-        condition: () => !!app.object?.sheet?.isEditable,
-        callback: (el) => {
-          const id = el.dataset?.itemId;
-          const item = app.actor?.items?.get(id);
-          if (item) {
-            item.sheet.render(true);
-          }
-        },
-      },
-      {
-        name: "OSE.Delete",
-        icon: "<i class='fas fa-trash'></i>",
-        condition: () => !!app.object?.sheet?.isEditable,
-        callback: (el) => {
-          const id = el.dataset?.itemId;
-          const item = app.actor?.items?.get(id);
-          if (item) {
-            app._promptRemoveItemFromActor(item);
-          }
-        },
-      },
-    ],
-    {
-      jQuery: false,
-    },
-  );
 });
 
 Hooks.on("renderCompendium", renderList.RenderCompendium);

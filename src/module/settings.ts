@@ -19,7 +19,7 @@ const registerSettings = () => {
       individual: "OSE.Setting.InitiativeIndividual",
       group: "OSE.Setting.InitiativeGroup",
     },
-  } as unknown as ClientSettings.SettingConfig);
+  });
 
   game.settings.register(game.system.id, "rerollInitiative", {
     name: game.i18n.localize("OSE.Setting.RerollInitiative"),
@@ -65,7 +65,7 @@ const registerSettings = () => {
       obj[enc.type] = enc.localizedLabel;
       return obj;
     }, {}) as SettingConfig<EncumbranceOption>["choices"],
-  } as unknown as ClientSettings.SettingConfig);
+  });
 
   game.settings.register(game.system.id, "encumbranceItemStrengthMod", {
     name: game.i18n.localize("OSE.Setting.EncumbranceItemStrengthMod"),
@@ -132,31 +132,12 @@ const registerSettings = () => {
     type: Boolean,
     config: true,
     requiresReload: true,
-  } as unknown as ClientSettings.SettingConfig);
-  game.settings.register(game.system.id, "automateAmmo", {
-    name: "OSE.Setting.AutomateAmmo",
-    hint: "OSE.Setting.AutomateAmmoHint",
-    scope: "world",
-    config: true,
-    type: String,
-    choices: {
-      disabled: "OSE.Setting.AutomateAmmoDisabled",
-      warn: "OSE.Setting.AutomateAmmoWarn",
-      enforce: "OSE.Setting.AutomateAmmoEnforce",
-    },
-    default: "warn",
-  } as unknown as ClientSettings.SettingConfig);
-
+  });
   game.settings.register(game.system.id, "hasPromptedDefaultOSETokenRing", {
     default: false,
     scope: "world",
     type: Boolean,
   });
-  game.settings.register(game.system.id, "savedParties", {
-    default: {},
-    scope: "world",
-    type: Object,
-  } as unknown as ClientSettings.SettingConfig);
 };
 
 declare global {
@@ -173,8 +154,6 @@ declare global {
       "ose.languages": string;
       "ose.applyDamageOption": ApplyDamageOption;
       "ose.ignoreAttackBonusOnDamageRoll": boolean;
-      "ose.savedParties": Record<string, string[]>;
-      "ose.automateAmmo": "disabled" | "warn" | "enforce";
     }
   }
 }

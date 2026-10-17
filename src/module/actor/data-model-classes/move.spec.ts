@@ -46,26 +46,38 @@ describe("Offline Character Move Data Model", () => {
     // Reset encumbered flag
     enc.testEncumbered = false;
 
-    // Case 2: At third breakpoint -> 25% of base
+    // Case 2: At third breakpoint -> 30' base (Tier 4)
     enc.testAtThird = true;
     const move3 = new OseDataModelCharacterMove(enc, true, 120);
-    expect(move3.base).toBe(30); // 120 * 0.25 = 30
+    expect(move3.base).toBe(30);
+    expect(move3.encounter).toBe(10);
+    expect(move3.nextBase).toBe(0);
+    expect(move3.nextEncounter).toBe(0);
     enc.testAtThird = false;
 
-    // Case 3: At second breakpoint -> 50% of base
+    // Case 3: At second breakpoint -> 60' base (Tier 3)
     enc.testAtSecond = true;
     const move2 = new OseDataModelCharacterMove(enc, true, 120);
-    expect(move2.base).toBe(60); // 120 * 0.5 = 60
+    expect(move2.base).toBe(60);
+    expect(move2.encounter).toBe(20);
+    expect(move2.nextBase).toBe(30);
+    expect(move2.nextEncounter).toBe(10);
     enc.testAtSecond = false;
 
-    // Case 4: At first breakpoint -> 75% of base
+    // Case 4: At first breakpoint -> 90' base (Tier 2)
     enc.testAtFirst = true;
     const move1 = new OseDataModelCharacterMove(enc, true, 120);
-    expect(move1.base).toBe(90); // 120 * 0.75 = 90
+    expect(move1.base).toBe(90);
+    expect(move1.encounter).toBe(30);
+    expect(move1.nextBase).toBe(60);
+    expect(move1.nextEncounter).toBe(20);
     enc.testAtFirst = false;
 
-    // Case 5: Normal -> 100% of base
+    // Case 5: Normal -> 120' base (Tier 1)
     const moveNormal = new OseDataModelCharacterMove(enc, true, 120);
     expect(moveNormal.base).toBe(120);
+    expect(moveNormal.encounter).toBe(40);
+    expect(moveNormal.nextBase).toBe(90);
+    expect(moveNormal.nextEncounter).toBe(30);
   });
 });

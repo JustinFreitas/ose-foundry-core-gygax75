@@ -1,916 +1,239 @@
 /**
  * @file The base class we use for Character and Monster sheets. Shared behavior goes here!
  */
-import OSE from "../config";
-import OseEntityTweaks from "../dialog/entity-tweaks";
-import skipRollDialogCheck from "../helpers-behaviour";
+import { displayItemInChat } from "../sheet/chat-helpers";
+import { bindInventoryContextMenu } from "../sheet/context-menu";
+import { prepareActorContext } from "../sheet/data-context";
+import { chooseItemType, openEntityTweaksFor, promptRemoveItemFromActor } from "../sheet/dialogs";
+import {
+  onContainerItemAdd,
+  onContainerItemRemove,
+  onDragStartItem,
+  onDropFolder,
+  onDropItem,
+  onDropItemCreate,
+} from "../sheet/drag-drop";
+import {
+  createItem,
+  onSpellChange,
+  removeItemFromActor,
+  resetSpells,
+  rollAbility,
+  rollAttack,
+  rollSave,
+  updateItemQuantity,
+  useConsumable,
+} from "../sheet/inventory-actions";
+import { toggleContainedItems, toggleItemCategory, toggleItemSummary } from "../sheet/listeners";
 
-export default class OseActorSheet extends foundry.appv1.sheets.ActorSheet {
+const { HandlebarsApplicationMixin } = foundry.applications.api;
+const { ActorSheetV2 } = foundry.applications.sheets;
+
+export default class OseActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
+  static DEFAULT_OPTIONS = {
+    // Always light.
+    classes: ["ose", "sheet", "actor", "themed", "theme-light"],
+    form: { submitOnChange: true },
+    window: {
+      resizable: true,
+      controls: [
+        {
+          action: "configureActor",
+          icon: "fas fa-code",
+          label: "OSE.dialog.tweaks",
+          ownership: "OWNER",
+          visible: function () {
+            return this.isEditable;
+          },
+        },
+      ],
+    },
+    actions: {
+      configureActor: OseActorSheet._onConfigureActor,
+      rollSave: OseActorSheet._onRollSave,
+      rollAttack: OseActorSheet._onRollAttack,
+      rollHitDice: OseActorSheet._onRollHitDice,
+      rollItem: OseActorSheet._onRollItem,
+      toggleCategory: OseActorSheet._onToggleCategory,
+      toggleContained: OseActorSheet._onToggleContained,
+      toggleSummary: OseActorSheet._onToggleSummary,
+      showItem: OseActorSheet._onShowItem,
+      createItem: OseActorSheet._onCreateItem,
+      editItem: OseActorSheet._onEditItem,
+      deleteItem: OseActorSheet._onDeleteItem,
+      consumableSpend: OseActorSheet._onConsumableSpend,
+      consumableRestore: OseActorSheet._onConsumableRestore,
+      resetSpells: OseActorSheet._onResetSpells,
+    },
+  };
+
+  /**
+   * @param {string} _tabId
+   * @returns {boolean} Whether the tab is shown for this actor.
+   */
+  _isTabVisible(_tabId) {
+    return true;
+  }
+
+  _getTabsConfig(group) {
+    const config = super._getTabsConfig(group);
+    if (!config) return config;
+    const tabs = config.tabs.filter((tab) => this._isTabVisible(tab.id));
+    if (!tabs.some((tab) => tab.id === this.tabGroups[group])) this.tabGroups[group] = tabs[0]?.id;
+    return { ...config, tabs };
+  }
+
+  get title() {
+    if (!this.actor.isToken) return this.actor.name;
+    return `[${game.i18n.localize(foundry.documents.TokenDocument.metadata.label)}] ${this.actor.name}`;
+  }
+
   /**
    * IDs for items on the sheet that have been expanded.
    * @type {Set<string>}
-   * @protected
    */
   _expanded = new Set();
 
-  async getData() {
-    const data = foundry.utils.deepClone(super.getData().data);
-    await Promise.all(
-      [...this.actor.items].map(async (item) => {
-        item.isExpanded = this._expanded.has(item.id);
-        item.system.enrichedDescription = await foundry.applications.ux.TextEditor.implementation.enrichHTML(
-          item.system.description,
-        );
-      }),
-    );
-    data.owner = this.actor.isOwner;
-    data.editable = this.actor.sheet.isEditable;
-
-    // Store flag if the full character sheet is to be shown
-    data.isOwnerOrObserver = this.actor.isOwnerOrObserver;
-
-    data.config = {
-      ...CONFIG.OSE,
-      ascendingAC: game.settings.get(game.system.id, "ascendingAC"),
-      initiative: game.settings.get(game.system.id, "initiative") !== "group",
-      encumbrance: game.settings.get(game.system.id, "encumbranceOption"),
-      encumbranceStrengthMod:
-        game.settings.get(game.system.id, "encumbranceItemStrengthMod") &&
-        game.settings.get(game.system.id, "encumbranceOption") === "itembased",
-    };
-    data.isNew = this.actor.isNew();
-
-    data.encumbranceTemplate =
-      OSE.encumbrance?.templateEncumbranceBar ||
-      `${OSE.systemPath()}/templates/actors/partials/character-encumbrance.html`;
-
-    // Active Effects, grouped for the Effects tab
-    data.effects = this._prepareActiveEffectCategories();
-
-    return data;
-  }
-
-  /**
-   * Group the actor's own Active Effects into temporary / passive / inactive
-   * buckets for display on the Effects tab.
-   *
-   * @returns {object} Categories keyed by type, each with a label and effects array.
-   * @protected
-   */
-  _prepareActiveEffectCategories() {
-    const categories = {
-      temporary: {
-        type: "temporary",
-        label: "OSE.effect.temporary",
-        effects: [],
-      },
-      passive: {
-        type: "passive",
-        label: "OSE.effect.passive",
-        effects: [],
-      },
-      inactive: {
-        type: "inactive",
-        label: "OSE.effect.inactive",
-        effects: [],
-      },
-    };
-
-    for (const effect of this.actor.effects) {
-      if (effect.disabled) categories.inactive.effects.push(effect);
-      else if (effect.isTemporary) categories.temporary.effects.push(effect);
-      else categories.passive.effects.push(effect);
-    }
-
-    // Read-only group: effects granted by the actor's items (transferred).
-    const fromItems = [];
-    for (const item of this.actor.items) {
-      const suppressed = Object.hasOwn(item.system, "equipped") ? !item.system.equipped : false;
-      for (const effect of item.effects) {
-        if (effect.transfer !== false) {
-          fromItems.push({
-            id: effect.id,
-            name: effect.name,
-            img: effect.img,
-            itemId: item.id,
-            itemName: item.name,
-            suppressed,
-          });
-        }
-      }
-    }
-    if (fromItems.length > 0) {
-      categories.managed = {
-        type: "managed",
-        label: "OSE.effect.fromItems",
-        effects: fromItems,
-        readonly: true,
-      };
-    }
-
-    return categories;
-  }
-
-  /**
-   * Handle create/edit/delete/toggle actions from the Effects tab controls.
-   *
-   * @param {Event} event - The originating click event.
-   * @returns {Promise|null}
-   * @protected
-   */
-  async _onManageActiveEffect(event) {
-    event.preventDefault();
-    const a = event.currentTarget;
-    const li = a.closest("li");
-    const effect = li?.dataset.effectId ? this.actor.effects.get(li.dataset.effectId) : null;
-
-    switch (a.dataset.action) {
-      case "create": {
-        const isTemporary = a.dataset.effectType === "temporary";
-        const created = await this.actor.createEmbeddedDocuments("ActiveEffect", [
-          {
-            name: game.i18n.localize("OSE.effect.new"),
-            img: "icons/svg/aura.svg",
-            origin: this.actor.uuid,
-            disabled: a.dataset.effectType === "inactive",
-            duration: isTemporary ? { rounds: 1 } : {},
-          },
-        ]);
-        return created[0]?.sheet.render(true);
-      }
-      case "edit":
-        return effect?.sheet.render(true);
-      case "delete":
-        return effect?.delete();
-      case "toggle":
-        return effect?.update({ disabled: !effect.disabled });
-      default:
-        return null;
-    }
-  }
-
-  activateEditor(name, options, initialContent) {
-    // remove some controls to the editor as the space is lacking
-    // if (name === "data.details.description") {
-    //   options.toolbar = "styleselect bullist hr table removeFormat save";
-    // }
-    super.activateEditor(name, options, initialContent);
-  }
-
-  // Helpers
-
-  _getItemFromActor(event) {
-    const li = event.currentTarget.closest(".item-entry");
-    return this.actor.items.get(li.dataset.itemId);
-  }
-
-  // end Helpers
-
-  _toggleItemCategory(event) {
-    event.preventDefault();
-    const targetCategory = $(event.currentTarget);
-    const items = targetCategory.next(".item-list");
-
-    if (items.css("display") === "none") {
-      const el = $(event.currentTarget).find(".fas.fa-caret-right");
-      el.removeClass("fa-caret-right");
-      el.addClass("fa-caret-down");
-
-      items.slideDown(200);
-    } else {
-      const el = $(event.currentTarget).find(".fas.fa-caret-down");
-      el.removeClass("fa-caret-down");
-      el.addClass("fa-caret-right");
-
-      items.slideUp(200);
-    }
-  }
-
-  _toggleContainedItems(event) {
-    event.preventDefault();
-    const targetItems = $(event.target.closest(".container"));
-    const items = targetItems.find(".item-list.contained-items");
-
-    if (items.css("display") === "none") {
-      const el = targetItems.find(".fas.fa-caret-right");
-      el.removeClass("fa-caret-right");
-      el.addClass("fa-caret-down");
-
-      items.slideDown(200);
-    } else {
-      const el = targetItems.find(".fas.fa-caret-down");
-      el.removeClass("fa-caret-down");
-      el.addClass("fa-caret-right");
-
-      items.slideUp(200);
-    }
-  }
-
-  _toggleItemSummary(event) {
-    event.preventDefault();
-    const item = event.currentTarget.closest(".item-entry.item");
-    const itemSummary = item?.querySelector(".item-summary");
-    if (!itemSummary) return;
-    if (itemSummary.classList.contains("expanded")) {
-      this._expanded.delete(item.dataset.itemId);
-    } else {
-      this._expanded.add(item.dataset.itemId);
-    }
-    itemSummary.classList.toggle("expanded");
-  }
-
-  async _displayItemInChat(event) {
-    const li = $(event.currentTarget).closest(".item-entry");
-    const item = this.actor.items.get(li.data("itemId"));
-    item.show();
-  }
-
-  async _promptRemoveItemFromActor(item) {
-    return foundry.applications.api.DialogV2.confirm({
-      classes: ["ose", "dialog"],
-      window: {
-        title: game.i18n.localize("OSE.dialog.deleteItem"),
-      },
-      position: { width: 400, height: "auto" },
-      content: game.i18n.format("OSE.dialog.confirmDeleteItem", {
-        name: item.name,
-      }),
-      yes: {
-        default: false,
-        callback: () => {
-          this._removeItemFromActor(item);
-        },
-      },
-      defaultYes: false,
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+    return Object.assign(context, {
+      ...this.actor.toObject(false),
+      system: this.actor.system,
+      cssClass: this.options.classes.join(" "),
+      ...(await prepareActorContext(this.actor, this._expanded)),
     });
   }
 
-  // eslint-disable-next-line no-underscore-dangle, consistent-return
-  async _removeItemFromActor(item) {
-    if (item.type === "ability" || item.type === "spell") {
-      // eslint-disable-next-line no-underscore-dangle
-      return this.actor.deleteEmbeddedDocuments("Item", [item._id]);
-    }
-    if (item.type !== "container" && item.system.containerId !== "") {
-      const { containerId } = item.system;
-      const newItemIds = this.actor.items.get(containerId).system.itemIds.filter((o) => o !== item.id);
-
-      await this.actor.updateEmbeddedDocuments("Item", [{ _id: containerId, system: { itemIds: newItemIds } }]);
-    }
-    if (item.type === "container" && item.system.itemIds) {
-      const containedItems = item.system.itemIds;
-      const updateData = containedItems.reduce((acc, val) => {
-        // Only create update data for items that still exist on the actor
-        if (this.actor.items.get(val)) acc.push({ _id: val, "system.containerId": "" });
-        return acc;
-      }, []);
-
-      await this.actor.updateEmbeddedDocuments("Item", updateData);
-    }
-
-    // eslint-disable-next-line no-underscore-dangle
-    await this.actor.deleteEmbeddedDocuments("Item", [item._id]);
+  _getItemFromActor(element) {
+    return this.actor.items.get(element.closest(".item-entry")?.dataset.itemId);
   }
 
-  /**
-   * @param event
-   * @param {bool} decrement
-   */
-  _useConsumable(event, decrement) {
-    const item = this._getItemFromActor(event);
-    if (!item) return null;
-    let {
-      quantity: { value: quantity },
-    } = item.system;
-    item.update({
-      "system.quantity.value": decrement ? --quantity : ++quantity,
-    });
+  // Delegates retained as instance methods so subclasses (and tests) can override.
+  _removeItemFromActor(item) {
+    return removeItemFromActor(this.actor, item);
   }
-
-  async _onSpellChange(event) {
-    event.preventDefault();
-    const item = this._getItemFromActor(event);
-    if (event.target.dataset.field === "cast") {
-      return item.update({ "system.cast": Number.parseInt(event.target.value, 10) });
-    }
-    if (event.target.dataset.field === "memorize") {
-      return item.update({
-        "system.memorized": Number.parseInt(event.target.value, 10),
-      });
-    }
+  _promptRemoveItemFromActor(item) {
+    return promptRemoveItemFromActor(this, item);
   }
-
-  async _resetSpells(event) {
-    const spellsContainer = event.currentTarget.closest(".inventory.spells");
-    const spellElements = spellsContainer.querySelectorAll(".item-entry");
-
-    const updates = [];
-    for (const el of spellElements) {
-      const { itemId } = el.dataset;
-      const item = this.actor.items.get(itemId);
-
-      if (item?.system) {
-        updates.push({
-          _id: item.id,
-          "system.cast": item.system.memorized,
-        });
-      }
-    }
-
-    if (updates.length > 0) {
-      await this.actor.updateEmbeddedDocuments("Item", updates);
-    }
+  _chooseItemType(choices) {
+    return chooseItemType(choices);
   }
-
-  async _rollAbility(event) {
-    const item = this._getItemFromActor(event);
-    const itemData = item?.system;
-    if (item.type === "weapon") {
-      if (this.actor.type === "monster") {
-        await item.update({
-          "system.counter.value": itemData.counter.value - 1,
-        });
-      }
-      item.rollWeapon({ skipDialog: skipRollDialogCheck(event) });
-    } else if (item.type === "spell") {
-      await item.spendSpell({ skipDialog: skipRollDialogCheck(event) });
-    } else {
-      await item.rollFormula({ skipDialog: skipRollDialogCheck(event) });
-    }
+  _onContainerItemAdd(item, target) {
+    return onContainerItemAdd(this, item, target);
   }
-
-  async _rollSave(event) {
-    const actorObject = this.actor;
-    const element = event.currentTarget;
-    const { save } = element.parentElement.parentElement.dataset;
-    actorObject.rollSave(save, { event });
+  _onContainerItemRemove(item, container) {
+    return onContainerItemRemove(this, item, container);
   }
-
-  async _rollAttack(event) {
-    const actorObject = this.actor;
-    const element = event.currentTarget;
-    const { attack } = element.parentElement.parentElement.dataset;
-    actorObject.targetAttack({ roll: {} }, attack, {
-      type: attack,
-      skipDialog: skipRollDialogCheck(event),
-    });
+  _onDropItemCreate(droppedItem, targetContainer) {
+    return onDropItemCreate(this, droppedItem, targetContainer);
   }
-
-  _onSortItem(event, itemData) {
-    return super._onSortItem(event, itemData);
+  _onDropFolder(event, folder) {
+    return onDropFolder(this, event, folder);
   }
-
+  _onDropItem(event, item) {
+    if (!this.actor.isOwner) return null;
+    return onDropItem(this, event, item);
+  }
   _onDragStart(event) {
-    const li = event.currentTarget;
-    let itemIdsArray = [];
-    if (event.target.classList.contains("content-link")) return;
-
-    let dragData;
-
-    // Owned Items
-    if (li.dataset.itemId) {
-      const item = this.actor.items.get(li.dataset.itemId);
-      dragData = item.toDragData();
-      dragData.item = item;
-      dragData.type = "Item";
-      if (item.type === "container" && item.system.itemIds.length > 0) {
-        // otherwise JSON.stringify will quadruple stringify for some reason
-        itemIdsArray = item.system.itemIds;
-      }
-    }
-
-    // Active Effect
-    if (li.dataset.effectId) {
-      const effect = this.actor.effects.get(li.dataset.effectId);
-      dragData = effect.toDragData();
-      dragData.type = "ActiveEffect";
-    }
-
-    if (!dragData) return;
-
-    // Create drag data
-    dragData.actorId = this.actor.id;
-    dragData.sceneId = this.actor.isToken ? canvas.scene?.id : null;
-    dragData.tokenId = this.actor.isToken ? this.actor.token.id : null;
-    dragData.pack = this.actor.pack;
-
-    // Set data transfer
-    event.dataTransfer.setData(
-      "text/plain",
-      JSON.stringify(dragData, (key, value) => {
-        if (key === "itemIds") {
-          // something about how this Array is created makes its elements not real Array elements
-          // we go through this hoop to trick stringify into creating our string
-          return JSON.stringify(itemIdsArray);
-        }
-        return value;
-      }),
-    );
+    return onDragStartItem(this, event);
   }
 
-  // eslint-disable-next-line no-underscore-dangle
-  async _onDropFolder(_event, data) {
-    const folder = await fromUuid(data.uuid);
-    if (!folder || folder.type !== "Item") return;
-
-    let itemArray = folder.contents || [];
-
-    folder.getSubfolders(true).forEach((subfolder) => {
-      itemArray.push(...subfolder.contents);
-    });
-
-    // Compendium folders only index their contents; resolve the full documents.
-    if (itemArray.length > 0 && itemArray[0]?.uuid?.includes("Compendium")) {
-      itemArray = (await Promise.all(itemArray.map((item) => fromUuid(item.uuid)))).filter((item) => item);
-    }
-
-    return this._onDropItemCreate(itemArray);
+  async _onFirstRender(context, options) {
+    await super._onFirstRender(context, options);
+    bindInventoryContextMenu(this, this.element);
   }
 
-  // eslint-disable-next-line no-underscore-dangle
-  async _handleCrossActorContainerDrop(sourceItem, event) {
-    const sourceActor = sourceItem.actor;
-    const contentIds = sourceItem.system.itemIds || [];
-    const contentItems = contentIds.map((id) => sourceActor.items.get(id)).filter((i) => i);
-
-    // Prepare data
-    const containerData = sourceItem.toObject();
-    containerData.system.itemIds = []; // Clear for now
-    delete containerData._id; // Ensure new ID
-
-    let newContainer;
-    let newContents;
-    try {
-      // Create container
-      [newContainer] = await this.actor.createEmbeddedDocuments("Item", [containerData]);
-
-      // Prepare contents
-      const contentData = contentItems.map((i) => {
-        const d = i.toObject();
-        d.system.containerId = newContainer.id;
-        delete d._id; // Ensure new ID
-        return d;
-      });
-
-      // Create contents
-      newContents = await this.actor.createEmbeddedDocuments("Item", contentData);
-
-      // Update container with new IDs
-      await newContainer.update({
-        "system.itemIds": newContents.map((i) => i.id),
-      });
-    } catch (err) {
-      // The copy onto the target actor failed partway through. Roll back any
-      // partial copy and leave the source untouched so nothing is lost.
-      if (newContainer) {
-        const cleanup = [newContainer.id, ...(newContents || []).map((i) => i.id)];
-        await this.actor.deleteEmbeddedDocuments("Item", cleanup).catch(() => {});
-      }
-      ui.notifications.error(
-        game.i18n.localize("OSE.error.containerMoveFailed") || "Failed to move the container; nothing was changed.",
-      );
-      throw err;
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    this._sizeResizables();
+    if (!this.isEditable) return;
+    for (const input of this.element.querySelectorAll(".quantity input, .memorize input, .counter input")) {
+      input.addEventListener("click", (event) => event.target.select());
     }
-
-    // Handle Move (Delete Source) only after the copy fully succeeded.
-    if (!event.ctrlKey) {
-      // Delete source contents first
-      await sourceActor.deleteEmbeddedDocuments("Item", contentIds);
-      // Delete source container
-      await sourceItem.delete();
-    }
-
-    return [newContainer, ...newContents];
   }
 
-  /**
-   * Determine the target container document for a drop event, if one is targeted.
-   *
-   * @param {DragEvent} event - The drop event.
-   * @returns {Item|null} The targeted container Item document, or null if none.
-   * @protected
-   */
-  _getTargetContainer(event) {
-    const dropTargetItem = event.target.closest("[data-item-id]");
-    const targetId = dropTargetItem ? dropTargetItem.dataset.itemId : null;
-    const targetDoc = targetId ? this.actor.items.get(targetId) : null;
-
-    if (targetDoc?.type === "container") return targetDoc;
-    if (targetDoc?.system?.containerId) {
-      return this.actor.items.get(targetDoc.system.containerId) || null;
-    }
-    const containerEl = event.target.closest(".container");
-    if (containerEl?.dataset?.itemId) {
-      return this.actor.items.get(containerEl.dataset.itemId) || null;
-    }
-    return null;
+  _onPosition(position) {
+    super._onPosition(position);
+    this._sizeResizables();
   }
 
-  /**
-   * Atomically transfer an item between containers, or into a container.
-   *
-   * @param {Item} item - The item being moved.
-   * @param {Item|null} sourceContainer - The container the item currently belongs to (if any).
-   * @param {Item} targetContainer - The container the item is being moved into.
-   * @returns {Promise<Document[]>}
-   * @protected
-   */
-  async _transferItemBetweenContainers(item, sourceContainer, targetContainer) {
-    const updates = [];
-
-    if (sourceContainer && sourceContainer.id !== targetContainer.id) {
-      const newSourceList = sourceContainer.system.itemIds.filter((id) => id !== item.id);
-      updates.push({ _id: sourceContainer.id, "system.itemIds": newSourceList });
+  _sizeResizables() {
+    const heightDelta = this.position.height - this.options.position.height;
+    for (const el of this.element?.querySelectorAll(".resizable") ?? []) {
+      el.style.height = `${heightDelta + Number.parseInt(el.dataset.baseSize, 10)}px`;
     }
-
-    const alreadyExists = targetContainer.system.itemIds.includes(item.id);
-    if (!alreadyExists) {
-      const newTargetList = [...targetContainer.system.itemIds, item.id];
-      updates.push({ _id: targetContainer.id, "system.itemIds": newTargetList });
-    }
-
-    updates.push({
-      _id: item.id,
-      "system.containerId": targetContainer.id,
-      "system.equipped": false,
-    });
-
-    return this.actor.updateEmbeddedDocuments("Item", updates);
   }
 
-  // eslint-disable-next-line no-underscore-dangle
-  async _onDropItem(event, data) {
-    const targetContainer = this._getTargetContainer(event);
-    const dropTargetEl = event.target.closest("[data-item-id]");
-    const targetId = dropTargetEl ? dropTargetEl.dataset.itemId : null;
-
-    // This eats the event.target as it is parsed with the TextEditor.
-    const item = await Item.implementation.fromDropData(data);
-    const itemData = item.toObject();
-
-    const isOwned = !!this.actor.items.get(item.id);
-    const sourceContainer = item.system?.containerId ? this.actor.items.get(item.system.containerId) : null;
-
-    // Issue: https://github.com/vttred/ose/issues/357 - Dragging container onto itself
-    if (item.id === targetId || (targetContainer && item.id === targetContainer.id)) return;
-
-    // Prevent nesting containers
-    if (item.type === "container" && targetContainer) {
-      return ui.notifications.warn(game.i18n.localize("OSE.warn.noNestedContainers") || "You cannot nest containers.");
-    }
-
-    // Branch A: Drop target is a Container (or inside a container)
-    if (targetContainer) {
-      if (!isOwned) {
-        // eslint-disable-next-line no-underscore-dangle
-        const result = await this._onContainerItemAdd(item, targetContainer);
-        if (item.actor && item.actor.id !== this.actor.id && !event.ctrlKey) {
-          await item.delete();
-        }
-        return result;
-      }
-
-      // Owned item dropped within same container: no-op / allow standard sort
-      if (sourceContainer?.id === targetContainer.id) {
-        return;
-      }
-
-      // Owned item moved from another container or root inventory into targetContainer
-      // eslint-disable-next-line no-underscore-dangle
-      return this._transferItemBetweenContainers(item, sourceContainer, targetContainer);
-    }
-
-    // Branch B: Drop target is Root Inventory (outside any container)
-    if (sourceContainer) {
-      // eslint-disable-next-line no-underscore-dangle
-      return this._onContainerItemRemove(item, sourceContainer);
-    }
-
-    if (!isOwned) {
-      if (item.type === "container" && item.actor && item.actor.id !== this.actor.id) {
-        // eslint-disable-next-line no-underscore-dangle
-        return this._handleCrossActorContainerDrop(item, event);
-      }
-
-      // eslint-disable-next-line no-underscore-dangle
-      const result = await this._onDropItemCreate([itemData]);
-      if (item.actor && item.actor.id !== this.actor.id && !event.ctrlKey) {
-        await item.delete();
-      }
-      return result;
-    }
-
-    // Same-actor drop with no container involved: defer to Foundry's default
-    // handling so drag-reordering items on the sheet still works.
-    // eslint-disable-next-line no-underscore-dangle
-    return super._onDropItem(event, data);
-  }
-
-  async _onContainerItemRemove(item, container) {
-    const newList = container.system.itemIds.filter((s) => s !== item.id);
-    const itemObj = this.actor.items.get(item.id);
-    return this.actor.updateEmbeddedDocuments("Item", [
-      { _id: container.id, "system.itemIds": newList },
-      { _id: itemObj ? itemObj.id : item.id, "system.containerId": "" },
-    ]);
-  }
-
-  async _onContainerItemAdd(item, target) {
-    const alreadyExistsInActor = target.parent.items.find((i) => i.id === item.id);
-    let latestItem = item;
-    if (!alreadyExistsInActor) {
-      // eslint-disable-next-line no-underscore-dangle
-      const newItem = await this._onDropItemCreate([item.toObject()]);
-      latestItem = newItem.pop();
-    }
-
-    const alreadyExistsInContainer = target.system.itemIds.includes(latestItem.id);
-    if (!alreadyExistsInContainer) {
-      const newList = [...target.system.itemIds, latestItem.id];
-      await target.update({ "system.itemIds": newList });
-      await latestItem.update({ "system.containerId": target.id, "system.equipped": false });
-    }
-    return [latestItem];
-  }
-
-  // eslint-disable-next-line no-underscore-dangle
-  async _onDropItemCreate(droppedItem) {
-    // override to fix hidden items because their original containers don't exist on this actor
-    // Normalize Documents (e.g. from folder drops) to plain data so the
-    // containerId fix below actually applies to the created copies.
-    const droppedItemArray = (Array.isArray(droppedItem) ? droppedItem : [droppedItem]).map(
-      (item) => item.toObject?.() ?? item,
-    );
-    droppedItemArray.forEach((item) => {
-      if (item.system.containerId && item.system.containerId !== "")
-        // eslint-disable-next-line no-param-reassign
-        item.system.containerId = "";
-      if (item.type === "container" && typeof item.system.itemIds === "string") {
-        // itemIds was double stringified to fix strange behavior with stringify blanking our Arrays
-        const containedItems = JSON.parse(item.system.itemIds);
-        containedItems.forEach((containedItem) => {
-          // eslint-disable-next-line no-param-reassign
-          containedItem.system.containerId = "";
-        });
-        droppedItemArray.push(...containedItems);
-      }
-    });
-    return this.actor.createEmbeddedDocuments("Item", droppedItemArray);
+  // Item row inputs update the item, not the actor.
+  _onChangeForm(formConfig, event) {
+    const input = event.target;
+    if (input.closest(".quantity")) return updateItemQuantity(this, event);
+    if (input.closest(".memorize")) return onSpellChange(this, event);
+    return super._onChangeForm(formConfig, event);
   }
 
   /* -------------------------------------------- */
+  /*  Actions                                     */
+  /* -------------------------------------------- */
 
-  async _chooseItemType(choices = ["weapon", "armor", "shield", "gear"]) {
-    const templateData = {
-      types: choices.reduce((obj, choice) => {
-        obj[choice] = choice;
-        return obj;
-      }, {}),
-    };
-    const dlg = await foundry.applications.handlebars.renderTemplate(
-      `${OSE.systemPath()}/templates/items/entity-create.html`,
-      templateData,
-    );
-    // Create Dialog window and wait for resolution
-    return new Promise((resolve) => {
-      const dialog = new foundry.applications.api.DialogV2({
-        classes: ["ose", "dialog"],
-        window: { title: game.i18n.localize("OSE.dialog.createItem") },
-        position: { width: 400, height: "auto" },
-        content: dlg,
-        buttons: [
-          {
-            action: "ok",
-            label: game.i18n.localize("OSE.Ok"),
-            icon: "fas fa-check",
-            default: true,
-            callback: (_event, button) => {
-              const res = new foundry.applications.ux.FormDataExtended(button.form).object;
-              resolve(res);
-              return res;
-            },
-          },
-          {
-            action: "cancel",
-            icon: "fas fa-times",
-            label: game.i18n.localize("OSE.Cancel"),
-            callback: () => resolve(null),
-          },
-        ],
-        close: () => resolve(null),
-      });
-      dialog.render(true);
-    });
+  static _onConfigureActor() {
+    return openEntityTweaksFor(this);
   }
 
-  // eslint-disable-next-line no-underscore-dangle
-  _createItem(event) {
-    event.preventDefault();
-    const header = event.currentTarget;
-    const { treasure, type, lvl } = header.dataset;
-    const createItem = (type, name) => ({
-      name: name || `New ${type.capitalize()}`,
-      type,
-    });
-
-    // Getting back to main logic
-    if (type === "choice") {
-      const choices = header.dataset.choices.split(",");
-      this._chooseItemType(choices).then((dialogInput) => {
-        if (!dialogInput || !dialogInput.type) return;
-        const itemData = createItem(dialogInput.type, dialogInput.name);
-        this.actor.createEmbeddedDocuments("Item", [itemData], {});
-      });
-    } else {
-      const itemData = createItem(type);
-      if (treasure) itemData.system = { treasure: true };
-      // when creating a new spell on the character sheet, we need to set the level
-      if (type === "spell") itemData.system = lvl ? { lvl } : { lvl: 1 };
-      return this.actor.createEmbeddedDocuments("Item", [itemData], {});
-    }
+  static _onRollSave(event, target) {
+    return rollSave(this, event, target);
   }
 
-  async _updateItemQuantity(event) {
-    event.preventDefault();
-    const item = this._getItemFromActor(event);
-
-    if (event.target.dataset.field === "value") {
-      return item.update({
-        "system.quantity.value": Number.parseInt(event.target.value, 10),
-      });
-    }
-    if (event.target.dataset.field === "max") {
-      return item.update({
-        "system.quantity.max": Number.parseInt(event.target.value, 10),
-      });
-    }
+  static _onRollAttack(event, target) {
+    return rollAttack(this, event, target);
   }
 
-  // Override to set resizable initial size
-  // eslint-disable-next-line no-underscore-dangle
-  async _renderInner(...args) {
-    const html = await super._renderInner(...args);
-    this.form = html[0];
-
-    // Resize resizable classes
-    const resizable = html.find(".resizable");
-    resizable.each((_, el) => {
-      const heightDelta = this.position.height - this.options.height;
-      el.style.height = `${heightDelta + Number.parseInt(el.dataset.baseSize, 10)}px`;
-    });
-    return html;
+  static _onRollHitDice(event) {
+    return this.actor.rollHitDice({ event });
   }
 
-  // eslint-disable-next-line no-underscore-dangle
-  setPosition(position) {
-    super.setPosition(position);
-
-    const html = this.element;
-    if (!html) return;
-    const resizable = html.find(".resizable");
-    if (resizable.length === 0) {
-      return;
-    }
-    // Resize divs
-    resizable.each((_, el) => {
-      const heightDelta = this.position.height - this.options.height;
-      el.style.height = `${heightDelta + Number.parseInt(el.dataset.baseSize, 10)}px`;
-    });
-    // Resize editors
-    const editors = html.find(".editor");
-    editors.each((_id, editor) => {
-      const container = editor.closest(".resizable-editor");
-      if (container) {
-        const heightDelta = this.position.height - this.options.height;
-        editor.style.height = `${heightDelta + Number.parseInt(container.dataset.editorSize, 10)}px`;
-      }
-    });
+  static _onRollItem(event, target) {
+    return rollAbility(this, event, target);
   }
 
-  // eslint-disable-next-line no-underscore-dangle
-  _onConfigureActor(event) {
-    event.preventDefault();
-    new OseEntityTweaks(this.actor, {
-      top: this.position.top + 40,
-      left: this.position.left + (this.position.width - 400) / 2,
-    }).render(true);
+  static _onToggleCategory(event, target) {
+    return toggleItemCategory(event, target);
   }
 
-  /**
-   * Extend and override the sheet header buttons
-   *
-   * @override
-   */
-  _getHeaderButtons() {
-    let buttons = super._getHeaderButtons();
-
-    // Token Configuration
-    const canConfigure = game.user.isGM || this.actor.isOwner;
-    if (this.options.editable && canConfigure) {
-      buttons = [
-        {
-          label: game.i18n.localize("OSE.dialog.tweaks"),
-          class: "configure-actor",
-          icon: "fas fa-code",
-          onclick: (event) => this._onConfigureActor(event),
-        },
-        ...buttons,
-      ];
-    }
-    return buttons;
+  static _onToggleContained(_event, target) {
+    return toggleContainedItems(target);
   }
 
-  activateListeners(html) {
-    super.activateListeners(html);
+  static _onToggleSummary(_event, target) {
+    return toggleItemSummary(this, target);
+  }
 
-    // Attributes
-    html.find(".saving-throw .attribute-name a").click((event) => {
-      this._rollSave(event);
-    });
+  static _onShowItem(_event, target) {
+    return displayItemInChat(this, target);
+  }
 
-    html.find(".attack a").click((event) => {
-      this._rollAttack(event);
-    });
+  static _onCreateItem(_event, target) {
+    if (this.isEditable) return createItem(this, target);
+  }
 
-    html.find(".hit-dice .attribute-name").click((event) => {
-      this.actor.rollHitDice({ event });
-    });
+  static _onEditItem(_event, target) {
+    if (this.isEditable) return this._getItemFromActor(target)?.sheet.render({ force: true });
+  }
 
-    // Items (Abilities, Inventory and Spells)
-    html.find(".item-rollable .item-image").click(async (event) => {
-      this._rollAbility(event);
-    });
+  static _onDeleteItem(_event, target) {
+    const item = this._getItemFromActor(target);
+    if (this.isEditable && item) return this._promptRemoveItemFromActor(item);
+  }
 
-    html.find(".inventory .item-category-title").click((event) => {
-      this._toggleItemCategory(event);
-    });
-    html.find(".inventory .item-category-title input").click((event) => {
-      event.stopPropagation();
-    });
-    html.find(".inventory .category-caret").click((event) => {
-      this._toggleContainedItems(event);
-    });
+  static _onConsumableSpend(_event, target) {
+    if (this.isEditable) return useConsumable(this, target, true);
+  }
 
-    html.find(".item-name").click((event) => {
-      this._toggleItemSummary(event);
-    });
+  static _onConsumableRestore(_event, target) {
+    if (this.isEditable) return useConsumable(this, target, false);
+  }
 
-    html.find(".item-controls .item-show").click(async (event) => {
-      this._displayItemInChat(event);
-    });
-
-    // Everything below here is only needed if the sheet is editable
-    if (!this.options.editable) return;
-
-    // Active Effects
-    html.find(".effect-control").click((event) => {
-      this._onManageActiveEffect(event);
-    });
-
-    // Open the source item for a read-only (item-granted) effect
-    html.find(".effect-source-link").click((event) => {
-      const li = event.currentTarget.closest("li");
-      const item = this.actor.items.get(li?.dataset.itemId);
-      item?.sheet.render(true);
-    });
-
-    // Item Management
-    html.find(".item-create").click((event) => {
-      // eslint-disable-next-line no-underscore-dangle
-      this._createItem(event);
-    });
-
-    html.find(".item-edit").click((event) => {
-      const item = this._getItemFromActor(event);
-      item.sheet.render(true);
-    });
-
-    html.find(".item-delete").click((event) => {
-      const item = this._getItemFromActor(event);
-      this._promptRemoveItemFromActor(item);
-    });
-
-    html
-      .find(".quantity input")
-      .click((ev) => ev.target.select())
-      .change(this._updateItemQuantity.bind(this));
-
-    // Consumables
-    html.find(".consumable-counter .full-mark").click((event) => {
-      this._useConsumable(event, true);
-    });
-    html.find(".consumable-counter .empty-mark").click((event) => {
-      this._useConsumable(event, false);
-    });
-
-    // Spells
-    html
-      .find(".memorize input")
-      .click((event) => event.target.select())
-      .change(this._onSpellChange.bind(this));
-
-    html.find(".spells .item-reset[data-action='reset-spells']").click((event) => {
-      this._resetSpells(event);
-    });
+  static _onResetSpells(_event, target) {
+    if (this.isEditable) return resetSpells(this, target);
   }
 }

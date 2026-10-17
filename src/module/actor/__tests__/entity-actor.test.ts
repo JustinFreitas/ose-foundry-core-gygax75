@@ -22,7 +22,6 @@ import {
  * @file Contains tests for Actor Entity.
  */
 import type { ExplorationSkill } from "../../config";
-import OseDice from "../../helpers-dice";
 // eslint-disable-next-line import/no-cycle
 import OseItem from "../../item/entity";
 import OseActor from "../entity";
@@ -882,43 +881,6 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       expect(game.messages?.size).equal(1);
       await actor.delete();
     });
-
-    it("If missile attack, damage.mod.missile is added to the damage roll", async () => {
-      // Ensure the dice roll is a 10 to make sure the attack is successful so
-      // damage is actually rolled and rendered.
-      const existingRandomFunction = CONFIG.Dice.randomUniform;
-      CONFIG.Dice.randomUniform = () => rollSpecificNumber(10, 20);
-
-      const actor = (await createMockActor("character")) as OseActor;
-      await actor.update({ system: { damage: { mod: { missile: 2 } } } });
-      expect(game.messages?.size).equal(0);
-      await actor.rollAttack({ roll: {} }, { type: "missile", skipDialog: true });
-      await waitForInput();
-      expect(game.messages?.size).equal(1);
-      expect(game.messages?.contents[0].content).contain(game.i18n.localize("OSE.messages.InflictsDamage"));
-      expect(game.messages?.contents[0].content).contain("1d6 + 2");
-      await actor.delete();
-
-      CONFIG.Dice.randomUniform = existingRandomFunction;
-    });
-
-    it("If missile attack without the lever, damage gets no bonus (dex mod stays out of damage)", async () => {
-      const existingRandomFunction = CONFIG.Dice.randomUniform;
-      CONFIG.Dice.randomUniform = () => rollSpecificNumber(10, 20);
-
-      const actor = (await createMockActor("character")) as OseActor;
-      expect(game.messages?.size).equal(0);
-      await actor.rollAttack({ roll: {} }, { type: "missile", skipDialog: true });
-      await waitForInput();
-      expect(game.messages?.size).equal(1);
-      // Plain weapon damage only — no +/- from dex.mod or any missile damage mod.
-      expect(game.messages?.contents[0].content).contain("1d6");
-      expect(game.messages?.contents[0].content).not.contain("1d6 +");
-      expect(game.messages?.contents[0].content).not.contain("1d6 -");
-      await actor.delete();
-
-      CONFIG.Dice.randomUniform = existingRandomFunction;
-    });
   });
 
   describe("applyDamage(amount, multiplier)", () => {
@@ -1001,35 +963,6 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
       await actor.applyDamage(4, -3);
       expect(actor.system.hp.value).equal(10);
       await actor.delete();
-    });
-  });
-
-  describe("selectSingleOrAllHitDiceRoll(options)", () => {
-    it("selectSingleOrAllHitDiceRoll parses standard and modified HD formulas correctly", async () => {
-      const actor = (await createMockActor("character")) as OseActor;
-
-      const originalRoll = OseDice.Roll;
-      let rolledParts: string[] = [];
-      // biome-ignore lint/suspicious/noExplicitAny: mocked for testing
-      OseDice.Roll = async (options: any) => {
-        rolledParts = options.parts;
-        return null;
-      };
-
-      try {
-        // Standard formula
-        await actor.update({ system: { hp: { hd: "1d8" }, details: { level: 2 }, scores: { con: { mod: 2 } } } });
-        actor.selectSingleOrAllHitDiceRoll({ hdRollType: "single" });
-        expect(rolledParts[0]).to.equal("max(1d8 + 2, 1)");
-
-        // Formula with static modifiers (e.g. 1d8+1)
-        await actor.update({ system: { hp: { hd: "1d8+1" } } });
-        actor.selectSingleOrAllHitDiceRoll({ hdRollType: "all" });
-        expect(rolledParts[0]).to.equal("max(2d8 + 4, 2)");
-      } finally {
-        OseDice.Roll = originalRoll;
-        await actor.delete();
-      }
     });
   });
 };

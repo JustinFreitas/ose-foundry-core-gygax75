@@ -67,20 +67,21 @@ export const augmentTable = (table, html) => {
   });
 };
 
-async function drawTreasure(table, data, visited = new Set()) {
-  if (visited.has(table.uuid)) {
-    console.warn(`Circular dependency detected on RollTable "${table.name}" (${table.uuid})`);
-    return data;
-  }
-  visited.add(table.uuid);
-
-  const percent = (chance) => {
-    return Math.floor(Math.random() * 100) + 1 <= chance;
+/**
+ *
+ * @param table
+ * @param data
+ */
+async function drawTreasure(table, data) {
+  const percent = async (chance) => {
+    const roll = new Roll("1d100");
+    await roll.evaluate();
+    return roll.total <= chance;
   };
   data.treasure = {};
   if (table.getFlag(game.system.id, "treasure")) {
     for (const r of table.results) {
-      if (percent(r.weight)) {
+      if (await percent(r.weight)) {
         const text = await r.getHTML();
         data.treasure[r.id] = {
           img: r.img,
@@ -90,7 +91,7 @@ async function drawTreasure(table, data, visited = new Set()) {
         const documentCollection = parsedUuid?.collection?.metadata?.id ?? parsedUuid?.documentType ?? "";
         if (r.type === CONST.TABLE_RESULT_TYPES.DOCUMENT && documentCollection === "RollTable") {
           const embeddedTable = await fromUuid(r.documentUuid);
-          await drawTreasure(embeddedTable, data.treasure[r.id], visited);
+          await drawTreasure(embeddedTable, data.treasure[r.id]);
         }
       }
     }
@@ -109,6 +110,8 @@ async function drawTreasure(table, data, visited = new Set()) {
  * @param options
  */
 export async function rollTreasure(table, options = {}) {
+  // currentTarget is cleared once the click finishes dispatching.
+  const button = options.event?.currentTarget;
   // Draw treasure
   const data = await drawTreasure(table, {});
   const templateData = {
@@ -117,17 +120,18 @@ export async function rollTreasure(table, options = {}) {
   };
 
   // Animation
-  if (options.event) {
-    const results = $(options.event.currentTarget.parentElement).prev().find(".table-result");
-    results.each((_, item) => {
+  if (button) {
+    const results = button.closest(".roll-table-sheet")?.querySelectorAll("[data-result-id]") ?? [];
+    results.forEach((item) => {
       item.classList.remove("active");
       if (data.treasure[item.dataset.resultId]) {
         item.classList.add("active");
       }
     });
+    // Let the active highlight render before the chat card renders.
+    await new Promise((resolve) => requestAnimationFrame(resolve));
   }
 
-  await new Promise((resolve) => requestAnimationFrame(resolve));
   const html = await foundry.applications.handlebars.renderTemplate(
     `${OSE.systemPath()}/templates/chat/roll-treasure.html`,
     templateData,
@@ -140,7 +144,7 @@ export async function rollTreasure(table, options = {}) {
 
   const rollMode = getRollMode();
   if (["gmroll", "blindroll"].includes(rollMode)) chatData.whisper = ChatMessage.getWhisperRecipients("GM");
-  if (rollMode === "selfroll") chatData.whisper = [game.user.id];
+  if (rollMode === "selfroll") chatData.whisper = [game.user._id];
   if (rollMode === "blindroll") chatData.blind = true;
 
   ChatMessage.create(chatData);

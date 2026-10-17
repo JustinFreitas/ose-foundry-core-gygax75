@@ -6,6 +6,7 @@
  * `game.i18n.localize`. Anything beyond that is deliberately absent — a test
  * that needs more Foundry than this belongs in the Quench suite.
  */
+import { vi } from "vitest";
 import { OSE } from "../src/module/config";
 
 interface FieldOptions {
@@ -132,19 +133,193 @@ class Roll {
   }
 }
 
+class Combatant {
+  id: string;
+  name: string;
+  actor: any = null;
+  token: any = null;
+  defeated = false;
+  initiative: number | string | null = null;
+  combat: any = null;
+  group: any = null;
+  flags: Record<string, any> = {};
+
+  constructor(data: any = {}) {
+    this.id = data._id || data.id || "mock-combatant-id";
+    this.name = data.name || "Mock Combatant";
+    this.actor = data.actor || null;
+    this.token = data.token || null;
+    this.defeated = data.defeated || false;
+    this.initiative = data.initiative ?? null;
+    this.combat = data.combat || null;
+    this.group = data.group || null;
+    this.flags = data.flags || {};
+  }
+
+  getFlag(scope: string, key: string) {
+    return this.flags[scope]?.[key];
+  }
+
+  async setFlag(scope: string, key: string, value: any) {
+    this.flags[scope] = this.flags[scope] || {};
+    this.flags[scope][key] = value;
+  }
+
+  async getData(options = {}) {
+    return { ...this };
+  }
+}
+
+class Actor {
+  id: string;
+  name: string;
+  type: string;
+  system: any;
+  flags: Record<string, any> = {};
+
+  constructor(data: any = {}) {
+    this.id = data._id || data.id || "mock-actor-id";
+    this.name = data.name || "Mock Actor";
+    this.type = data.type || "character";
+    this.system = data.system || {};
+    this.flags = data.flags || {};
+  }
+
+  getFlag(scope: string, key: string) {
+    return this.flags[scope]?.[key];
+  }
+
+  async setFlag(scope: string, key: string, value: any) {
+    this.flags[scope] = this.flags[scope] || {};
+    this.flags[scope][key] = value;
+  }
+
+  async update(data: any) {
+    if (data.system) {
+      this.system = { ...this.system, ...data.system };
+    }
+    return this;
+  }
+}
+
+class Item {
+  id: string;
+  name: string;
+  type: string;
+  system: any;
+  flags: Record<string, any> = {};
+
+  constructor(data: any = {}) {
+    this.id = data._id || data.id || "mock-item-id";
+    this.name = data.name || "Mock Item";
+    this.type = data.type || "item";
+    this.system = data.system || {};
+    this.flags = data.flags || {};
+  }
+
+  getFlag(scope: string, key: string) {
+    return this.flags[scope]?.[key];
+  }
+
+  async setFlag(scope: string, key: string, value: any) {
+    this.flags[scope] = this.flags[scope] || {};
+    this.flags[scope][key] = value;
+  }
+}
+
+class MockDialogV2 {
+  options: any;
+  constructor(options: any) {
+    this.options = options;
+  }
+  addEventListener() {}
+  async render() {
+    return this;
+  }
+  static confirm = () => Promise.resolve(true);
+}
+
+// Global Math.clamp
+if (!Math.clamp) {
+  Math.clamp = (val: number, min: number, max: number) => Math.min(Math.max(val, min), max);
+}
+
 Object.assign(globalThis, {
   Roll,
+  Actor,
+  Item,
+  Combatant,
+  OseDice: {
+    Roll: (data: any) => data,
+  },
   foundry: {
     abstract: { TypeDataModel },
+    applications: {
+      api: {
+        DialogV2: MockDialogV2,
+      },
+    },
     data: {
       fields: { DataField, StringField, NumberField, BooleanField, ArrayField, ObjectField, SchemaField },
     },
+    utils: {
+      mergeObject: (target: any, source: any) => Object.assign(target || {}, source),
+      escapeHTML: (str: string) => str,
+    },
   },
-  CONFIG: { OSE },
+  CONFIG: {
+    OSE,
+    Combat: {
+      initiative: {
+        formula: "1d6",
+      },
+    },
+    Dice: {
+      rollModes: {
+        publicroll: "publicroll",
+        gmroll: "gmroll",
+        blindroll: "blindroll",
+        selfroll: "selfroll",
+      },
+    },
+    ChatMessage: {
+      modes: {
+        public: "public",
+        gm: "gm",
+        blind: "blind",
+        self: "self",
+      },
+    },
+  },
+  ChatMessage: {
+    getSpeaker: () => ({}),
+  },
+  ui: {
+    notifications: {
+      warn: () => {},
+      info: () => {},
+      error: () => {},
+    },
+  },
   game: {
     system: { id: "ose" },
     i18n: {
       localize: (key: string) => key,
+      format: (key: string, data?: any) => {
+        if (data) return `${key}: ${JSON.stringify(data)}`;
+        return key;
+      },
+    },
+    settings: {
+      get: vi.fn((_scope: string, key: string) => {
+        if (key === "ascendingAC") return false;
+        if (key === "initiative") return "group";
+        if (key === "rerollInitiative") return "reset";
+        if (key === "gygax75Encumbrance") return true;
+        return undefined;
+      }),
+      set: vi.fn().mockResolvedValue(true),
+      register: vi.fn(),
     },
   },
 });

@@ -1,4 +1,4 @@
-@use "variables.scss";
+@import "./variables.scss";
 
 @keyframes notify {
   from {
@@ -11,16 +11,66 @@
 
 .ose.sheet.actor {
   $detailsHeight: 44px;
+  overflow: visible;
+  backdrop-filter: blur(4px);
+  .window-content {
+    backdrop-filter: none;
+    padding: 8px;
+    background: url("../../../ui/parchment.jpg") repeat;
+    color: #191813;
+    line-height: normal;
+  }
+  input[type="text"],
+  input[type="number"] {
+    height: 26px;
+    padding: 1px 3px;
+    color: #191813;
+    font-size: inherit;
+    line-height: inherit;
+  }
+  .charname input {
+    height: 48px;
+    line-height: 48px;
+  }
+  .window-content {
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      font-family: var(--font-primary);
+      font-weight: normal;
+      line-height: unset;
+      color: inherit;
+    }
+    h1 {
+      font-size: 2em;
+    }
+    h4 {
+      font-size: revert;
+    }
+    .flexrow {
+      align-items: initial;
+    }
+  }
   .blinking {
     font-weight: bold;
     animation: 0.8s ease-in 1s infinite alternate notify;
   }
-
+  ::-webkit-scrollbar-thumb {
+    border-radius: 2px;
+    border: 1px solid $colorTan;
+  }
+  ::-webkit-scrollbar-track {
+    border-radius: 2px;
+    background: $colorDark;
+  }
   .panel {
-    border: 1px solid variables.$colorDark;
+    border: 1px solid $colorDark;
     .panel-title {
       color: whitesmoke;
-      background: variables.$darkBackground;
+      background: $darkBackground;
       line-height: 12px;
       height: 20px;
       text-align: left;
@@ -44,6 +94,7 @@
   /* Header Summary Details */
   .header-details {
     h1 {
+      margin: 0;
       input {
         margin: 0 0 10px 0;
       }
@@ -73,13 +124,13 @@
       margin: 2px 0;
       padding: 0;
       line-height: 30px;
-      color: variables.$colorOlive;
+      color: $colorOlive;
       position: relative;
       label {
         line-height: 10px;
         position: absolute;
         font-size: 10px;
-        color: variables.$colorOlive;
+        color: $colorOlive;
         bottom: 0;
         left: 12px;
       }
@@ -95,7 +146,7 @@
     padding: 0; /* tab padding fix */
     position: absolute;
     transform: rotate(90deg);
-    top: 300px;
+    top: 365px;
     right: -169px;
     width: 320px;
     border-top: none;
@@ -104,18 +155,20 @@
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
-    justify-content: space-around;
+    justify-content: flex-start;
+    gap: 1px;
     .item {
       max-height: 35px; /* tab padding fix */
-      padding: 1px 10px 0;
-      margin-left: -5px;
+      padding: 1px 6px 0;
+      margin-left: 0;
       text-indent: 4px;
       line-height: 16px;
-      background: url("/ui/parchment.jpg");
+      background: url("../../../ui/parchment.jpg");
+      color: #333;
       border-top-right-radius: 4px;
       border-top-left-radius: 80px;
       border-bottom: 1px solid rgba(0, 0, 0, 0.15);
-      box-shadow: 0 0 6px 1px variables.$colorDark;
+      box-shadow: 0 0 6px 1px $colorDark;
       font-size: var(--font-size-12);
       filter: brightness(0.9);
       &.active {
@@ -129,9 +182,11 @@
   }
   .sheet-body {
     height: calc(100% - 140px);
-    overflow: hidden;
     .tab {
       height: 100%;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--color-border) transparent;
     }
     .attributes {
       list-style: none;
@@ -140,14 +195,14 @@
       justify-content: space-evenly;
       .attribute {
         position: relative;
-        border: 1px solid variables.$colorTan;
-        box-shadow: 0 0 2px variables.$colorTan;
+        border: 1px solid $colorTan;
+        box-shadow: 0 0 2px $colorTan;
         .attribute-name {
           color: whitesmoke;
           padding: 2px;
           margin: 0;
-          border: 1px solid variables.$colorDark;
-          background: variables.$darkBackground;
+          border: 1px solid $colorDark;
+          background: $darkBackground;
           text-align: center;
         }
         &.ability-score {
@@ -202,21 +257,18 @@
     }
     .inventory {
       overflow: auto;
-      &.effects {
-        height: 100%;
-      }
       .header-spells {
         line-height: max(30px, 1.9rem);
       }
       .item-category-title {
         text-align: center;
         padding: 4px 0;
-        border: 1px solid variables.$colorDark;
-        box-shadow: 0 0 5px variables.$colorDark;
+        border: 1px solid $colorDark;
+        box-shadow: 0 0 5px $colorDark;
         line-height: 1.2;
         font-weight: 300;
         font-size: var(--font-size-13);
-        background: variables.$darkBackground;
+        background: $darkBackground;
         color: white;
         cursor: pointer;
         input {
@@ -252,7 +304,7 @@
           font-size: var(--font-size-13);
           padding: 0 4px;
           line-height: 1.2;
-          border-bottom: 1px solid variables.$colorTan;
+          border-bottom: 1px solid $colorTan;
           div > p {
             padding: 0.5em 0;
             margin: 0;
@@ -266,14 +318,14 @@
             flex-wrap: wrap;
             .tag {
               margin: 1px 2px;
-              border: 1px solid variables.$colorFaint;
+              border: 1px solid $colorFaint;
               font-size: var(--font-size-11);
               line-height: 1.4;
-              background: variables.$colorOlive;
+              background: $colorOlive;
               padding: 1px 4px;
               color: whitesmoke;
               border-radius: 3px;
-              box-shadow: 0 0 1px variables.$colorFaint;
+              box-shadow: 0 0 1px $colorFaint;
             }
           }
         }
@@ -303,7 +355,7 @@
           }
         }
         .item-entry {
-          box-shadow: inset 1px 0 0 0 variables.$colorTan;
+          box-shadow: inset 1px 0 0 0 $colorTan;
           line-height: 1.9rem;
           &:nth-child(even) {
             .item-header {
@@ -317,11 +369,11 @@
         }
         .item-rollable {
           &:hover .item-image {
-            background-image: url("/icons/svg/d20-grey.svg") !important;
+            background-image: url("../../../icons/svg/d20-grey.svg") !important;
             cursor: pointer;
           }
           .item-image:hover {
-            background-image: url("/icons/svg/d20-black.svg") !important;
+            background-image: url("../../../icons/svg/d20-black.svg") !important;
           }
         }
 
@@ -333,7 +385,7 @@
           label {
             flex: 0 30px;
             font-size: 11px;
-            color: variables.$colorDark;
+            color: $colorDark;
             text-indent: 3px;
           }
           .full-mark,
@@ -341,14 +393,14 @@
             cursor: pointer;
             flex: 0 8px;
             margin: 1px;
-            box-shadow: inset 0 0 2px variables.$colorTan;
+            box-shadow: inset 0 0 2px $colorTan;
             &:hover {
-              background: variables.$colorTan;
+              background: $colorTan;
             }
           }
           .full-mark {
-            background: variables.$colorOlive;
-            border: 1px inset variables.$colorTan;
+            background: $colorOlive;
+            border: 1px inset $colorTan;
           }
         }
       }
@@ -411,12 +463,12 @@
         margin-right: 4px;
         white-space: nowrap;
         .item-unequipped {
-          color: rgba(0, 0, 0, 0.2);
+          opacity: 0.25;
         }
         a:hover {
-          color: variables.$colorCrimson;
-          text-shadow: 0 0 5px variables.$colorFaint, 1px 0 5px variables.$colorFaint,
-            0 1px 5px variables.$colorFaint, 1px 1px 5px variables.$colorFaint;
+          color: $colorCrimson;
+          text-shadow: 0 0 5px $colorFaint, 1px 0 5px $colorFaint,
+            0 1px 5px $colorFaint, 1px 1px 5px $colorFaint;
         }
       }
       &.spells {
@@ -427,38 +479,6 @@
           flex: 0 0 2.7rem;
         }
       }
-      &.effects {
-        .item-controls {
-          flex: 0 0 4rem;
-        }
-        .effect-source {
-          flex: 1 1 auto;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          text-align: right;
-          padding-right: 6px;
-          font-size: var(--font-size-12);
-          font-style: italic;
-          line-height: 1.9rem;
-          color: variables.$colorTan;
-        }
-        .effect-control {
-          .fa-toggle-on {
-            color: variables.$colorCrimson;
-          }
-          .fa-toggle-off {
-            color: variables.$colorInactive;
-          }
-        }
-        .item-entry[data-effect-type="inactive"],
-        .item-entry[data-effect-suppressed="true"] {
-          .item-name,
-          .item-image {
-            opacity: 0.5;
-          }
-        }
-      }
       #context-menu {
         width: fit-content;
       }
@@ -466,6 +486,15 @@
     .editor {
       flex: 1 0 300px;
       padding: 4px;
+      button.toggle {
+        top: 4px;
+        right: 4px;
+      }
+      &:hover > button.toggle:enabled {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
     }
   }
 }

@@ -1,4 +1,5 @@
 import { OSE } from "../config";
+import { contextMenuEntry } from "../context-menu-entry";
 import { OSECombatant } from "./combatant";
 
 export default class OSECombatTracker extends foundry.applications.sidebar.tabs.CombatTracker {
@@ -15,8 +16,6 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
   /** @inheritDoc */
   async _prepareTrackerContext(context, options) {
     await super._prepareTrackerContext(context, options);
-    // Use the combat this tracker is viewing, which is not necessarily
-    // the active combat (game.combat).
     const combat = this.viewed;
     context.turns?.forEach((turn) => {
       const combatant = combat?.combatants.get(turn.id);
@@ -33,7 +32,6 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
 
   /** @inheritDoc */
   static #onCombatantControl(...args) {
-    // biome-ignore lint/complexity/noThisInStatic: v2 Applications have `this` bound to the instance
     return this._onCombatantControl(...args);
   }
 
@@ -63,21 +61,15 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
     return super._onCombatantControl(event, target);
   }
 
-  /**
-   * Own copy of PARTS with the tracker template swapped for the OSE version.
-   * Defined as an own static (with a lazy template getter, since the system
-   * path needs `game`) so the base CombatTracker.PARTS is never mutated.
-   * @override
-   */
-  static PARTS = {
-    ...foundry.applications.sidebar.tabs.CombatTracker.PARTS,
-    tracker: {
-      ...foundry.applications.sidebar.tabs.CombatTracker.PARTS.tracker,
-      get template() {
-        return `${OSE.systemPath()}/templates/sidebar/combat-tracker-combatant.hbs`;
-      },
-    },
-  };
+  /** @override */
+  _configureRenderOptions(options: object) {
+    super._configureRenderOptions(options);
+
+    // Replace the tracker template
+    this.constructor.PARTS.tracker.template = `${OSE.systemPath()}/templates/sidebar/combat-tracker-combatant.hbs`;
+
+    return options;
+  }
 
   /**
    * Toggle a boolean flag value on the combatant.
@@ -100,15 +92,15 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
   _getEntryContextOptions() {
     const options = super._getEntryContextOptions();
     return [
-      {
-        name: game.i18n.localize("OSE.combat.SetCombatantAsActive"),
+      contextMenuEntry({
+        label: game.i18n.localize("OSE.combat.SetCombatantAsActive"),
         icon: '<i class="fas fa-star-of-life"></i>',
-        callback: (li: HTMLElement) => {
+        onClick: (li: HTMLElement) => {
           const { combatantId } = li.dataset;
           const turnToActivate = this.viewed.turns.findIndex((t: OSECombatant) => t.id === combatantId);
           this.viewed.activateCombatant(turnToActivate);
         },
-      },
+      }),
       ...options,
     ];
   }
@@ -133,6 +125,20 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
       reRollButton.dataset.tooltip = game.i18n.localize("OSE.Reroll");
       reRollButton.ariaLabel = game.i18n.localize("OSE.Reroll");
 
+      const reRollNPCButton = document.createElement("button");
+      reRollNPCButton.type = "button";
+      reRollNPCButton.classList.add(
+        "inline-control",
+        "combat-control",
+        "combat-button",
+        "icon",
+        "fa-solid",
+        "fa-users-cog",
+      );
+      reRollNPCButton.dataset.action = "rerollNPCInitiative";
+      reRollNPCButton.dataset.tooltip = game.i18n.localize("OSE.combat.RerollNPCs");
+      reRollNPCButton.ariaLabel = game.i18n.localize("OSE.combat.RerollNPCs");
+
       const setCombatantGroupsButton = document.createElement("button");
       setCombatantGroupsButton.type = "button";
       setCombatantGroupsButton.classList.add(
@@ -147,7 +153,7 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
       setCombatantGroupsButton.dataset.tooltip = game.i18n.localize("OSE.combat.SetCombatantGroups");
       setCombatantGroupsButton.ariaLabel = game.i18n.localize("OSE.combat.SetCombatantGroups");
 
-      headerButtonContainer.replaceChildren(reRollButton, setCombatantGroupsButton);
+      headerButtonContainer.replaceChildren(reRollButton, reRollNPCButton, setCombatantGroupsButton);
     }
 
     const list = html.querySelector(".directory-list, .combat-tracker");
@@ -196,7 +202,10 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
       diceIcon.className = "fas fa-dice-d6";
       nameStrong.append(diceIcon);
 
-      nameStrong.append(" ", game.i18n.localize(OSECombatTracker.getDispositionFromColor(label)));
+      nameStrong.append(
+        " ",
+        game.i18n.localize(label === "slow" ? "OSE.items.Slow" : label === "fast" ? "OSE.combat.Fast" : `OSE.colors.${label}`),
+      );
 
       tokenName.append(nameStrong);
       groupHeader.append(tokenName);
@@ -217,39 +226,5 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
       children[0].before(groupContainer);
       groupContainer.querySelector(".group-children")?.replaceChildren(...children);
     }
-  }
-
-  private static getDispositionFromColor(label: string) {
-    let groupName: string | undefined;
-    switch (label) {
-      case "fast":
-        groupName = "Fast";
-        break;
-
-      case "green":
-        groupName = "Friendly";
-        break;
-
-      case "purple":
-        groupName = "Neutral";
-        break;
-
-      case "red":
-        groupName = "Hostile";
-        break;
-
-      case "white":
-        groupName = "Secret";
-        break;
-
-      case "slow":
-        groupName = "Slow";
-        break;
-
-      default:
-        return String(label).charAt(0).toUpperCase() + String(label).slice(1);
-    }
-
-    return groupName;
   }
 }

@@ -11,15 +11,6 @@ packages/types/index.d.ts
 foundry.zip
 foundry/
 .idea
-.claude/
-coverage/
 
 # packaging artifacts
 *.tgz
-
-# Subagents & Local Diagnostics
-.agents/
-tools/*.mjs
-tools/*.jsonl
-tools/*.txt
-

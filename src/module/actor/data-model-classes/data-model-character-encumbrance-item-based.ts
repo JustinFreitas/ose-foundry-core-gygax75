@@ -93,7 +93,6 @@ export default class OseDataModelCharacterEncumbranceItemBased
       max === OseDataModelCharacterEncumbrance.baseEncumbranceCap ||
       max === 2400 ||
       max === 1600 ||
-      max === OseDataModelCharacterEncumbranceItemBased.baseEncumbranceCap ||
       max === OseDataModelCharacterEncumbranceItemBased.alternateBaseEncumbranceCap;
 
     this.#packedMax = isDefaultMax ? 16 : max;
@@ -106,14 +105,10 @@ export default class OseDataModelCharacterEncumbranceItemBased
             return acc;
           }
           if ((item.type === "item" || item.type === "container") && !item.system.equipped) {
-            const itemSlots =
-              item.system.cumulativeItemslots ?? Math.ceil(item.system.itemslots * (item.system.quantity?.value ?? 1));
-            return acc + itemSlots;
+            return acc + Math.ceil((item.system.quantity.value ?? 0) * item.system.itemslots);
           }
           if (["weapon", "armor"].includes(item.type) && !item.system.equipped) {
-            const itemSlots =
-              item.system.cumulativeItemslots ?? Math.ceil(item.system.itemslots * (item.system.quantity?.value ?? 1));
-            return acc + itemSlots;
+            return acc + item.system.itemslots;
           }
 
           return acc;
@@ -130,10 +125,9 @@ export default class OseDataModelCharacterEncumbranceItemBased
         }, 0),
       );
     this.#equippedWeight = Math.ceil(
-      items.reduce((acc, { type, system }: Item) => {
-        const itemSlots = system.cumulativeItemslots ?? Math.ceil(system.itemslots * (system.quantity?.value ?? 1));
-        if (type === "item" && system.equipped) return acc + itemSlots;
-        if (["weapon", "armor"].includes(type) && system.equipped) return acc + itemSlots;
+      items.reduce((acc, { type, system: { quantity, itemslots, equipped } }: Item) => {
+        if (type === "item" && equipped) return acc + Math.ceil((quantity.value ?? 0) * itemslots);
+        if (["weapon", "armor"].includes(type) && equipped) return acc + itemslots;
         return acc;
       }, 0),
     );

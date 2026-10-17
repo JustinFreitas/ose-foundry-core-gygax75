@@ -2,9 +2,8 @@
  * @file System-level modifications to the way combat works
  */
 import { OSE } from "../config";
-import { getRollMode } from "../helpers-message-mode";
 import OSECombatGroupSelector from "./combat-set-groups";
-import type { OSECombatant } from "./combatant";
+import { OSECombatant } from "./combatant";
 
 export const actionGroups = {
   slow: "OSE.items.Slow",
@@ -59,7 +58,7 @@ export class OSECombat extends foundry.documents.Combat {
    * @param {object} [options={}] - Additional options which modify how initiative rolls are created or presented.
    * @param {boolean} [options.excludeAlreadyRolled=false] - If true, exclude combatants that have already rolled initiative.
    * @param {boolean} [options.updateTurn=false] - Update the Combat turn after adding new initiative scores to
-   * keep the turn on the same Combatant.
+   *                                               keep the turn on the same Combatant.
    * @private
    */
   async #rollAbsolutelyEveryone({ excludeAlreadyRolled = false, updateTurn = false } = {}) {
@@ -81,9 +80,10 @@ export class OSECombat extends foundry.documents.Combat {
    * @param {object} [options={}] - Additional options which modify how initiative rolls are created or presented.
    * @param {boolean} [options.excludeAlreadyRolled=false] - If true, exclude combatants that have already rolled initiative.
    * @param {boolean} [options.updateTurn=false] - Update the Combat turn after adding new initiative scores to
-   * keep the turn on the same Combatant.
+   *                                               keep the turn on the same Combatant.
+   * @param {boolean} [options.npcOnly=false] - If true, only reroll groups with no player-owned combatants.
    */
-  async smartRerollInitiative({ excludeAlreadyRolled = false, updateTurn = false } = {}) {
+  async smartRerollInitiative({ excludeAlreadyRolled = false, updateTurn = false, npcOnly = false } = {}) {
     if (!this.isGroupInitiative) {
       return this.#rollAbsolutelyEveryone({ excludeAlreadyRolled, updateTurn });
     }
@@ -98,12 +98,13 @@ export class OSECombat extends foundry.documents.Combat {
       ) {
         continue;
       }
+      if (npcOnly && group.members.some((c) => c.hasPlayerOwner)) {
+        continue;
+      }
 
       const roll = new Roll(OSECombat.GROUP_FORMULA);
       await roll.evaluate();
       updates.push({ _id: group.id, initiative: roll.total });
-
-      const rollMode = getRollMode();
 
       // Construct chat message data
       const messageData = {
@@ -115,10 +116,7 @@ export class OSECombat extends foundry.documents.Combat {
         }),
         flags: { "core.initiativeRoll": true },
       };
-      const chatData = await roll.toMessage(messageData, {
-        rollMode,
-        create: false,
-      });
+      const chatData = await roll.toMessage(messageData, { create: false });
       messages.push(chatData);
     }
 
@@ -133,11 +131,18 @@ export class OSECombat extends foundry.documents.Combat {
   }
 
   /**
+   * Reroll initiative for groups with no player-owned combatants.
+   */
+  async rerollNPCInitiative() {
+    return this.smartRerollInitiative({ npcOnly: true });
+  }
+
+  /**
    * Handle updating a combatant group.
    */
   async onUpdateCombatantGroup() {
     this.setupTurns();
-    await ui.combat.render(true);
+    await ui.combat.render({ force: true });
   }
 
   /** @override */
@@ -154,7 +159,7 @@ export class OSECombat extends foundry.documents.Combat {
     }
     await this.update({ turn });
     this.setupTurns();
-    await ui.combat.render(true);
+    await ui.combat.render({ force: true });
     return this;
   }
 
@@ -172,14 +177,13 @@ export class OSECombat extends foundry.documents.Combat {
     return this;
   }
 
+  /**
+   * Reset the actions of all combatants in the combat.
+   */
   async resetActions() {
-    const updates = this.combatants.map((c) => ({
-      _id: c.id,
-      [`flags.${game.system.id}.prepareSpell`]: false,
-      [`flags.${game.system.id}.moveInCombat`]: false,
-    }));
-    if (updates.length > 0) {
-      await this.updateEmbeddedDocuments("Combatant", updates);
+    for (const combatant of this.combatants) {
+      await combatant.setFlag(game.system.id, "prepareSpell", false);
+      await combatant.setFlag(game.system.id, "moveInCombat", false);
     }
   }
 
@@ -196,7 +200,6 @@ export class OSECombat extends foundry.documents.Combat {
         case "reroll":
           await this.smartRerollInitiative();
           break;
-
         default:
           break;
       }
@@ -227,7 +230,7 @@ export class OSECombat extends foundry.documents.Combat {
    */
   async activateCombatant(turn: number) {
     if (game.user.isGM) {
-      await this.update({ turn });
+      await game.combat.update({ turn });
     }
   }
 
@@ -244,24 +247,15 @@ export class OSECombat extends foundry.documents.Combat {
       return;
     }
 
-    let group = this.groups.find((g: CombatantGroup) => g.name === groupName);
-    if (!group) {
-      // Deduplicate concurrent creations of the same group, but clear the
-      // cache entry once settled so a deleted group can be recreated later.
-      const groupCreation =
-        this.#combatantGroups.get(groupName) ??
-        (this.createEmbeddedDocuments("CombatantGroup", [
-          { name: groupName, initiative: null },
-        ]) as Promise<CombatantGroup>);
+    if (this.#combatantGroups.has(groupName)) {
+      await this.#combatantGroups.get(groupName);
+    } else {
+      const groupCreation = this.createEmbeddedDocuments("CombatantGroup", [{ name: groupName, initiative: null }]);
       this.#combatantGroups.set(groupName, groupCreation);
-      try {
-        await groupCreation;
-      } finally {
-        this.#combatantGroups.delete(groupName);
-      }
-      group = this.groups.find((g: CombatantGroup) => g.name === groupName);
+      await groupCreation;
     }
 
+    const group = this.groups.find((g: CombatantGroup) => g.name === groupName);
     if (!group) {
       return;
     }
@@ -290,7 +284,7 @@ export class OSECombat extends foundry.documents.Combat {
    * Prompts to set the combatant groups.
    */
   setCombatantGroups() {
-    new OSECombatGroupSelector().render(true, { focus: true });
+    new OSECombatGroupSelector().render({ force: true, focus: true });
   }
 
   /** @override */

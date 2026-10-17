@@ -169,6 +169,63 @@ class Combatant {
   }
 }
 
+class Actor {
+  id: string;
+  name: string;
+  type: string;
+  system: any;
+  flags: Record<string, any> = {};
+
+  constructor(data: any = {}) {
+    this.id = data._id || data.id || "mock-actor-id";
+    this.name = data.name || "Mock Actor";
+    this.type = data.type || "character";
+    this.system = data.system || {};
+    this.flags = data.flags || {};
+  }
+
+  getFlag(scope: string, key: string) {
+    return this.flags[scope]?.[key];
+  }
+
+  async setFlag(scope: string, key: string, value: any) {
+    this.flags[scope] = this.flags[scope] || {};
+    this.flags[scope][key] = value;
+  }
+
+  async update(data: any) {
+    if (data.system) {
+      this.system = { ...this.system, ...data.system };
+    }
+    return this;
+  }
+}
+
+class Item {
+  id: string;
+  name: string;
+  type: string;
+  system: any;
+  flags: Record<string, any> = {};
+
+  constructor(data: any = {}) {
+    this.id = data._id || data.id || "mock-item-id";
+    this.name = data.name || "Mock Item";
+    this.type = data.type || "item";
+    this.system = data.system || {};
+    this.flags = data.flags || {};
+  }
+
+  getFlag(scope: string, key: string) {
+    return this.flags[scope]?.[key];
+  }
+
+  async setFlag(scope: string, key: string, value: any) {
+    this.flags[scope] = this.flags[scope] || {};
+    this.flags[scope][key] = value;
+  }
+}
+
 class MockDialogV2 {
   options: any;
   constructor(options: any) {
@@ -188,7 +245,12 @@ if (!Math.clamp) {
 
 Object.assign(globalThis, {
   Roll,
+  Actor,
+  Item,
   Combatant,
+  OseDice: {
+    Roll: (data: any) => data,
+  },
   foundry: {
     abstract: { TypeDataModel },
     applications: {
@@ -209,6 +271,22 @@ Object.assign(globalThis, {
     Combat: {
       initiative: {
         formula: "1d6",
+      },
+    },
+    Dice: {
+      rollModes: {
+        publicroll: "publicroll",
+        gmroll: "gmroll",
+        blindroll: "blindroll",
+        selfroll: "selfroll",
+      },
+    },
+    ChatMessage: {
+      modes: {
+        public: "public",
+        gm: "gm",
+        blind: "blind",
+        self: "self",
       },
     },
   },

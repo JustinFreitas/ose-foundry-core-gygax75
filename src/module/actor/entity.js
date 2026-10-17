@@ -340,20 +340,53 @@ export default class OseActor extends Actor {
     });
   }
 
-  rollHitDice(options = {}) {
-    const actorType = this.type;
-
+  selectSingleOrAllHitDiceRoll(options = {}) {
     const actorData = this.system;
 
     const label = game.i18n.localize("OSE.roll.hd");
-    let rollParts = [actorData.hp.hd];
+    const level = +actorData.details.level || 1;
+    const single = options.hdRollType === "single";
 
-    if (actorType === "character") {
+    // Parse the die size out of the HD formula (e.g. "3d8" -> 8, "9d8+2" -> 9 dice, d8, +2).
+    // If the HD is malformed/empty, warn and bail rather than silently rolling a d0.
+    const parts = /^(\d+)\s*d\s*(\d+)(?:\s*([+-])\s*(\d+))?/i.exec(actorData.hp.hd?.trim() ?? "");
+    if (!parts) {
+      ui.notifications.warn(
+        game.i18n.format("OSE.warn.invalidHitDice", { hd: actorData.hp.hd ?? "" }) ||
+          `Cannot roll Hit Dice: invalid HD formula "${actorData.hp.hd ?? ""}".`,
+      );
+      return;
+    }
+    const baseDice = Number.parseInt(parts[1], 10);
+    const dieSize = parts[2];
+    const flatSign = parts[3] === "-" ? -1 : 1;
+    const flatBonus = parts[4] ? Number.parseInt(parts[4], 10) * flatSign : 0;
+
+    let rollParts;
+    // B/X & BECMI Name-Level progression (e.g. "9d8+2" at Level 10+):
+    // Levels past base Hit Dice (Level 9+) gain static flat HP per level without CON modifier.
+    if (baseDice >= 8 && flatBonus !== 0) {
+      if (single) {
+        if (level > baseDice) {
+          const flatPerLevel = Math.max(1, Math.round(Math.abs(flatBonus) / (level - baseDice))) * flatSign;
+          rollParts = [flatPerLevel >= 0 ? `${flatPerLevel}` : `max(${flatPerLevel}, 1)`];
+        } else {
+          const conBonus = actorData.scores.con.mod;
+          rollParts = [`max(1d${dieSize} + ${conBonus}, 1)`];
+        }
+      } else {
+        const conTotal = actorData.scores.con.mod * baseDice;
+        rollParts = [`max(${baseDice}d${dieSize} + ${conTotal}, ${baseDice}) + ${flatBonus}`];
+      }
+    } else {
+      // Standard progression (Levels 1-9):
+      // Number of dice and the CON bonus scale with how many levels we're rolling.
+      const numDice = single ? 1 : level;
+      const conBonus = single ? actorData.scores.con.mod : actorData.scores.con.mod * level;
+
       // A character always gains at least 1 hit point per Hit Die,
-      // regardless of CON modifier.
-      rollParts = [
-        `max(${actorData.hp.hd} + ${actorData.scores.con.mod * actorData.details.level}, ${actorData.hp.hd[0]})`,
-      ];
+      // regardless of CON modifier (so the floor is the number of dice rolled).
+      rollParts = [`max(${numDice}d${dieSize} + ${conBonus}, ${numDice})`];
     }
 
     const data = {
@@ -373,6 +406,68 @@ export default class OseActor extends Actor {
       flavor: label,
       title: label,
     });
+  }
+
+  rollHitDice(options = {}) {
+    const actorType = this.type;
+    // Gygax75 - Roll monster HD like normal with min 1 HP clamp.
+    if (actorType !== "character") {
+      const actorData = this.system;
+
+      const label = game.i18n.localize("OSE.roll.hd");
+      const rollParts = [actorData.hp.hd ? `max(${actorData.hp.hd}, 1)` : "1d8"];
+
+      const data = {
+        actor: this,
+        roll: {
+          type: "hitdice",
+        },
+      };
+
+      // Roll and return
+      return OseDice.Roll({
+        event: options.event,
+        parts: rollParts,
+        data,
+        skipDialog: true,
+        speaker: ChatMessage.getSpeaker({ actor: this }),
+        flavor: label,
+        title: label,
+      });
+    }
+
+    // Gygax75 - Roll character HD from single/all dialog.
+    new foundry.applications.api.DialogV2({
+      classes: ["ose", "dialog"],
+      position: { width: 400, height: "auto" },
+      window: {
+        title: game.i18n.localize("OSE.dialog.hitDice.title"),
+      },
+      content: `<form><p>${game.i18n.localize("OSE.dialog.hitDice.prompt")}</p></form>`,
+      buttons: [
+        {
+          action: "single",
+          label: game.i18n.localize("OSE.dialog.hitDice.single"),
+          callback: () => {
+            options.hdRollType = "single";
+            this.selectSingleOrAllHitDiceRoll(options);
+          },
+        },
+        {
+          action: "all",
+          label: game.i18n.localize("OSE.dialog.hitDice.all"),
+          callback: () => {
+            options.hdRollType = "all";
+            this.selectSingleOrAllHitDiceRoll(options);
+          },
+        },
+        {
+          action: "close",
+          label: game.i18n.localize("OSE.Close"),
+          default: true,
+        },
+      ],
+    }).render(true);
   }
 
   rollAppearing(options = {}) {

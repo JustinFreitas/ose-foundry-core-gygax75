@@ -1,8 +1,8 @@
 {
-  "id": "ose-dev",
+  "id": "ose",
   "title": "Old-School Essentials Development Build",
   "description": "Simple, robust rules compatible with decades of Basic/Expert material",
-  "version": "AUTOMATICALLY REPLACED BY GITHUB WORKFLOW ACTION",
+  "version": "3.0.1-gygax75.1",
   "compatibility": {
     "minimum": "13",
     "verified": "14"
@@ -14,6 +14,7 @@
     },
     {
       "name": "VTT RED",
+      "email": "ose-system@vtt.red",
       "url": "https://vtt.red"
     },
     {
@@ -21,12 +22,20 @@
       "discord": "blair#9056"
     },
     {
+      "name": "Justin Freitas",
+      "url": "https://github.com/JustinFreitas"
+    },
+    {
       "name": "and many other contributors",
       "url": "https://github.com/NecroticGnome/ose-foundry-core#contributors-"
     }
   ],
-  "esmodules": ["dist/ose.js"],
-  "styles": ["dist/ose.css"],
+  "esmodules": [
+    "dist/ose.js"
+  ],
+  "styles": [
+    "dist/ose.css"
+  ],
   "packs": [],
   "languages": [
     {
@@ -97,7 +106,7 @@
   "url": "AUTOMATICALLY REPLACED BY GITHUB WORKFLOW ACTION",
   "manifest": "AUTOMATICALLY REPLACED BY GITHUB WORKFLOW ACTION",
   "download": "AUTOMATICALLY REPLACED BY GITHUB WORKFLOW ACTION",
-  "bugs": "https://github.com/NecroticGnome/ose-foundry-core/issues",
+  "bugs": "https://github.com/JustinFreitas/ose-foundry-core-gygax75/issues",
   "media": [
     {
       "type": "cover",
@@ -114,28 +123,27 @@
   "flags": {
     "allowBugReporter": true,
     "hotReload": {
-      "extensions": ["css"],
-      "paths": ["dist/"]
+      "extensions": [
+        "css"
+      ],
+      "paths": [
+        "dist/"
+      ]
     }
   },
-  "relationships": {
-    "recommends": [
-      {
-        "id": "ose-advancedfantasytome",
-        "type": "module",
-        "compatibility": {
-          "minimum": "25.07.01",
-          "verified": "25.07.03"
-        }
-      },
-      {
-        "id": "classicfantasycompendium",
-        "type": "module",
-        "compatibility": {
-          "minimum": "1.0.0",
-          "verified": "1.0.99"
-        }
-      }
-    ]
-  }
+  "documentTypes": {
+    "Actor": {
+      "character": {},
+      "monster": {}
+    },
+    "Item": {
+      "item": {},
+      "weapon": {},
+      "armor": {},
+      "spell": {},
+      "ability": {},
+      "container": {}
+    }
+  },
+  "relationships": {}
 }

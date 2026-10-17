@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "ose",
-  "version": "0.0.0",
+  "version": "3.0.1-gygax75.1",
   "description": "",
   "type": "module",
   "scripts": {
@@ -23,7 +23,7 @@
     "format": "biome format --write src test",
     "fix": "biome check --write src test"
   },
-  "author": "",
+  "author": "Justin Freitas",
   "license": "",
   "devDependencies": {
     "@biomejs/biome": "2.4.4",

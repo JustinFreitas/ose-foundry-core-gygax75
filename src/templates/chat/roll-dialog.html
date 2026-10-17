@@ -8,6 +8,16 @@
         <label>{{localize "OSE.Formula"}}</label>
         <input type="text" name="formula" value="{{formula}}" disabled />
     </div>
+    {{#if ammoOptions}}
+    <div class="form-group">
+        <label>{{localize "OSE.dialog.selectAmmunition"}}</label>
+        <select name="ammoId">
+            {{#each ammoOptions}}
+            <option value="{{this.id}}">{{this.name}} ({{this.quantity}} left)</option>
+            {{/each}}
+        </select>
+    </div>
+    {{/if}}
     <div class="form-group">
         <label>{{localize "OSE.SitMod"}}</label>
         <input type="text" name="bonus" value="" placeholder="{{localize 'OSE.RollExample'}}" />

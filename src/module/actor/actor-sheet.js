@@ -3,8 +3,7 @@
  */
 import { displayItemInChat } from "../sheet/chat-helpers";
 import { bindInventoryContextMenu } from "../sheet/context-menu";
-import { prepareActorContext } from "../sheet/data-context";
-import { chooseItemType, openEntityTweaksFor, promptRemoveItemFromActor } from "../sheet/dialogs";
+import { chooseItemType, openEntityTweaksFor } from "../sheet/dialogs";
 import {
   getTargetContainer,
   onContainerItemAdd,
@@ -18,6 +17,7 @@ import {
 import {
   createItem,
   onSpellChange,
+  promptRemoveItemFromActor,
   removeItemFromActor,
   resetSpells,
   rollAbility,

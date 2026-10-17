@@ -106,6 +106,19 @@ export const removeItemFromActor = async (actor, item) => {
   return actor.deleteEmbeddedDocuments("Item", [item._id]);
 };
 
+export const promptRemoveItemFromActor = (sheet, item) =>
+  foundry.applications.api.DialogV2.confirm({
+    classes: ["ose", "dialog"],
+    position: { width: 400, height: "auto" },
+    window: { title: game.i18n.localize("OSE.dialog.deleteItem") },
+    content: game.i18n.format("OSE.dialog.confirmDeleteItem", { name: item.name }),
+    yes: {
+      default: false,
+      callback: () => removeItemFromActor(sheet.actor, item),
+    },
+    defaultYes: false,
+  });
+
 export const createItem = (sheet, target) => {
   const header = target;
   const { treasure, type, lvl } = header.dataset;

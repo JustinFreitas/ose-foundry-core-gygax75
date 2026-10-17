@@ -430,6 +430,8 @@ const OseDice = {
     // Create Dialog window
     return new Promise((resolve) => {
       new foundry.applications.api.DialogV2({
+        classes: ["ose", "dialog"],
+        position: { width: 400, height: "auto" },
         window: { title: title || "" },
         content: html,
         buttons,
@@ -450,6 +452,8 @@ const OseDice = {
     title = null,
     chatMessage = true,
     flags = {},
+    ammoOptions = null,
+    onConfirm = null,
   } = {}) {
     let rolled = false;
     const template = `${OSE.systemPath()}/templates/chat/roll-dialog.html`;
@@ -458,6 +462,7 @@ const OseDice = {
       data,
       rollMode: data.roll.blindroll ? "blindroll" : getRollMode(),
       rollModes: getRollModes(),
+      ammoOptions,
     };
     const rollData = {
       parts,
@@ -469,6 +474,13 @@ const OseDice = {
       flags,
     };
     if (skipDialog) {
+      if (typeof onConfirm === "function") {
+        const warning = await onConfirm(null);
+        if (warning) {
+          rollData.flavor = rollData.flavor ? `${rollData.flavor} [${warning}]` : `[${warning}]`;
+          rollData.title = rollData.title ? `${rollData.title} [${warning}]` : `[${warning}]`;
+        }
+      }
       return ["melee", "missile", "attack"].includes(data.roll.type)
         ? OseDice.sendAttackRoll(rollData)
         : OseDice.sendRoll(rollData);
@@ -481,9 +493,16 @@ const OseDice = {
         action: "ok",
         label: game.i18n.localize("OSE.Roll"),
         icon: "fas fa-dice-d20",
-        callback: (_event, button) => {
+        callback: async (_event, button) => {
           rolled = true;
           rollData.form = button.form;
+          if (typeof onConfirm === "function") {
+            const warning = await onConfirm(button.form);
+            if (warning) {
+              rollData.flavor = rollData.flavor ? `${rollData.flavor} [${warning}]` : `[${warning}]`;
+              rollData.title = rollData.title ? `${rollData.title} [${warning}]` : `[${warning}]`;
+            }
+          }
           roll = ["melee", "missile", "attack"].includes(data.roll.type)
             ? OseDice.sendAttackRoll(rollData)
             : OseDice.sendRoll(rollData);
@@ -503,6 +522,8 @@ const OseDice = {
     // Create Dialog window
     return new Promise((resolve) => {
       new foundry.applications.api.DialogV2({
+        classes: ["ose", "dialog"],
+        position: { width: 400, height: "auto" },
         window: { title: title || "" },
         content: html,
         buttons,

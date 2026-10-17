@@ -75,7 +75,7 @@ export default class OseItem extends Item {
   async _preCreate(data: any, options: any, user: any) {
     const qtyValue = foundry.utils.getProperty(data, "system.quantity.value");
     if (qtyValue !== undefined) {
-      const name = data.name;
+      const name = data.name ?? this.name;
       if (name !== "GP (Bank)") {
         this.updateSource({ "system.quantity.value": Math.floor(qtyValue) });
       } else {
@@ -155,7 +155,7 @@ export default class OseItem extends Item {
     return itemData;
   }
 
-  rollWeapon(options: Record<string, unknown> = {}) {
+  async rollWeapon(options: Record<string, unknown> = {}) {
     const actor = this.actor as OwningActor;
     const isNPC = (actor.type as string) !== "character";
     const itemData = this.system;
@@ -173,6 +173,8 @@ export default class OseItem extends Item {
     if (itemData.missile && itemData.melee && !isNPC) {
       // Dialog
       new foundry.applications.api.DialogV2({
+        classes: ["ose", "dialog"],
+        position: { width: 400, height: "auto" },
         window: { title: "Choose Attack Range" },
         content: "",
         buttons: [
@@ -189,8 +191,10 @@ export default class OseItem extends Item {
             action: "missile",
             icon: "fas fa-bullseye",
             label: game.i18n.localize("OSE.Missile"),
-            callback: () => {
-              actor.targetAttack(rollData, "missile", options);
+            callback: async () => {
+              if (await this._handleAmmoConsumption(options)) {
+                actor.targetAttack(rollData, "missile", options);
+              }
             },
           },
         ],
@@ -199,8 +203,102 @@ export default class OseItem extends Item {
     }
     if (itemData.missile && !isNPC) {
       type = "missile";
+      if (!(await this._handleAmmoConsumption(options))) {
+        return false;
+      }
     }
     actor.targetAttack(rollData, type, options);
+    return true;
+  }
+
+  async _handleAmmoConsumption(options: Record<string, unknown>): Promise<boolean> {
+    const mode = (game.settings.get(game.system.id, "automateAmmo") as string) || "warn";
+    if (mode === "disabled") return true;
+
+    const actor = this.actor as OwningActor;
+    if (!actor) return true;
+
+    const itemName = (this.name ?? "").toLowerCase();
+
+    let requiredAmmo: string[] | null = null;
+    let isThrown = false;
+
+    if (itemName.includes("crossbow")) {
+      requiredAmmo = ["bolt", "quarrel"];
+    } else if (itemName.includes("bow")) {
+      requiredAmmo = ["arrow"];
+    } else if (itemName.includes("sling")) {
+      requiredAmmo = ["stone", "bullet"];
+    } else if (itemName.includes("blowpipe") || itemName.includes("blowgun")) {
+      requiredAmmo = ["dart"];
+    } else {
+      isThrown = true;
+    }
+
+    if (isThrown) {
+      const currentQty = (this.system as AnyItemSystem).quantity?.value ?? 0;
+      if (currentQty <= 0 && mode === "enforce") {
+        ui.notifications.error(game.i18n.format("OSE.error.outOfAmmo", { name: this.name }));
+        return false;
+      }
+      options.onConfirm = async () => {
+        const qty = (this.system as AnyItemSystem).quantity?.value ?? 0;
+        if (qty > 0) {
+          await this.update({ "system.quantity.value": qty - 1 });
+          return null;
+        }
+        return game.i18n.format("OSE.error.outOfAmmo", { name: this.name });
+      };
+      return true;
+    }
+
+    const validAmmo = actor.items.filter((i: any) => {
+      if (i.type !== "item" && i.type !== "weapon") return false;
+      const iName = (i.name ?? "").toLowerCase();
+      return requiredAmmo?.some((req) => iName.includes(req));
+    });
+
+    const availableAmmo = validAmmo.filter((i: any) => (i.system?.quantity?.value ?? 0) > 0);
+
+    if (availableAmmo.length === 0) {
+      if (mode === "enforce") {
+        ui.notifications.error(game.i18n.format("OSE.error.noAmmoFound", { type: requiredAmmo?.[0] ?? "ammo" }));
+        return false;
+      }
+      options.onConfirm = async () => {
+        return game.i18n.format("OSE.error.noAmmoFound", { type: requiredAmmo?.[0] ?? "ammo" });
+      };
+      return true;
+    }
+
+    availableAmmo.sort((a: any, b: any) => {
+      const aMagic = a.name.includes("+");
+      const bMagic = b.name.includes("+");
+      if (aMagic && !bMagic) return 1;
+      if (!aMagic && bMagic) return -1;
+      return a.name.localeCompare(b.name);
+    });
+
+    options.ammoOptions = availableAmmo.map((a: any) => ({
+      id: a.id,
+      name: a.name,
+      quantity: a.system.quantity.value,
+    }));
+
+    options.onConfirm = async (form: HTMLFormElement | null) => {
+      const ammoId =
+        (form?.elements?.namedItem("ammoId") as HTMLSelectElement | HTMLInputElement)?.value ||
+        (form as any)?.elements?.ammoId?.value ||
+        (options.ammoOptions as any[])[0].id;
+      const ammoItem = actor.items.get(ammoId);
+      if (ammoItem) {
+        const newQty = ammoItem.system.quantity.value - 1;
+        await ammoItem.update({ "system.quantity.value": newQty });
+        return `${ammoItem.name} (${newQty} left)`;
+      }
+      return null;
+    };
+
     return true;
   }
 

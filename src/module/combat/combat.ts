@@ -3,7 +3,7 @@
  */
 import { OSE } from "../config";
 import OSECombatGroupSelector from "./combat-set-groups";
-import { OSECombatant } from "./combatant";
+import type { OSECombatant } from "./combatant";
 
 export const actionGroups = {
   slow: "OSE.items.Slow",

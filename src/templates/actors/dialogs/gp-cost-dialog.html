@@ -38,17 +38,15 @@
         </div>
       </li>
       {{#each bag.system.contents as |item|}}
-      <ol>
-        <li class="item-entry item" data-item-id="{{item.id}}">
-          <div class="item-header flexrow">
-            <div class="item-image" style="background-image: url({{item.img}})"></div>
-            <h4 class="item-name" data-tooltip="{{item.name}}">{{item.name~}}</h4>
-            <div class="field-short" {{#if item.system.bundleTooltip}}data-tooltip="{{item.system.bundleTooltip}}"{{/if}}>
-              {{item.system.cost}}
-            </div>
+      <li class="item-entry item item-child" data-item-id="{{item.id}}" style="padding-left: 20px;">
+        <div class="item-header flexrow">
+          <div class="item-image" style="background-image: url({{item.img}})"></div>
+          <h4 class="item-name" data-tooltip="{{item.name}}">{{item.name~}}</h4>
+          <div class="field-short" {{#if item.system.bundleTooltip}}data-tooltip="{{item.system.bundleTooltip}}"{{/if}}>
+            {{item.system.cost}}
           </div>
-        </li>
-      </ol>
+        </div>
+      </li>
       {{/each}}
       {{/each}}
     </ul>

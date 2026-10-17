@@ -132,7 +132,8 @@ export default class OseCharacterCreator extends HandlebarsApplicationMixin(Appl
           warning.className = "subpar-warning";
           warning.style.cssText =
             "color: #c9302c; font-weight: bold; font-size: 0.85em; margin-top: 6px; text-align: center;";
-          warning.textContent = "⚠️ Sub-Par Character (Total ≤ 55 or 2+ scores ≤ 8)";
+          warning.textContent =
+            game.i18n.localize("OSE.dialog.subparWarning") || "⚠️ Sub-Par Character (Total ≤ 55 or 2+ scores ≤ 8)";
           statsContainer.appendChild(warning);
         }
       } else if (warning) {
@@ -174,7 +175,7 @@ export default class OseCharacterCreator extends HandlebarsApplicationMixin(Appl
   async _handleAutoRoll(event) {
     let subPar = true;
     let rerollCount = 0;
-    while (subPar) {
+    while (subPar && rerollCount < 1000) {
       let total = 0;
       let count8orLess = 0;
       for (const score of SCORE_KEYS) {
@@ -221,6 +222,8 @@ export default class OseCharacterCreator extends HandlebarsApplicationMixin(Appl
       stats: this.stats,
       gold: this.gold,
       rerolls: this.subParRerolls,
+      data: { actor: this.document },
+      actor: this.document,
     };
     const content = await foundry.applications.handlebars.renderTemplate(
       "systems/__SYSTEM_ID__/dist/templates/chat/roll-creation.html",
@@ -246,13 +249,13 @@ export default class OseCharacterCreator extends HandlebarsApplicationMixin(Appl
           await this.document.createEmbeddedDocuments("Item", [itemData]);
         } else {
           const itemData = {
-            name: game.i18n.localize("OSE.items.gp.short") || "gp",
+            name: "GP (Bank)",
             type: "item",
             img: `${OSE.assetsPath}/gold.png`,
             system: {
               treasure: true,
               cost: 1,
-              weight: 1,
+              weight: 0,
               quantity: { value: this.gold },
             },
           };

@@ -101,7 +101,7 @@ export default class OseActorSheetCharacter extends OseActorSheet {
     let rerollCount = 0;
     const scores = {};
 
-    while (subPar) {
+    while (subPar && rerollCount < 1000) {
       let total = 0;
       let count8orLess = 0;
       for (const char of stats) {
@@ -149,6 +149,8 @@ export default class OseActorSheetCharacter extends OseActorSheet {
       stats: objStats,
       gold,
       rerolls: rerollCount,
+      data: { actor: this.actor },
+      actor: this.actor,
     };
 
     const content = await foundry.applications.handlebars.renderTemplate(
@@ -175,13 +177,13 @@ export default class OseActorSheetCharacter extends OseActorSheet {
           await this.actor.createEmbeddedDocuments("Item", [itemData]);
         } else {
           const itemData = {
-            name: game.i18n.localize("OSE.items.gp.short") || "gp",
+            name: "GP (Bank)",
             type: "item",
             img: `${OSE.assetsPath}/gold.png`,
             system: {
               treasure: true,
               cost: 1,
-              weight: 1,
+              weight: 0,
               quantity: {
                 value: gold,
               },
@@ -328,7 +330,7 @@ export default class OseActorSheetCharacter extends OseActorSheet {
   }
 
   static _onGenerateScores() {
-    if (this.isEditable) this.generateScores();
+    if (this.isEditable && game.user.isGM) this.generateScores();
   }
 
   static _onAutoGenerateScores() {

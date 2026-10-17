@@ -99,7 +99,7 @@ export default class OsePartySheet extends HandlebarsApplicationMixin(Applicatio
 
   async _prepareContext() {
     const partyActors = OseParty.currentParty;
-    const hasDutyXP = partyActors.some((a) => a.flags?.dutyXP !== undefined);
+    const hasDutyXP = partyActors.some((a) => Boolean(a.flags?.dutyXP));
     return {
       partyActors,
       config: CONFIG.OSE,
@@ -209,7 +209,7 @@ export default class OsePartySheet extends HandlebarsApplicationMixin(Applicatio
   }
 
   async _handleResetDutyXP() {
-    const partyActorsWithDuty = OseParty.currentParty.filter((a) => a.flags?.dutyXP !== undefined);
+    const partyActorsWithDuty = OseParty.currentParty.filter((a) => Boolean(a.flags?.dutyXP));
     if (partyActorsWithDuty.length === 0) {
       ui.notifications.info("No characters in party currently have active Duty XP.");
       return;
@@ -291,7 +291,7 @@ export default class OsePartySheet extends HandlebarsApplicationMixin(Applicatio
               ui.notifications.warn(game.i18n.localize("OSE.dialog.party.warnNoName"));
               return false;
             }
-            if (["__proto__", "constructor", "prototype"].includes(name)) {
+            if (["__proto__", "constructor", "prototype"].includes(name.toLowerCase())) {
               ui.notifications.error(game.i18n.localize("OSE.dialog.party.warnInvalidName"));
               return false;
             }

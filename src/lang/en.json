@@ -71,6 +71,8 @@
   "OSE.dialog.confirmDeleteItem": "Are you sure you want to delete \"{name}\"?",
   "OSE.dialog.TokenRingPrompt.Title": "Replace Dynamic Token Ring?",
   "OSE.dialog.TokenRingPrompt.Content": "Do you wish to use the OSE token ring for Dynamic Token Rings? You can change this later in the Core Game Settings. You must reload for the change to take effect.",
+  "OSE.dialog.selectAmmunition": "Select Ammunition",
+  "OSE.dialog.subparWarning": "⚠️ Sub-Par Character (Total ≤ 55 or 2+ scores ≤ 8)",
 
   "OSE.Formula": "Formula",
   "OSE.SitMod": "Situational Modifier",
@@ -261,6 +263,11 @@
   "OSE.Setting.ignoreAttackBonusOnDamageRollHint": "Can also be enabled or disabled on a per actor basis via their sheet.",
   "OSE.Setting.Gygax75Encumbrance": "Gygax '75 Encumbrance Rules (BECMI 2,400 cn)",
   "OSE.Setting.Gygax75EncumbranceHint": "When enabled, uses Gygax '75 / BECMI encumbrance: 2,400 cn capacity with movement breakpoints at 400 cn (90'), 800 cn (60'), and 1,200 cn (30'). When disabled, restores official B/X defaults: 1,600 cn capacity with breakpoints at 400 cn (25%), 600 cn (37.5%), and 800 cn (50%).",
+  "OSE.Setting.AutomateAmmo": "Automate Ammunition Tracking",
+  "OSE.Setting.AutomateAmmoHint": "Choose how ammunition (arrows, bolts, stones, thrown weapons) is handled when making missile attacks.",
+  "OSE.Setting.AutomateAmmoDisabled": "Disabled",
+  "OSE.Setting.AutomateAmmoWarn": "Warn (Allow attack, add chat warning)",
+  "OSE.Setting.AutomateAmmoEnforce": "Enforce (Block attack if out of ammo)",
 
   "OSE.items.Equip": "Equip",
   "OSE.items.Unequip": "Unequip",
@@ -402,6 +409,8 @@
   "OSE.error.noGP": "You need a GP item to use this feature.",
   "OSE.error.unexpectedSettings": "unexpected OSE setting {configName}: {configValue}",
   "OSE.error.cantDealDamageTo": "Can't deal damage to {nameOrId}",
+  "OSE.error.outOfAmmo": "Out of ammo! ({name})",
+  "OSE.error.noAmmoFound": "Out of ammo! (No {type}s found)",
 
   "TYPES.Base": "Base",
   "TYPES.Item.ability": "Ability",

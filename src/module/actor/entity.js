@@ -587,10 +587,17 @@ export default class OseActor extends Actor {
         await this.rollAttack(data, {
           type,
           skipDialog: options.skipDialog,
+          ammoOptions: options.ammoOptions,
+          onConfirm: options.onConfirm,
         });
       }
     } else {
-      await this.rollAttack(data, { type, skipDialog: options.skipDialog });
+      await this.rollAttack(data, {
+        type,
+        skipDialog: options.skipDialog,
+        ammoOptions: options.ammoOptions,
+        onConfirm: options.onConfirm,
+      });
     }
   }
 
@@ -640,12 +647,25 @@ export default class OseActor extends Actor {
     // and str/dex modifier only if it's non-zero
     let attackMods = [];
 
-    if (options.type === "melee") attackMods = [data.scores.str.mod, data.thac0.mod.melee];
+    // Melee: str.mod + thac0.mod.melee go to the attack roll; only the Str
+    // modifier also adds to damage (RAW). The melee attack tweak does not.
+    if (options.type === "melee") {
+      attackMods = [data.scores.str.mod, data.thac0.mod.melee];
+      if (options.twoWeapons) attackMods.push(1);
+      if (data.scores.str.mod) dmgParts.push(data.scores.str.mod);
+    }
 
-    dmgParts.push(...removeFalsyElements(attackMods));
+    // Missile: dex.mod + thac0.mod.missile go to the attack roll only (RAW: missile
+    // attacks get no inherent bonus damage). An explicit damage.mod.missile lever
+    // (e.g. from Bless) does add to missile damage.
+    if (options.type === "missile") {
+      attackMods = [data.scores.dex.mod, data.thac0.mod.missile];
+      if (data.damage?.mod?.missile) dmgParts.push(data.damage.mod.missile);
+    }
 
-    // Add missile mod to attack roll only (missile attacks don't get bonus damage)
-    if (options.type === "missile") attackMods = [data.scores.dex.mod, data.thac0.mod.missile];
+    // Tactical combat modifiers (Retreat / Custom)
+    if (options.defenderRetreating) attackMods.push(2);
+    if (options.customBonus) attackMods.push(options.customBonus);
 
     // Add weapon bonus to attack roll only (already added to dmgParts)
     if (attData.item) attackMods.push(attData.item?.system?.bonus);
@@ -660,8 +680,8 @@ export default class OseActor extends Actor {
         type: options.type,
         thac0: data.thac0.value,
         dmg: dmgParts,
-        save: attData.roll.save,
-        target: attData.roll.target,
+        save: attData.roll?.save,
+        target: attData.roll?.target,
       },
     };
     // Roll and return
@@ -674,6 +694,8 @@ export default class OseActor extends Actor {
       flavor: label,
       flags: { ose: { roll: "attack", itemId: attData.item?._id } },
       title: label,
+      ammoOptions: options.ammoOptions,
+      onConfirm: options.onConfirm,
     });
   }
 

@@ -84,7 +84,7 @@ export default class OsePartyXP extends HandlebarsApplicationMixin(ApplicationV2
     await Promise.all(promises);
 
     // Prompt GM to reset Duty XP bonuses if any party members have active duty XP
-    const dutyActors = OseParty.currentParty.filter((a) => a.flags?.dutyXP !== undefined);
+    const dutyActors = OseParty.currentParty.filter((a) => Boolean(a.flags?.dutyXP));
     if (dutyActors.length > 0) {
       const confirmed = await foundry.applications.api.DialogV2.confirm({
         classes: ["ose", "dialog"],

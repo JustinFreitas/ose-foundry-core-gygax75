@@ -204,7 +204,9 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
 
       nameStrong.append(
         " ",
-        game.i18n.localize(label === "slow" ? "OSE.items.Slow" : label === "fast" ? "OSE.combat.Fast" : `OSE.colors.${label}`),
+        game.i18n.localize(
+          label === "slow" ? "OSE.items.Slow" : label === "fast" ? "OSE.combat.Fast" : `OSE.colors.${label}`,
+        ),
       );
 
       tokenName.append(nameStrong);

@@ -144,6 +144,19 @@ const registerSettings = () => {
     type: Object,
     default: {},
   });
+  game.settings.register(game.system.id, "automateAmmo", {
+    name: "OSE.Setting.AutomateAmmo",
+    hint: "OSE.Setting.AutomateAmmoHint",
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      disabled: "OSE.Setting.AutomateAmmoDisabled",
+      warn: "OSE.Setting.AutomateAmmoWarn",
+      enforce: "OSE.Setting.AutomateAmmoEnforce",
+    },
+    default: "warn",
+  });
 };
 
 declare global {
@@ -157,6 +170,7 @@ declare global {
       "ose.encumbranceOption": EncumbranceOption;
       "ose.gygax75Encumbrance": boolean;
       "ose.savedParties": Record<string, string[]>;
+      "ose.automateAmmo": "disabled" | "warn" | "enforce";
       "ose.significantTreasure": number;
       "ose.languages": string;
       "ose.applyDamageOption": ApplyDamageOption;

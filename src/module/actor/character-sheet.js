@@ -313,8 +313,10 @@ export default class OseActorSheetCharacter extends OseActorSheet {
     // Create Dialog window
     return new Promise((resolve) => {
       new foundry.applications.api.DialogV2({
-        window: { title: "" },
+        classes: ["ose", "dialog"],
+        window: { title: game.i18n.localize("OSE.dialog.addLanguage") || "" },
         content: dlg,
+        position: { width: 360, height: "auto" },
         buttons: [
           {
             action: "ok",

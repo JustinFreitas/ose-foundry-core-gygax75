@@ -90,8 +90,10 @@ export const postReport = async (entries: ReportEntry[]) => {
 
 const prompt = (count: number) =>
   foundry.applications.api.DialogV2.wait({
+    classes: ["ose", "dialog"],
     window: { title: game.i18n.localize("OSE.migration.Title") },
     content: game.i18n.format("OSE.migration.Prompt", { count: String(count) }),
+    position: { width: 440, height: "auto" },
     buttons: [
       { action: "backup", label: game.i18n.localize("OSE.migration.BackupFirst"), icon: "fas fa-floppy-disk" },
       { action: "migrate", label: game.i18n.localize("OSE.migration.MigrateNow"), icon: "fas fa-check", default: true },

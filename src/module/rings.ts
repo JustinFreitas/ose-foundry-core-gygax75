@@ -24,10 +24,12 @@ export async function promptTokenRingSelection() {
 
   if (
     await foundry.applications.api.DialogV2.confirm({
+      classes: ["ose", "dialog"],
       window: {
         title: game.i18n.localize("OSE.dialog.TokenRingPrompt.Title"),
       },
       content: game.i18n.localize("OSE.dialog.TokenRingPrompt.Content"),
+      position: { width: 400, height: "auto" },
     })
   ) {
     await game.settings.set("core", "dynamicTokenRing", "ose-default-black-white");

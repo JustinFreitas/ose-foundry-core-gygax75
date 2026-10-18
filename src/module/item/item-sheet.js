@@ -420,12 +420,14 @@ export default class OseItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
     const target = xpForLevel(levels, level, xp);
     if (target === null) return;
     const ok = await foundry.applications.api.DialogV2.confirm({
+      classes: ["ose", "dialog"],
       window: { title: this.item.name },
       content: `<p>${game.i18n.format("OSE.classes.SetXpForLevel", {
         level,
         current: formatNumber(xp),
         xp: formatNumber(target),
       })}</p>`,
+      position: { width: 400, height: "auto" },
       rejectClose: false,
     });
     if (ok) await this.item.update({ "system.xp": target });
@@ -641,8 +643,10 @@ export default class OseItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
 
   static #confirmDelete(name) {
     return foundry.applications.api.DialogV2.confirm({
+      classes: ["ose", "dialog"],
       window: { title: game.i18n.localize("OSE.Delete") },
       content: `<p>${game.i18n.format("OSE.classes.ConfirmDelete", { name: foundry.utils.escapeHTML(name ?? "") })}</p>`,
+      position: { width: 400, height: "auto" },
       rejectClose: false,
     });
   }
@@ -657,8 +661,10 @@ export default class OseItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
     const ability = rows[0]?.ability || "str";
     if (rows.length && !standardPrimeReq(rows)) {
       const ok = await foundry.applications.api.DialogV2.confirm({
+        classes: ["ose", "dialog"],
         window: { title: game.i18n.localize("OSE.classes.PrimeRequisite") },
         content: `<p>${game.i18n.format("OSE.classes.PrimeRequisiteReplace", { ability: ability.toUpperCase() })}</p>`,
+        position: { width: 400, height: "auto" },
         rejectClose: false,
       });
       if (!ok) return this.render();

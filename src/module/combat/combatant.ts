@@ -29,9 +29,11 @@ export class OSECombatant extends Combatant {
     if (this.isSlow || this.isDefeated) return false;
     if (this.actor?.system?.config?.fastCombat) return true;
     // Auto-detect halflings (case-insensitive, tolerant of values like
-    // "Halfling (Thief)" or localized capitalization).
     const actorClass = this.actor?.system?.details?.class;
-    return typeof actorClass === "string" && actorClass.toLowerCase().includes("halfling");
+    if (typeof actorClass === "string" && actorClass.toLowerCase().includes("halfling")) return true;
+    const actorRace = this.actor?.system?.race?.name;
+    if (typeof actorRace === "string" && actorRace.toLowerCase().includes("halfling")) return true;
+    return false;
   }
 
   // ===========================================================================

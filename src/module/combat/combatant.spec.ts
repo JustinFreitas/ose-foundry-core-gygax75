@@ -58,6 +58,19 @@ describe("OSECombatant and Fast Combat", () => {
       expect(combatant.isFast).toBe(true);
     });
 
+    it("returns true for Advanced Fantasy Halflings by race name", () => {
+      const combatant = new OSECombatant({
+        actor: {
+          system: {
+            details: { class: "Thief" },
+            race: { name: "Halfling" },
+            hp: { value: 10 },
+          },
+        },
+      });
+      expect(combatant.isFast).toBe(true);
+    });
+
     it("returns false for standard combatants without fast traits", () => {
       const combatant = new OSECombatant({
         actor: {

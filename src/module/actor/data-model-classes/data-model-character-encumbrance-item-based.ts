@@ -105,7 +105,7 @@ export default class OseDataModelCharacterEncumbranceItemBased
             return acc;
           }
           if ((item.type === "item" || item.type === "container") && !item.system.equipped) {
-            return acc + Math.ceil((item.system.quantity.value ?? 0) * item.system.itemslots);
+            return acc + ((item.system as any).cumulativeItemslots ?? Math.ceil((item.system.quantity?.value ?? 0) * item.system.itemslots));
           }
           if (["weapon", "armor"].includes(item.type) && !item.system.equipped) {
             return acc + item.system.itemslots;
@@ -118,15 +118,16 @@ export default class OseDataModelCharacterEncumbranceItemBased
         items.reduce((acc, item: Item) => {
           if (item.type === "item" && item.system.isCoinsOrGems) {
             // Up to 100 coins or gems count as 1 item.
-            return acc + (item.system.quantity.value ?? 0) / 100;
+            return acc + (item.system.quantity?.value ?? 0) / 100;
           }
 
           return acc;
         }, 0),
       );
     this.#equippedWeight = Math.ceil(
-      items.reduce((acc, { type, system: { quantity, itemslots, equipped } }: Item) => {
-        if (type === "item" && equipped) return acc + Math.ceil((quantity.value ?? 0) * itemslots);
+      items.reduce((acc, item: Item) => {
+        const { type, system: { itemslots, equipped } } = item;
+        if (type === "item" && equipped) return acc + ((item.system as any).cumulativeItemslots ?? Math.ceil((item.system.quantity?.value ?? 0) * itemslots));
         if (["weapon", "armor"].includes(type) && equipped) return acc + itemslots;
         return acc;
       }, 0),

@@ -210,6 +210,7 @@
   "OSE.items.Qualities": "Qualidades",
   "OSE.items.Notes": "Notas",
   "OSE.items.Cost": "Custo",
+  "OSE.items.BundleSuffix": " (Pacote)",
   "OSE.items.Quantity": "Qt.",
   "OSE.items.Roll": "Rolar",
   "OSE.items.BlindRoll": "Ocultar",

@@ -210,6 +210,7 @@
   "OSE.items.Qualities": "품질",
   "OSE.items.Notes": "노트",
   "OSE.items.Cost": "비용",
+  "OSE.items.BundleSuffix": " (묶음)",
   "OSE.items.Quantity": "수량",
   "OSE.items.Roll": "굴림",
   "OSE.items.BlindRoll": "실명",

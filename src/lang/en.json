@@ -324,6 +324,7 @@
   "OSE.items.Qualities": "Qualities",
   "OSE.items.Notes": "Notes",
   "OSE.items.Cost": "Cost",
+  "OSE.items.BundleSuffix": " (Bundle)",
   "OSE.items.Quantity": "Qt.",
   "OSE.items.Roll": "Roll",
   "OSE.items.BlindRoll": "Blind",

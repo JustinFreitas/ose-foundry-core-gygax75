@@ -216,6 +216,7 @@
   "OSE.items.Qualities": "Qualités",
   "OSE.items.Notes": "Notes",
   "OSE.items.Cost": "Coût",
+  "OSE.items.BundleSuffix": " (Lot)",
   "OSE.items.Quantity": "Qt.",
   "OSE.items.Roll": "Jet",
   "OSE.items.BlindRoll": "Aveugle",

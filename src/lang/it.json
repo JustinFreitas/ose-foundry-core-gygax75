@@ -214,6 +214,7 @@
   "OSE.items.Qualities": "Qualità",
   "OSE.items.Notes": "Note",
   "OSE.items.Cost": "Costo",
+  "OSE.items.BundleSuffix": " (Pacco)",
   "OSE.items.Quantity": "Qtà.",
   "OSE.items.Roll": "Tiro",
   "OSE.items.BlindRoll": "Nascosto",

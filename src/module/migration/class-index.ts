@@ -60,16 +60,18 @@ export const buildClassIndex = async (): Promise<IndexEntry[]> => {
       });
     }
   }
-  for (const [name, cls] of Object.entries(CONFIG.OSE.classes?.classic ?? {})) {
-    const data = classicClassToItemData(cls, CLASSIC_PRIME_REQS[name as ClassicClassName] ?? [], (key, d) =>
-      game.i18n.format(key, d),
-    );
-    entries.push({
-      name,
-      key: data.system.key ?? "",
-      source: game.system.id,
-      load: async () => foundry.utils.deepClone(data) as Record<string, unknown>,
-    });
+  for (const group of Object.values(CONFIG.OSE.classes ?? {})) {
+    for (const [name, cls] of Object.entries(group ?? {})) {
+      const data = classicClassToItemData(cls, CLASSIC_PRIME_REQS[name as ClassicClassName] ?? [], (key, d) =>
+        game.i18n.format(key, d),
+      );
+      entries.push({
+        name,
+        key: data.system.key ?? "",
+        source: game.system.id,
+        load: async () => foundry.utils.deepClone(data) as Record<string, unknown>,
+      });
+    }
   }
   return entries;
 };

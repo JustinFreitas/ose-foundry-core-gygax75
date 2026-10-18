@@ -214,6 +214,7 @@
   "OSE.items.Qualities": "特质",
   "OSE.items.Notes": "备注",
   "OSE.items.Cost": "花费",
+  "OSE.items.BundleSuffix": " (捆)",
   "OSE.items.Quantity": "数量",
   "OSE.items.Roll": "投骰",
   "OSE.items.BlindRoll": "目盲",

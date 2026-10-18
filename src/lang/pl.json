@@ -210,6 +210,7 @@
   "OSE.items.Qualities": "Qualities",
   "OSE.items.Notes": "Notatki",
   "OSE.items.Cost": "Koszt",
+  "OSE.items.BundleSuffix": " (Pakiet)",
   "OSE.items.Quantity": "Szt.",
   "OSE.items.Roll": "Rzut",
   "OSE.items.BlindRoll": "Oślepienie",

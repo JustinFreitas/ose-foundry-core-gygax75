@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveClass } from "../class-index";
+import { buildClassIndex, resolveClass } from "../class-index";
 
 const e = (name: string, source: string, key = "") => ({ name, key, source, load: async () => ({}) });
 const entries = [e("Fighter", "world"), e("Magic-User", "tome", "magic-user"), e("Fighter", "classic")];
@@ -14,5 +14,19 @@ describe("resolveClass", () => {
     expect(resolveClass("Elf Fighter", entries)).toBeNull();
     expect(resolveClass("", entries)).toBeNull();
     expect(resolveClass("   ", entries)).toBeNull();
+  });
+});
+
+describe("buildClassIndex", () => {
+  it("indexes classes across all configured class groups including gygax75", async () => {
+    const indexed = await buildClassIndex();
+    const names = indexed.map((entry) => entry.name);
+    // Classic classes
+    expect(names).toContain("Cleric");
+    expect(names).toContain("Fighter");
+    // Gygax '75 custom classes
+    expect(names).toContain("Barbarian");
+    expect(names).toContain("Druid");
+    expect(names).toContain("Knight");
   });
 });

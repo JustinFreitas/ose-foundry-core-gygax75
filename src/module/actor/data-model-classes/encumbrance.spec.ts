@@ -4,6 +4,7 @@ import OseDataModelCharacterEncumbranceBasic from "./data-model-character-encumb
 import OseDataModelCharacterEncumbranceComplete from "./data-model-character-encumbrance-complete";
 import OseDataModelCharacterEncumbranceDetailed from "./data-model-character-encumbrance-detailed";
 import OseDataModelCharacterEncumbranceDisabled from "./data-model-character-encumbrance-disabled";
+import OseDataModelCharacterEncumbranceItemBased from "./data-model-character-encumbrance-item-based";
 
 // Test sub-class to allow controlling the value getter
 class TestEncumbrance extends OseDataModelCharacterEncumbrance {
@@ -192,6 +193,22 @@ describe("Offline Encumbrance Model Tests", () => {
       expect(enc.value).toBe(100); // (5 * 10) + 50 = 100
       expect(enc.steps).toEqual(Object.values(OseDataModelCharacterEncumbrance.encumbranceSteps));
     });
+
+    it("uses item cumulativeWeight for partial bundles", () => {
+      const items = [
+        {
+          type: "item",
+          system: {
+            quantity: { value: 15, max: 20 },
+            weight: 20,
+            cumulativeWeight: 15, // (20 / 20) * 15 = 15 cn
+          },
+        },
+      ];
+
+      const enc = new OseDataModelCharacterEncumbranceComplete(1600, items as unknown as Item[]);
+      expect(enc.value).toBe(15);
+    });
   });
 
   describe("Detailed Encumbrance Model", () => {
@@ -223,6 +240,54 @@ describe("Offline Encumbrance Model Tests", () => {
 
       const enc2 = new OseDataModelCharacterEncumbranceDetailed(1600, items2 as unknown as Item[]);
       expect(enc2.value).toBe(130); // 50 + 80 = 130
+    });
+
+    it("uses item cumulativeWeight for treasure bundles in detailed encumbrance", () => {
+      const items = [
+        {
+          type: "item",
+          system: {
+            treasure: true,
+            quantity: { value: 5, max: 10 },
+            weight: 100,
+            cumulativeWeight: 50, // partial bundle
+          },
+        },
+      ];
+
+      const enc = new OseDataModelCharacterEncumbranceDetailed(1600, items as unknown as Item[]);
+      expect(enc.value).toBe(50);
+    });
+  });
+
+  describe("Item-Based Encumbrance Model", () => {
+    it("uses cumulativeItemslots for packed and equipped bundle items", () => {
+      const items = [
+        {
+          type: "item",
+          system: {
+            equipped: false,
+            quantity: { value: 10, max: 20 },
+            itemslots: 1,
+            cumulativeItemslots: 0.5,
+          },
+        },
+        {
+          type: "item",
+          system: {
+            equipped: true,
+            quantity: { value: 5, max: 20 },
+            itemslots: 1,
+            cumulativeItemslots: 0.25,
+          },
+        },
+      ];
+
+      const enc = new OseDataModelCharacterEncumbranceItemBased(16, items as unknown as Item[]);
+      // packed weight: ceil(0.5) = 1
+      expect(enc.packedValue).toBe(1);
+      // equipped weight: ceil(0.25) = 1
+      expect(enc.equippedValue).toBe(1);
     });
   });
 

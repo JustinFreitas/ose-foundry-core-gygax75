@@ -235,9 +235,13 @@ const promptClassStart = async (itemData, rollHp) => {
   });
 };
 
-// Without the multiple classes rule, a new class replaces the old one.
 export const onDropClass = async (sheet, itemData) => {
   const { actor } = sheet;
+  if (!game.settings.get(game.system.id, "enableClassItems")) {
+    await actor.update({ "system.details.class": itemData.name });
+    ui.notifications?.info(game.i18n.format("OSE.classes.setClassName", { name: itemData.name }));
+    return;
+  }
   const [existing] = actor.system.classes;
   if (existing && !game.settings.get(game.system.id, "multipleClasses")) {
     const ok = await foundry.applications.api.DialogV2.confirm({
@@ -274,9 +278,13 @@ export const onDropClass = async (sheet, itemData) => {
   return created;
 };
 
-// One race per character; existing characters usually already include its modifiers.
 export const onDropRace = async (sheet, itemData) => {
   const { actor } = sheet;
+  if (!game.settings.get(game.system.id, "enableClassItems")) {
+    await actor.update({ "system.details.title": itemData.name });
+    ui.notifications?.info(game.i18n.format("OSE.races.setRaceName", { name: itemData.name }));
+    return;
+  }
   const { DialogV2 } = foundry.applications.api;
   const existing = actor.system.race;
   if (existing) {

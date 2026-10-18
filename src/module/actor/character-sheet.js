@@ -259,7 +259,8 @@ export default class OseActorSheetCharacter extends OseActorSheet {
       data.warnedItems[w.itemId] = [data.warnedItems[w.itemId], w.text].filter(Boolean).join(" ");
     }
     data.showWarnings = this._showWarnings && data.warnings.length > 0;
-    data.canConvert = !data.classes.length && !!String(this.actor._source.system?.details?.class ?? "").trim();
+    data.enableClassItems = Boolean(game.settings.get(game.system.id, "enableClassItems"));
+    data.canConvert = data.enableClassItems && !data.classes.length && !!String(this.actor._source.system?.details?.class ?? "").trim();
     data.breakdown = system.derivedFromClasses
       ? foundry.utils.expandObject({
           ...describeDerivation(system.classes, {
@@ -450,7 +451,15 @@ export default class OseActorSheetCharacter extends OseActorSheet {
 
   static async _onConvertClass() {
     if (!this.isEditable) return;
-    return convertSingleActor(this.actor);
+    if (!game.settings.get(game.system.id, "enableClassItems")) return;
+    try {
+      return await convertSingleActor(this.actor);
+    } catch (err) {
+      console.error(err);
+      ui.notifications.error(
+        game.i18n.format("OSE.migration.single.error", { name: this.actor.name }) || "Class conversion failed.",
+      );
+    }
   }
 
   // Track which Class rows whose tables are hidden.

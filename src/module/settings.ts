@@ -157,6 +157,15 @@ const registerSettings = () => {
     },
     default: "warn",
   });
+  game.settings.register(game.system.id, "enableClassItems", {
+    name: game.i18n.localize("OSE.Setting.EnableClassItems"),
+    hint: game.i18n.localize("OSE.Setting.EnableClassItemsHint"),
+    default: false,
+    scope: "world",
+    type: Boolean,
+    config: true,
+    requiresReload: true,
+  });
   game.settings.register(game.system.id, "multipleClasses", {
     name: game.i18n.localize("OSE.Setting.MultipleClasses"),
     hint: game.i18n.localize("OSE.Setting.MultipleClassesHint"),
@@ -215,6 +224,7 @@ declare global {
       "ose.multipleClasses": boolean;
       "ose.promptAddClassAbilities": boolean;
       "ose.effectsTab": boolean;
+      "ose.enableClassItems": boolean;
       "ose.tweaksMigrated": boolean;
       "ose.systemMigrationVersion": string;
     }

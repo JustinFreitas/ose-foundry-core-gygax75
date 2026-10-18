@@ -176,4 +176,41 @@ describe("Phase 1: Gygax '75 Auto Character Generation & Economy", () => {
       expect(mockActor.updateEmbeddedDocuments).not.toHaveBeenCalled();
     });
   });
+
+  describe("String Class Mode & enableClassItems Ruleset Setting", () => {
+    it("defaults enableClassItems to false in settings store", () => {
+      expect(game.settings.get("ose", "enableClassItems")).toBe(false);
+    });
+
+    it("gates canConvert when enableClassItems is false", () => {
+      const getCanConvert = (enableClassItems: boolean, classesLength: number, classStr: string) => {
+        return enableClassItems && !classesLength && !!String(classStr ?? "").trim();
+      };
+
+      // When false (default), canConvert is always false even if a class string is typed
+      expect(getCanConvert(false, 0, "Fighter")).toBe(false);
+      expect(getCanConvert(false, 0, "Thief")).toBe(false);
+
+      // When true, canConvert is allowed for unmigrated string classes
+      expect(getCanConvert(true, 0, "Fighter")).toBe(true);
+      // But false if class items already exist
+      expect(getCanConvert(true, 1, "Fighter")).toBe(false);
+    });
+
+    it("prevents accidental migration when enableClassItems is disabled", async () => {
+      const warnSpy = vi.spyOn(ui.notifications, "warn");
+      const mockActor: any = {
+        uuid: "Actor.123",
+        name: "Test PC",
+        items: [],
+        classStats: vi.fn().mockReturnValue({}),
+      };
+
+      const { convertSingleActor } = await import("../../migration/convert-actor");
+      const result = await convertSingleActor(mockActor);
+
+      expect(warnSpy).toHaveBeenCalled();
+      expect(result.status).toBe("none");
+    });
+  });
 });

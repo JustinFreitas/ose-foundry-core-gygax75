@@ -61,11 +61,17 @@ export const convertActor = async (actor: any, index: IndexEntry[]): Promise<Rep
   };
 };
 
-// The sheet's "Convert to class items" button.
-// biome-ignore lint/suspicious/noExplicitAny: any character actor
 export const convertSingleActor = async (actor: any) => {
-  const before = actor.classStats();
+  if (!game.settings.get(game.system.id, "enableClassItems")) {
+    ui.notifications?.warn(game.i18n.localize("OSE.Setting.EnableClassItemsHint"));
+    return { actorUuid: actor.uuid, actorName: actor.name, text: "", status: "none" as const };
+  }
+  const before = actor.classStats?.() ?? {};
   const entry = await convertActor(actor, await buildClassIndex());
+  if (entry.status === "none") {
+    ui.notifications?.info(game.i18n.format("OSE.migration.single.none", { name: actor.name, text: entry.text }));
+    return entry;
+  }
   await actor.setFlag(game.system.id, "migrations.classItems", true);
   const message = game.i18n.format(`OSE.migration.single.${entry.status}`, {
     name: actor.name,
@@ -73,14 +79,14 @@ export const convertSingleActor = async (actor: any) => {
     source: (entry.source && game.packs?.get(entry.source)?.title) || entry.source || "",
   });
   ui.notifications?.info(message);
-  const item = entry.itemUuid && actor.items.find((i: Item) => i.uuid === entry.itemUuid);
-  if (item) {
+  const item = (entry.itemUuid && (actor.items.find((i: Item) => i.uuid === entry.itemUuid) || actor.items.get(entry.itemUuid))) || null;
+  if (item && actor.postClassChanges) {
     const i18n = game.i18n;
     const lines = [message];
     if (entry.bonusKept != null) lines.push(i18n.format("OSE.migration.card.Bonus", { bonus: entry.bonusKept }));
     if (entry.note) lines.push(i18n.localize(`OSE.migration.card.${entry.note}`));
     await actor.postClassChanges(item, before, null, {
-      title: i18n.format("OSE.migration.card.Title", { cls: item.name, level: item.system.level }),
+      title: i18n.format("OSE.migration.card.Title", { cls: item.name, level: item.system?.level ?? 1 }),
       lines,
       kept: adjustmentRows(entry.changes ?? []),
     });

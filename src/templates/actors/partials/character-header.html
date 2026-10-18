@@ -75,13 +75,13 @@
   </ul>
   {{#if isOwnerOrObserver}}
     <ul class="summary flexrow">
-      {{#if race}}
+      {{#if (and enableClassItems race)}}
       <li class="flex1 class-summary">
         <div class="class-summary-names item-entry" data-item-id="{{race.id}}"><a data-action="editItem">{{race.name}}</a>{{#unless classes.length}}{{#if warnings.length}}<a class="warnings-badge inline" data-action="toggleWarnings" data-tooltip="OSE.warnings.Title"><i class="fas fa-triangle-exclamation"></i> {{warnings.length}}</a>{{/if}}{{/unless}}</div>
         <label>{{localize 'TYPES.Item.race'}}</label>
       </li>
       {{/if}}
-      {{#if classes.length}}
+      {{#if (and enableClassItems classes.length)}}
       <li class="flex3 class-summary {{#if anyCanLevelUp}}notify{{/if}}">
         <div class="class-summary-names">
           {{#each classes as |cls|}}<span class="item-entry" data-item-id="{{cls.id}}"><a data-action="editItem" data-tooltip="{{cls.xp}} / {{#if cls.next}}{{cls.next}}{{else}}—{{/if}} XP">{{cls.name}} {{cls.level}}</a>{{#if cls.canLevelUp}} <a data-action="levelUp" data-tooltip="OSE.classes.LevelUp"><i class="fas fa-circle-up"></i></a>{{/if}}</span>{{#unless @last}} / {{/unless}}{{/each}}

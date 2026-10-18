@@ -105,6 +105,7 @@ const prompt = (count: number) =>
 // Runs on ready for the active GM.
 export const promptClassMigration = async () => {
   if (!game.user?.isActiveGM) return;
+  if (!game.settings.get(game.system.id, "enableClassItems")) return;
   if (game.settings.get(game.system.id, "systemMigrationVersion") === CLASS_ITEMS_MIGRATION) return;
   const actors = await findActorsToMigrate();
   if (!actors.length) {

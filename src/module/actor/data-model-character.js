@@ -19,6 +19,9 @@ const getItemsOfActorOfType = (actor, filterType, filterFn = null) =>
 export default class OseDataModelCharacter extends foundry.abstract.TypeDataModel {
   prepareBaseData() {
     this.derivedFromClasses = false;
+    if (!game.settings?.get?.(game.system?.id ?? "ose", "enableClassItems")) {
+      return;
+    }
     const { classes } = this;
     const summary = summariseClasses(classes);
     if (summary) {

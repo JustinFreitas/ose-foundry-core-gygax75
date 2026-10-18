@@ -268,6 +268,7 @@ const settingsStore = new Map<string, any>([
   ["ose.savedParties", {}],
   ["ose.effectsTab", true],
   ["ose.multipleClasses", true],
+  ["ose.enableClassItems", false],
 ]);
 
 const hookRegistry = new Map<string, Function[]>();

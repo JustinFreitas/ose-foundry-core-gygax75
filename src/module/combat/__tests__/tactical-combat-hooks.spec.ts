@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
+  getActorEffects,
   handlePreUpdateActorHealing,
   handlePreCreateChatMessageSpeed,
   registerTacticalCombatHooks,
@@ -172,6 +173,26 @@ describe("Tactical Combat Hooks (Gygax '75)", () => {
 
       expect((ChatMessage as any).create).not.toHaveBeenCalled();
     });
+    it("warns on case-insensitive disease or poison variants", () => {
+      const actor = {
+        name: "Thorin",
+        system: { hp: { value: 3, max: 10 } },
+        effects: [
+          {
+            name: "Mummy disease",
+            disabled: false,
+          },
+        ],
+      };
+
+      handlePreUpdateActorHealing(actor, { system: { hp: { value: 7 } } }, {}, "user-gm");
+      expect((ChatMessage as any).create).toHaveBeenCalledTimes(1);
+
+      vi.clearAllMocks();
+      actor.effects = [{ name: "spider poison", disabled: false }];
+      handlePreUpdateActorHealing(actor, { system: { hp: { value: 9 } } }, {}, "user-gm");
+      expect((ChatMessage as any).create).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("handlePreCreateChatMessageSpeed", () => {
@@ -247,6 +268,45 @@ describe("Tactical Combat Hooks (Gygax '75)", () => {
       expect(message.updateSource).toHaveBeenCalledTimes(1);
     });
 
+    it("does not trigger extra attack banner on negative speed debuffs", () => {
+      const debuffedActor = {
+        name: "Slowpoke",
+        effects: [
+          {
+            name: "Reduced Speed",
+            disabled: false,
+          },
+        ],
+      };
+
+      const message: any = {
+        speaker: { _actor: debuffedActor },
+        flags: { ose: { rollType: "attack" } },
+        content: "<div>Attack: 12</div>",
+        updateSource: vi.fn(),
+      };
+
+      handlePreCreateChatMessageSpeed(message, {});
+      expect(message.updateSource).not.toHaveBeenCalled();
+    });
+
+    it("does not inject duplicate extra attack banner if already present", () => {
+      const hastedActor = {
+        name: "Speedy",
+        effects: [{ name: "Haste", disabled: false }],
+      };
+
+      const message: any = {
+        speaker: { _actor: hastedActor },
+        flags: { ose: { rollType: "attack" } },
+        content: `<div>Attack: 18</div><div class="ose-hasted-note">⚡ <b>Extra Attack:</b> Character may make an additional attack this round!</div>`,
+        updateSource: vi.fn(),
+      };
+
+      handlePreCreateChatMessageSpeed(message, {});
+      expect(message.updateSource).not.toHaveBeenCalled();
+    });
+
     it("does nothing if the speed effect is disabled", () => {
       const actor = {
         name: "Doran",
@@ -305,6 +365,20 @@ describe("Tactical Combat Hooks (Gygax '75)", () => {
       handlePreCreateChatMessageSpeed(message, {});
 
       expect(message.updateSource).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("getActorEffects", () => {
+    it("extracts values from Map or iterable collections", () => {
+      const effectMap = new Map([
+        ["eff1", { name: "Bless", disabled: false }],
+        ["eff2", { name: "Shield", disabled: true }],
+      ]);
+      const actor = { effects: effectMap };
+      const result = getActorEffects(actor);
+      expect(result).toHaveLength(2);
+      expect(result[0].name).toBe("Bless");
+      expect(result[1].name).toBe("Shield");
     });
   });
 

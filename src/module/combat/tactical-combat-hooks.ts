@@ -8,6 +8,7 @@ export function getActorEffects(actor: any): any[] {
   if (!actor?.effects) return [];
   if (Array.isArray(actor.effects)) return actor.effects;
   if (actor.effects.contents) return actor.effects.contents;
+  if (typeof actor.effects.values === "function") return Array.from(actor.effects.values());
   return Array.from(actor.effects);
 }
 
@@ -25,8 +26,8 @@ export function handlePreUpdateActorHealing(actor: any, updateData: any, _option
   const preventsHealing = effects.some(
     (e: any) =>
       !e.disabled &&
-      (e.flags?.ose?.preventsHealing ||
-        (typeof e.name === "string" && (e.name.includes("Poison") || e.name.includes("Diseased")))),
+      (Boolean(e.flags?.ose?.preventsHealing) ||
+        (typeof e.name === "string" && /\b(poison|poisoned|disease|diseased)\b/i.test(e.name))),
   );
 
   if (preventsHealing) {
@@ -57,11 +58,10 @@ export function handlePreCreateChatMessageSpeed(message: any, data: any, _option
   const hasSpeed = effects.some(
     (e: any) =>
       !e.disabled &&
-      ((typeof e.name === "string" &&
-        (e.name.includes("Speed of the Heroes") || e.name.includes("Haste") || e.name.includes("Speed"))) ||
-        e.flags?.ose?.isSpeedOfHeroes ||
-        e.flags?.ose?.isHasted ||
-        e.flags?.ose?.isSpeed),
+      (Boolean(e.flags?.ose?.isSpeedOfHeroes || e.flags?.ose?.isHasted || e.flags?.ose?.isSpeed) ||
+        (typeof e.name === "string" &&
+          (/\b(haste|hasted|speed of the heroes|potion of speed)\b/i.test(e.name) ||
+            (/\bspeed\b/i.test(e.name) && !/(reduced|half|slow|quarter)/i.test(e.name))))),
   );
 
   if (!hasSpeed) return;
@@ -75,6 +75,7 @@ export function handlePreCreateChatMessageSpeed(message: any, data: any, _option
 
   if (isAttack) {
     const contentStr = data?.content || message.content || "";
+    if (contentStr.includes("ose-hasted-note") || contentStr.includes("Extra Attack:")) return;
     const hastedNote = `<div class="ose-hasted-note" style="margin-top: 4px; padding: 4px 8px; background: #fff8dc; border: 1px solid #d4af37; border-radius: 4px; color: #5a3e1b; font-size: 0.85em; text-align: center;">⚡ <b>Extra Attack:</b> Character may make an additional attack this round!</div>`;
 
     if (typeof message.updateSource === "function") {

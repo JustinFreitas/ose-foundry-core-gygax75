@@ -456,7 +456,7 @@ export default class OseActorSheetCharacter extends OseActorSheet {
       return await convertSingleActor(this.actor);
     } catch (err) {
       console.error(err);
-      ui.notifications.error(
+      ui.notifications?.error(
         game.i18n.format("OSE.migration.single.error", { name: this.actor.name }) || "Class conversion failed.",
       );
     }

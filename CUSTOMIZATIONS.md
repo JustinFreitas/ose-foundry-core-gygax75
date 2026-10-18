@@ -206,21 +206,19 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Description**: Enforces `max-height: 450px; overflow-y: auto;` on `.ose.dialog.gp-cost .item-list` and sets right-aligned numeric alignment for currency columns, preventing long equipment lists from expanding off-screen.
 * **Recommendation**: **Restore**. Prevents shopping dialog overflow during character generation.
 
-#### `GYGAX-019`: Bundle Cumulative Cost Math Model
-* **Status**: `🟢 Active` (Restored in `v3.1.0-beta.2-gygax75.4`)
+#### `GYGAX-019`: Bundle Cumulative Cost & Encumbrance Math Model
+* **Status**: `🟢 Active` (Enhanced in `v3.1.0-beta.2-gygax75.6`)
 * **Category**: Economy & Math
-* **Files**: [`src/module/item/data-model-item.ts`](src/module/item/data-model-item.ts)
-* **Origin**: Commit `68f245d1`
-* **Description**: Calculates item value as `(this.cost / this.quantity.max) * this.quantity.value` when `quantity.max > 0`. Corrects a critical math bug where partial ammunition bundles (e.g. 19 of 20 arrows) are priced at 19 times the entire bundle price (95 GP) instead of unit price (4.75 GP).
-* **Recommendation**: **Restore**. Mathematically necessary for correct character wealth and encumbrance tracking.
+* **Files**: [`src/module/item/data-model-item.ts`](src/module/item/data-model-item.ts), [`src/module/actor/data-model-classes/data-model-character-encumbrance-complete.ts`](src/module/actor/data-model-classes/data-model-character-encumbrance-complete.ts), [`src/module/actor/data-model-classes/data-model-character-encumbrance-detailed.ts`](src/module/actor/data-model-classes/data-model-character-encumbrance-detailed.ts), [`src/module/actor/data-model-classes/data-model-character-encumbrance-item-based.ts`](src/module/actor/data-model-classes/data-model-character-encumbrance-item-based.ts)
+* **Origin**: Commit `68f245d1`, expanded in `3.1.0-beta.2-gygax75.6`
+* **Description**: Calculates item value and weight proportionally as `(value / quantity.max) * quantity.value` when `quantity.max > 0`. Connected to actor encumbrance reducers across Complete, Detailed, and Item-Based encumbrance variants so partial bundles (such as 15 remaining arrows in a 20-arrow quiver) calculate exact fractional weight and slot load rather than multiplying total bundle weight by unit count.
 
-#### `GYGAX-020`: Item Sheet (Bundle) Visual Suffix Labels
-* **Status**: `🟢 Active` (Restored in `v3.1.0-beta.2-gygax75.4`)
+#### `GYGAX-020`: Item Sheet Localized (Bundle) Visual Suffix Labels
+* **Status**: `🟢 Active` (Localized in `v3.1.0-beta.2-gygax75.6`)
 * **Category**: UI & Sheets
-* **Files**: [`src/templates/items/*.html`](src/templates/items/)
-* **Origin**: Commits `68f245d1`, `d4ed2e00`
-* **Description**: Displays `(Bundle)` in cost and weight labels whenever `system.quantity.max > 0`, clarifying that listed prices and weights represent the whole package.
-* **Recommendation**: **Restore**. Pairs with `GYGAX-019`.
+* **Files**: [`src/templates/items/*.html`](src/templates/items/), [`src/lang/*.json`](src/lang/)
+* **Origin**: Commits `68f245d1`, `d4ed2e00`, localized across all 12 supported system languages in `3.1.0-beta.2-gygax75.6`
+* **Description**: Displays localized bundle suffix (`OSE.items.BundleSuffix`) in cost and weight labels across all item sheets (`item-sheet`, `armor-sheet`, `container-sheet`, `weapon-sheet`) whenever `system.quantity.max > 0`, clarifying that listed prices and weights represent the whole package without hardcoding English text.
 
 #### `GYGAX-021`: Macro Unlinked Token Resolution & Quoted Escaping
 * **Status**: `🟢 Active` (Restored in `v3.1.0-beta.2-gygax75.4`)
@@ -246,13 +244,12 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Description**: Restores weapon tags `penetrating` (heavy crossbows, armor piercing) and `reach` (polearms, spears) with their custom icons and localization keys.
 * **Recommendation**: **Restore**. Needed for Gygax '75 tactical weapon balance.
 
-#### `GYGAX-024`: Gygax '75 Custom Classes for String Mode
-* **Status**: `🟢 Active` (Restored in `v3.1.0-beta.2-gygax75.4`)
+#### `GYGAX-024`: Gygax '75 Custom Classes for String Mode & Migration Indexer
+* **Status**: `🟢 Active` (Enhanced in `v3.1.0-beta.2-gygax75.6`)
 * **Category**: Classes & Rules
-* **Files**: [`src/module/classes/gygax75-classes.ts`](src/module/classes/gygax75-classes.ts), [`src/module/config.ts`](src/module/config.ts)
-* **Origin**: Commit `b898fa8`
-* **Description**: Registers class definitions (Barbarian, Druid, Gnome, Half-Orc, Knight, Warden, Wood Elf) in `CONFIG.OSE.classes` so character level progression (HD, THAC0, Saves) resolves automatically when `enableClassItems: false`.
-* **Recommendation**: **Restore**. Essential companion to `GYGAX-001`.
+* **Files**: [`src/module/classes/gygax75-classes.ts`](src/module/classes/gygax75-classes.ts), [`src/module/config.ts`](src/module/config.ts), [`src/module/migration/class-index.ts`](src/module/migration/class-index.ts)
+* **Origin**: Commit `b898fa8`, expanded in `3.1.0-beta.2-gygax75.6`
+* **Description**: Registers class definitions (Barbarian, Druid, Gnome, Half-Orc, Knight, Warden, Wood Elf) in `CONFIG.OSE.classes` so character level progression (HD, THAC0, Saves) resolves automatically when `enableClassItems: false`. Also updates `class-index.ts` to index all class groups so that class migration indexer recognizes both `classic` and `gygax75` classes.
 
 #### `GYGAX-025`: Monster Sheet RollTable Drop Hyperlink Labels
 * **Status**: `🟢 Active` (Restored in `v3.1.0-beta.2-gygax75.4`)

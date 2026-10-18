@@ -31,6 +31,8 @@ class StringField extends DataField {
   }
 }
 
+class HTMLField extends StringField {}
+
 class NumberField extends DataField {
   getInitialValue() {
     return this.options.initial ?? null;
@@ -249,6 +251,8 @@ class MockDialogV2 {
     return this;
   }
   static confirm = () => Promise.resolve(true);
+  static prompt = vi.fn().mockResolvedValue({ level: 1, rollHp: false, offer: false });
+  static wait = vi.fn().mockResolvedValue(true);
 }
 
 // Global Math.clamp
@@ -262,6 +266,8 @@ const settingsStore = new Map<string, any>([
   ["ose.rerollInitiative", "reset"],
   ["ose.gygax75Encumbrance", true],
   ["ose.savedParties", {}],
+  ["ose.effectsTab", true],
+  ["ose.multipleClasses", true],
 ]);
 
 const hookRegistry = new Map<string, Function[]>();
@@ -375,7 +381,7 @@ Object.assign(globalThis, {
       },
     },
     data: {
-      fields: { DataField, StringField, NumberField, BooleanField, ArrayField, ObjectField, SchemaField },
+      fields: { DataField, StringField, HTMLField, NumberField, BooleanField, ArrayField, ObjectField, SchemaField },
     },
     utils: {
       mergeObject: (target: any, source: any) => Object.assign(target || {}, source),

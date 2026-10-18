@@ -1,6 +1,8 @@
 /**
  * @file The base class we use for Character and Monster sheets. Shared behavior goes here!
  */
+import { readChanges } from "../classes/effects";
+import { withoutOverrides } from "../effects/form-overrides";
 import { displayItemInChat } from "../sheet/chat-helpers";
 import { bindInventoryContextMenu } from "../sheet/context-menu";
 import { prepareActorContext } from "../sheet/data-context";
@@ -28,6 +30,7 @@ import {
   useConsumable,
 } from "../sheet/inventory-actions";
 import { toggleContainedItems, toggleItemCategory, toggleItemSummary } from "../sheet/listeners";
+import { durationText, groupEffects } from "./effects-list";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -69,8 +72,8 @@ export default class OseActorSheet extends HandlebarsApplicationMixin(ActorSheet
       resetSpells: OseActorSheet._onResetSpells,
       createEffect: OseActorSheet._onCreateEffect,
       editEffect: OseActorSheet._onEditEffect,
-      deleteEffect: OseActorSheet._onDeleteEffect,
       toggleEffect: OseActorSheet._onToggleEffect,
+      deleteEffect: OseActorSheet._onDeleteEffect,
       openEffectSource: OseActorSheet._onOpenEffectSource,
     },
   };
@@ -81,6 +84,41 @@ export default class OseActorSheet extends HandlebarsApplicationMixin(ActorSheet
    */
   _isTabVisible(_tabId) {
     return true;
+  }
+
+  _effectsTabEnabled() {
+    return game.settings.get(game.system.id, "effectsTab");
+  }
+
+  #effectGroups() {
+    const rows = [...this.actor.allApplicableEffects()].map((e) => ({
+      uuid: e.uuid,
+      id: e.id,
+      name: e.name,
+      img: e.img,
+      disabled: e.disabled,
+      temporary: e.isTemporary,
+      source: e.parent === this.actor ? null : (e.parent?.name ?? null),
+      duration: durationText(e.duration ?? {}, (k) => game.i18n.localize(k)),
+      itemId: e.parent !== this.actor && e.parent?.documentName === "Item" ? e.parent.id : null,
+      suppressed: e.parent?.documentName === "Item" && Object.hasOwn(e.parent.system ?? {}, "equipped") ? !e.parent.system.equipped : false,
+    }));
+    // Include any class's prime requisite XP adjustment.
+    for (const cls of this.actor.system.classes ?? []) {
+      const bonus = this.actor.system.classXpBonus(cls);
+      if (!bonus) continue;
+      rows.push({
+        uuid: cls.uuid,
+        name: game.i18n.format("OSE.effects.ClassXp", { bonus: bonus > 0 ? `+${bonus}` : `${bonus}` }),
+        img: cls.img,
+        disabled: false,
+        temporary: false,
+        source: cls.name,
+        duration: "",
+        fixed: true,
+      });
+    }
+    return groupEffects(rows).map((g) => ({ ...g, label: `OSE.effects.${g.key}` }));
   }
 
   _getTabsConfig(group) {
@@ -109,6 +147,7 @@ export default class OseActorSheet extends HandlebarsApplicationMixin(ActorSheet
       system: this.actor.system,
       cssClass: this.options.classes.join(" "),
       ...(await prepareActorContext(this.actor, this._expanded)),
+      effectGroups: this._effectsTabEnabled() ? this.#effectGroups() : null,
     });
   }
 
@@ -161,6 +200,7 @@ export default class OseActorSheet extends HandlebarsApplicationMixin(ActorSheet
     await super._onRender(context, options);
     this._sizeResizables();
     if (!this.isEditable) return;
+    this.#lockOverriddenFields();
     for (const input of this.element.querySelectorAll(".quantity input, .memorize input, .counter input")) {
       input.addEventListener("click", (event) => event.target.select());
     }
@@ -176,6 +216,47 @@ export default class OseActorSheet extends HandlebarsApplicationMixin(ActorSheet
     for (const el of this.element?.querySelectorAll(".resizable") ?? []) {
       el.style.height = `${heightDelta + Number.parseInt(el.dataset.baseSize, 10)}px`;
     }
+  }
+
+  _processFormData(event, form, formData) {
+    const { flattenObject, expandObject } = foundry.utils;
+    const data = flattenObject(super._processFormData(event, form, formData));
+    return expandObject(withoutOverrides(data, this.#overriddenPaths()));
+  }
+
+  #overriddenPaths() {
+    return Object.keys(foundry.utils.flattenObject(this.actor.overrides ?? {}));
+  }
+
+  #effectsChanging(path) {
+    return this.actor.appliedEffects.filter((e) => readChanges(e).some((c) => c.key === path));
+  }
+
+  // Fields an effect changes are locked.
+  #lockOverriddenFields() {
+    for (const path of this.#overriddenPaths()) {
+      for (const input of this.element.querySelectorAll(`input[name="${path}"]`)) {
+        const names = this.#effectsChanging(path).map((e) => e.name);
+        if (!names.length) continue;
+        input.readOnly = true;
+        input.classList.add("effect-locked");
+        input.dataset.tooltip = game.i18n.format("OSE.effects.Locked", { effects: names.join(", ") });
+        input.addEventListener("click", () => this.#offerToDisable(path));
+      }
+    }
+  }
+
+  async #offerToDisable(path) {
+    const effects = this.#effectsChanging(path);
+    const list = effects.map((e) => `<li>${foundry.utils.escapeHTML(e.name)}</li>`).join("");
+    const ok = await foundry.applications.api.DialogV2.confirm({
+      classes: ["ose", "dialog"],
+      window: { title: game.i18n.localize("OSE.effects.LockedTitle") },
+      content: `<p>${game.i18n.localize("OSE.effects.LockedPrompt")}</p><ul>${list}</ul>`,
+      position: { width: 400, height: "auto" },
+      rejectClose: false,
+    });
+    if (ok) for (const effect of effects) await effect.update({ disabled: true });
   }
 
   // Item row inputs update the item, not the actor.
@@ -239,6 +320,60 @@ export default class OseActorSheet extends HandlebarsApplicationMixin(ActorSheet
     if (this.isEditable && item) return this._promptRemoveItemFromActor(item);
   }
 
+  static async _onCreateEffect(_event, target) {
+    if (!this.isEditable) return;
+    const effectType = target?.dataset?.effectType;
+    const isTemporary = effectType === "temporary";
+    const isInactive = effectType === "inactive";
+    const name = effectType ? game.i18n.localize("OSE.effect.new") : game.i18n.localize("OSE.effects.New");
+    const [effect] = await this.actor.createEmbeddedDocuments("ActiveEffect", [
+      {
+        name,
+        img: "icons/svg/aura.svg",
+        origin: this.actor.uuid,
+        disabled: isInactive,
+        duration: isTemporary ? { rounds: 1 } : {},
+      },
+    ]);
+    effect?.sheet?.render(true);
+  }
+
+  static _getEffectFromTarget(actor, target) {
+    const uuid = target?.dataset?.effectUuid || target?.closest?.("[data-effect-uuid]")?.dataset.effectUuid;
+    if (uuid) return fromUuidSync(uuid);
+    const id = target?.dataset?.effectId || target?.closest?.("[data-effect-id]")?.dataset.effectId;
+    if (id) return actor?.effects?.get?.(id) ?? null;
+    return null;
+  }
+
+  static _onEditEffect(_event, target) {
+    OseActorSheet._getEffectFromTarget(this.actor, target)?.sheet?.render(true);
+  }
+
+  static async _onToggleEffect(_event, target) {
+    const effect = OseActorSheet._getEffectFromTarget(this.actor, target);
+    if (this.isEditable && effect) return effect.update({ disabled: !effect.disabled });
+  }
+
+  static async _onDeleteEffect(_event, target) {
+    const effect = OseActorSheet._getEffectFromTarget(this.actor, target);
+    if (!this.isEditable || !effect || (effect.parent && effect.parent !== this.actor)) return;
+    const ok = await foundry.applications.api.DialogV2.confirm({
+      classes: ["ose", "dialog"],
+      window: { title: game.i18n.localize("OSE.effects.Delete") },
+      content: `<p>${game.i18n.format("OSE.effects.DeleteConfirm", { name: foundry.utils.escapeHTML(effect.name) })}</p>`,
+      position: { width: 400, height: "auto" },
+      rejectClose: false,
+    });
+    if (ok) return effect.delete();
+  }
+
+  static _onOpenEffectSource(_event, target) {
+    const itemId = target.dataset.itemId || target.closest?.("[data-item-id]")?.dataset.itemId;
+    const item = this.actor.items.get(itemId);
+    return item?.sheet?.render(true);
+  }
+
   static _onConsumableSpend(_event, target) {
     if (this.isEditable) return useConsumable(this, target, true);
   }
@@ -250,48 +385,5 @@ export default class OseActorSheet extends HandlebarsApplicationMixin(ActorSheet
   static _onResetSpells(_event, target) {
     if (this.isEditable) return resetSpells(this, target);
   }
-
-  static async _onCreateEffect(_event, target) {
-    if (!this.isEditable) return;
-    const effectType = target.dataset.effectType;
-    const isTemporary = effectType === "temporary";
-    const isInactive = effectType === "inactive";
-    const created = await this.actor.createEmbeddedDocuments("ActiveEffect", [
-      {
-        name: game.i18n.localize("OSE.effect.new"),
-        img: "icons/svg/aura.svg",
-        origin: this.actor.uuid,
-        disabled: isInactive,
-        duration: isTemporary ? { rounds: 1 } : {},
-      },
-    ]);
-    return created[0]?.sheet?.render(true);
-  }
-
-  static _onEditEffect(_event, target) {
-    if (!this.isEditable) return;
-    const effectId = target.dataset.effectId || target.closest?.("[data-effect-id]")?.dataset.effectId;
-    const effect = this.actor.effects.get(effectId);
-    return effect?.sheet?.render(true);
-  }
-
-  static async _onDeleteEffect(_event, target) {
-    if (!this.isEditable) return;
-    const effectId = target.dataset.effectId || target.closest?.("[data-effect-id]")?.dataset.effectId;
-    const effect = this.actor.effects.get(effectId);
-    return effect?.delete();
-  }
-
-  static async _onToggleEffect(_event, target) {
-    if (!this.isEditable) return;
-    const effectId = target.dataset.effectId || target.closest?.("[data-effect-id]")?.dataset.effectId;
-    const effect = this.actor.effects.get(effectId);
-    return effect?.update({ disabled: !effect.disabled });
-  }
-
-  static _onOpenEffectSource(_event, target) {
-    const itemId = target.dataset.itemId || target.closest?.("[data-item-id]")?.dataset.itemId;
-    const item = this.actor.items.get(itemId);
-    return item?.sheet?.render(true);
-  }
 }
+

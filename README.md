@@ -10,6 +10,9 @@
   <!-- BEGIN TEXT REQUIRED BY LICENSE -->Requires <strong><em>Old-School Essentials</em></strong> Classic Fantasy or Advanced Fantasy.<!-- END TEXT REQUIRED BY LICENSE --> Find the game at <a href="https://necroticgnome.com">Necrotic Gnome's website</a>. Buy <a href="https://www.foundryvtt.store/products/ose-advancedfantasytome">Old-School Essentials: Premium Game</a> and <a href="https://www.foundryvtt.store/creators/necroticgnome">more Necrotic Gnome content</a> for Foundry VTT.
 </p>
 
+> [!NOTE]
+> This repository is the custom **Gygax '75 Edition** fork of Old-School Essentials for Foundry VTT. All custom features, house rules, UI enhancements, and lifecycle statuses are documented in [**`CUSTOMIZATIONS.md`**](CUSTOMIZATIONS.md).
+
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
 [![All Contributors](https://img.shields.io/badge/all_contributors-37-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->

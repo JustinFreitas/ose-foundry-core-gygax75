@@ -355,6 +355,8 @@
   "OSE.items.Splash": "Splash weapon",
   "OSE.items.Reload": "Reload",
   "OSE.items.Charge": "Charge",
+  "OSE.items.Penetrating": "Penetrating",
+  "OSE.items.Reach": "Reach",
 
   "OSE.armor.type": "Armor Type",
   "OSE.armor.unarmored": "Unarmored",

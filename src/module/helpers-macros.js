@@ -20,7 +20,7 @@ export async function createOseMacro(data, slot) {
     return game.user.assignHotbarMacro(await fromUuid(data.uuid), slot);
   }
   if (data.type === "RollTable") {
-    const command = `game.ose.rollTableMacro("${data.uuid}");`;
+    const command = `game.ose.rollTableMacro(${JSON.stringify(data.uuid)});`;
     const table = await fromUuid(data.uuid);
     const macro = await Macro.create({
       name: table.name,
@@ -37,7 +37,7 @@ export async function createOseMacro(data, slot) {
   const { item } = data;
 
   // Create the macro command
-  const command = `game.ose.rollItemMacro("${item.name}");`;
+  const command = `game.ose.rollItemMacro(${JSON.stringify(item.name)});`;
   let macro = game.macros.contents.find((m) => m.name === item.name && m.command === command);
   if (!macro || macro.ownership[game.userId] === undefined) {
     macro = await Macro.create({
@@ -67,7 +67,10 @@ export function rollItemMacro(itemName) {
     return ui.notifications.warn(game.i18n.localize("OSE.warn.macrosNoTokenOwnedInScene"));
 
   let actor;
-  if (speaker.token) actor = game.actors.tokens[speaker.token];
+  if (speaker.token && speaker.scene) {
+    const scene = game.scenes.get(speaker.scene);
+    actor = scene?.tokens?.get(speaker.token)?.actor;
+  }
   if (!actor) actor = game.actors.get(speaker.actor);
 
   // Get matching items

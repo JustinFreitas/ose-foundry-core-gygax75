@@ -145,9 +145,10 @@ export default class OseActorSheetMonster extends OseActorSheet {
     let link = "";
     if (data.pack) {
       const tableDatum = game.packs.get(data.pack).index.find((el) => el._id === data.id);
-      link = `@UUID[${data.uuid}]{${tableDatum.name}}`;
+      link = `@UUID[${data.uuid}]{${tableDatum ? tableDatum.name : data.uuid}}`;
     } else {
-      link = `@UUID[${data.uuid}]`;
+      const table = await fromUuid(data.uuid);
+      link = `@UUID[${data.uuid}]{${table ? table.name : data.uuid}}`;
     }
     const table = addTreasureTable(this.actor.system.details.treasure.table, link);
     this.actor.update({ "system.details.treasure.table": table });

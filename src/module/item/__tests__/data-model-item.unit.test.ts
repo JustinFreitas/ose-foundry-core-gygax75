@@ -79,6 +79,19 @@ describe("OseDataModelItem", () => {
       expect(item.cumulativeCost).toBe(36);
       expect(item.cumulativeItemslots).toBe(2);
     });
+
+    it("calculates unit-proportional weight, cost, and itemslots for bundled items (max > 0)", () => {
+      const bundle = new OseDataModelItem({
+        weight: 20,
+        cost: 5,
+        itemslots: 1,
+        quantity: { value: 10, max: 20 },
+      });
+
+      expect(bundle.cumulativeWeight).toBe(10);
+      expect(bundle.cumulativeCost).toBe(2.5);
+      expect(bundle.cumulativeItemslots).toBe(1);
+    });
   });
 
   describe("migrateData", () => {

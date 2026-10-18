@@ -35,18 +35,18 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 | `GYGAX-012` | `🟢 Active` | Tactical Combat | Tactical Combat Hooks (Healing & Speed) | `src/module/tactical-combat-hooks.ts`, `src/ose.js` |
 | `GYGAX-013` | `🟢 Active` | Active Effects | Effects Tab & Link Forwarding | `src/module/actor/actor-sheet.js`, `actor-effects-tab.html` |
 | `GYGAX-014` | `🟢 Active` | UI & Styling | DialogV2 OSE Parchment & Styling Standards | `src/scss/apps.scss` |
-| `GYGAX-015` | `🟡 Planned` | UI & Styling | Window Content Double Scrollbar Fix | `src/scss/core.scss` |
-| `GYGAX-016` | `🟡 Planned` | UI & Styling | Character Sheet Notes Tab Responsive Flex | `src/scss/character.scss` |
-| `GYGAX-017` | `🟡 Planned` | UI & Styling | Effects Tab Full-Height Inventory Sizing | `src/scss/actor-base.scss` |
-| `GYGAX-018` | `🟡 Planned` | UI & Shopping | Shopping Cart Max Height & Currency Alignment | `src/scss/apps.scss` |
-| `GYGAX-019` | `🟡 Planned` | Economy & Math | Bundle Cumulative Cost Math Model | `src/module/item/data-model-item.ts` |
-| `GYGAX-020` | `🟡 Planned` | UI & Sheets | Item Sheet (Bundle) Visual Suffix Labels | `src/templates/items/*.html` |
-| `GYGAX-021` | `🟡 Planned` | Macros & Hotbar | Macro Unlinked Token Resolution & Quoted Escaping | `src/module/helpers-macros.js` |
-| `GYGAX-022` | `🟡 Planned` | Core Compliance | Modern User ID Reference in Whispers (`game.user.id`) | `src/module/helpers-dice.js`, `helpers-treasure.js` |
-| `GYGAX-023` | `🟡 Planned` | Equipment & Tags | Custom Weapon Qualities: Penetrating & Reach | `src/module/config.ts`, `src/lang/en.json`, `assets/` |
-| `GYGAX-024` | `🟡 Planned` | Classes & Rules | Gygax '75 Custom Classes for String Mode | `src/module/classes/gygax75-classes.ts`, `config.ts` |
-| `GYGAX-025` | `🟡 Planned` | Monster Sheet | Monster Sheet RollTable Drop Hyperlink Labels | `src/module/actor/monster-sheet.js` |
-| `GYGAX-026` | `🟡 Planned` | Monster Sheet | Monster Sheet Description Editor 100% Height | `src/scss/monster.scss` |
+| `GYGAX-015` | `🟢 Active` | UI & Styling | Window Content Double Scrollbar Fix | `src/scss/core.scss` |
+| `GYGAX-016` | `🟢 Active` | UI & Styling | Character Sheet Notes Tab Responsive Flex | `src/scss/character.scss` |
+| `GYGAX-017` | `🟢 Active` | UI & Styling | Effects Tab Full-Height Inventory Sizing | `src/scss/actor-base.scss` |
+| `GYGAX-018` | `🟢 Active` | UI & Shopping | Shopping Cart Max Height & Currency Alignment | `src/scss/apps.scss` |
+| `GYGAX-019` | `🟢 Active` | Economy & Math | Bundle Cumulative Cost Math Model | `src/module/item/data-model-item.ts` |
+| `GYGAX-020` | `🟢 Active` | UI & Sheets | Item Sheet (Bundle) Visual Suffix Labels | `src/templates/items/*.html` |
+| `GYGAX-021` | `🟢 Active` | Macros & Hotbar | Macro Unlinked Token Resolution & Quoted Escaping | `src/module/helpers-macros.js` |
+| `GYGAX-022` | `🟢 Active` | Core Compliance | Modern User ID Reference in Whispers (`game.user.id`) | `src/module/helpers-dice.js`, `helpers-treasure.js` |
+| `GYGAX-023` | `🟢 Active` | Equipment & Tags | Custom Weapon Qualities: Penetrating & Reach | `src/module/config.ts`, `src/lang/en.json`, `assets/` |
+| `GYGAX-024` | `🟢 Active` | Classes & Rules | Gygax '75 Custom Classes for String Mode | `src/module/classes/gygax75-classes.ts`, `config.ts` |
+| `GYGAX-025` | `🟢 Active` | Monster Sheet | Monster Sheet RollTable Drop Hyperlink Labels | `src/module/actor/monster-sheet.js` |
+| `GYGAX-026` | `🟢 Active` | Monster Sheet | Monster Sheet Description Editor 100% Height | `src/scss/monster.scss` |
 | `GYGAX-027` | `🔴 Obsolete` | Legacy Architecture| ApplicationV1 FormApplication Overrides | Various pre-v3 JS files |
 | `GYGAX-028` | `🔴 Obsolete` | Manifests | `template.json` Custom Property Injections | `template.json` (removed upstream) |
 | `GYGAX-029` | `🔴 Obsolete` | UI & Sizing | Hardcoded Sheet Window Pixel Dimensions | Legacy sheet constructors |
@@ -172,10 +172,10 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 
 ---
 
-### 🟡 Planned Customizations (Slated for Restoration)
+### 🟢 Active Customizations (Restored in v3.1.0-beta.2-gygax75.4)
 
 #### `GYGAX-015`: Window Content Double Scrollbar Fix
-* **Status**: `🟡 Planned`
+* **Status**: `🟢 Active` (Restored in `v3.1.0-beta.2-gygax75.4`)
 * **Category**: UI & Styling
 * **Files**: [`src/scss/core.scss`](src/scss/core.scss)
 * **Origin**: Commit `915db54`
@@ -183,7 +183,7 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Recommendation**: **Restore**. Zero risk, immediate UX fix.
 
 #### `GYGAX-016`: Character Sheet Notes Tab Responsive Flex
-* **Status**: `🟡 Planned`
+* **Status**: `🟢 Active` (Restored in `v3.1.0-beta.2-gygax75.4`)
 * **Category**: UI & Styling
 * **Files**: [`src/scss/character.scss`](src/scss/character.scss)
 * **Origin**: Commit `02911faddebb`
@@ -191,7 +191,7 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Recommendation**: **Restore**. Eliminates sheet layout clipping on smaller viewports.
 
 #### `GYGAX-017`: Effects Tab Full-Height Inventory Sizing
-* **Status**: `🟡 Planned`
+* **Status**: `🟢 Active` (Restored in `v3.1.0-beta.2-gygax75.4`)
 * **Category**: UI & Styling
 * **Files**: [`src/scss/actor-base.scss`](src/scss/actor-base.scss)
 * **Origin**: Commit `02911faddebb`
@@ -199,7 +199,7 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Recommendation**: **Restore**. Directly enhances `GYGAX-013`.
 
 #### `GYGAX-018`: Shopping Cart Max Height & Currency Alignment
-* **Status**: `🟡 Planned`
+* **Status**: `🟢 Active` (Restored in `v3.1.0-beta.2-gygax75.4`)
 * **Category**: UI & Shopping
 * **Files**: [`src/scss/apps.scss`](src/scss/apps.scss)
 * **Origin**: Commits `33de686`, `2b45489`
@@ -207,7 +207,7 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Recommendation**: **Restore**. Prevents shopping dialog overflow during character generation.
 
 #### `GYGAX-019`: Bundle Cumulative Cost Math Model
-* **Status**: `🟡 Planned`
+* **Status**: `🟢 Active` (Restored in `v3.1.0-beta.2-gygax75.4`)
 * **Category**: Economy & Math
 * **Files**: [`src/module/item/data-model-item.ts`](src/module/item/data-model-item.ts)
 * **Origin**: Commit `68f245d1`
@@ -215,7 +215,7 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Recommendation**: **Restore**. Mathematically necessary for correct character wealth and encumbrance tracking.
 
 #### `GYGAX-020`: Item Sheet (Bundle) Visual Suffix Labels
-* **Status**: `🟡 Planned`
+* **Status**: `🟢 Active` (Restored in `v3.1.0-beta.2-gygax75.4`)
 * **Category**: UI & Sheets
 * **Files**: [`src/templates/items/*.html`](src/templates/items/)
 * **Origin**: Commits `68f245d1`, `d4ed2e00`
@@ -223,7 +223,7 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Recommendation**: **Restore**. Pairs with `GYGAX-019`.
 
 #### `GYGAX-021`: Macro Unlinked Token Resolution & Quoted Escaping
-* **Status**: `🟡 Planned`
+* **Status**: `🟢 Active` (Restored in `v3.1.0-beta.2-gygax75.4`)
 * **Category**: Macros & Hotbar
 * **Files**: [`src/module/helpers-macros.js`](src/module/helpers-macros.js)
 * **Origin**: Commit `a27707b1`
@@ -231,7 +231,7 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Recommendation**: **Restore**. Crucial hotbar bug fix for V14.
 
 #### `GYGAX-022`: Modern User ID Reference in Whispers (`game.user.id`)
-* **Status**: `🟡 Planned`
+* **Status**: `🟢 Active` (Restored in `v3.1.0-beta.2-gygax75.4`)
 * **Category**: Core Compliance
 * **Files**: [`src/module/helpers-dice.js`](src/module/helpers-dice.js), [`src/module/helpers-treasure.js`](src/module/helpers-treasure.js)
 * **Origin**: Commit `a27707b1`
@@ -239,7 +239,7 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Recommendation**: **Restore**. Clean standards compliance.
 
 #### `GYGAX-023`: Custom Weapon Qualities: Penetrating & Reach
-* **Status**: `🟡 Planned`
+* **Status**: `🟢 Active` (Restored in `v3.1.0-beta.2-gygax75.4`)
 * **Category**: Equipment & Tags
 * **Files**: [`src/module/config.ts`](src/module/config.ts), [`src/lang/en.json`](src/lang/en.json), `assets/penetrating.png`, `assets/reach.png`
 * **Origin**: Commits `b898fa8`, `76764c06`
@@ -247,7 +247,7 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Recommendation**: **Restore**. Needed for Gygax '75 tactical weapon balance.
 
 #### `GYGAX-024`: Gygax '75 Custom Classes for String Mode
-* **Status**: `🟡 Planned`
+* **Status**: `🟢 Active` (Restored in `v3.1.0-beta.2-gygax75.4`)
 * **Category**: Classes & Rules
 * **Files**: [`src/module/classes/gygax75-classes.ts`](src/module/classes/gygax75-classes.ts), [`src/module/config.ts`](src/module/config.ts)
 * **Origin**: Commit `b898fa8`
@@ -255,7 +255,7 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Recommendation**: **Restore**. Essential companion to `GYGAX-001`.
 
 #### `GYGAX-025`: Monster Sheet RollTable Drop Hyperlink Labels
-* **Status**: `🟡 Planned`
+* **Status**: `🟢 Active` (Restored in `v3.1.0-beta.2-gygax75.4`)
 * **Category**: Monster Sheet
 * **Files**: [`src/module/actor/monster-sheet.js`](src/module/actor/monster-sheet.js)
 * **Origin**: Commit `6437567`
@@ -263,7 +263,7 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Recommendation**: **Restore**. Consistent with Foundry adventure ingestion hyperlinking rules.
 
 #### `GYGAX-026`: Monster Sheet Description Editor 100% Height
-* **Status**: `🟡 Planned`
+* **Status**: `🟢 Active` (Restored in `v3.1.0-beta.2-gygax75.4`)
 * **Category**: Monster Sheet
 * **Files**: [`src/scss/monster.scss`](src/scss/monster.scss)
 * **Origin**: Commit `40ab62c`

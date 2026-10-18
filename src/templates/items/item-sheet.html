@@ -58,7 +58,7 @@
           </div>
         </label>
         <label class="form-group">
-          <span class="form-label">{{localize 'OSE.items.Cost'}}</span>
+          <span class="form-label">{{localize 'OSE.items.Cost'}}{{#if system.quantity.max}} (Bundle){{/if}}</span>
           <div class="form-fields">
             <input
               type="text"
@@ -70,7 +70,7 @@
         </label>
         {{#unless (eq @root.config.encumbrance 'itembased')}}
         <label class="form-group">
-          <span class="form-label">{{localize 'OSE.items.Weight'}}</span>
+          <span class="form-label">{{localize 'OSE.items.Weight'}}{{#if system.quantity.max}} (Bundle){{/if}}</span>
           <div class="form-fields">
             <input
               type="text"

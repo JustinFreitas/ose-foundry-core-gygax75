@@ -250,7 +250,7 @@ export default class OsePartySheet extends HandlebarsApplicationMixin(Applicatio
 
     new foundry.applications.api.DialogV2({
       classes: ["ose", "dialog", "party-config"],
-      position: { width: 400, height: "auto" },
+      position: { width: 420, height: "auto" },
       window: {
         title: game.i18n.localize("OSE.dialog.party.manageTitle"),
       },
@@ -399,7 +399,7 @@ export default class OsePartySheet extends HandlebarsApplicationMixin(Applicatio
           : []),
         {
           action: "clear",
-          label: game.i18n.localize("OSE.dialog.party.clear"),
+          label: game.i18n.localize("OSE.dialog.party.clearButton"),
           icon: "fas fa-broom",
           callback: async () => {
             if (OseParty.currentParty.length === 0) {

@@ -477,6 +477,14 @@
       }
     }
   }
+
+  .form-footer,
+  .dialog-buttons {
+    button {
+      white-space: nowrap;
+      padding: 0 8px;
+    }
+  }
 }
 
 .ose.dialog.party-sheet {

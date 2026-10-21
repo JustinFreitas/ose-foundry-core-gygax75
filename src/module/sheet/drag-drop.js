@@ -157,7 +157,8 @@ export const onDropItem = async (sheet, event, item) => {
   // Dragging container onto itself
   if (itemId === targetId || (targetContainer && itemId === targetContainer.id)) return;
 
-  if (!isOwned && resolvedItem.type === "class" && sheet.actor.type === "character") return onDropClass(sheet, itemData);
+  if (!isOwned && resolvedItem.type === "class" && sheet.actor.type === "character")
+    return onDropClass(sheet, itemData);
   if (!isOwned && resolvedItem.type === "race" && sheet.actor.type === "character") return onDropRace(sheet, itemData);
 
   // Prevent nesting containers

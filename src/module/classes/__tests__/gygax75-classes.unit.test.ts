@@ -4,15 +4,7 @@ import { GYGAX75_CLASSES, GYGAX75_SOURCE } from "../gygax75-classes";
 describe("Gygax 75 Classes", () => {
   it("registers all 7 custom classes", () => {
     const classNames = Object.keys(GYGAX75_CLASSES);
-    expect(classNames).toEqual([
-      "Barbarian",
-      "Druid",
-      "Gnome",
-      "Half-Orc",
-      "Knight",
-      "Warden",
-      "Wood Elf",
-    ]);
+    expect(classNames).toEqual(["Barbarian", "Druid", "Gnome", "Half-Orc", "Knight", "Warden", "Wood Elf"]);
   });
 
   it("sets correct source attribute", () => {

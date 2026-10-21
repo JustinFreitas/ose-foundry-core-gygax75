@@ -260,7 +260,8 @@ export default class OseActorSheetCharacter extends OseActorSheet {
     }
     data.showWarnings = this._showWarnings && data.warnings.length > 0;
     data.enableClassItems = Boolean(game.settings.get(game.system.id, "enableClassItems"));
-    data.canConvert = data.enableClassItems && !data.classes.length && !!String(this.actor._source.system?.details?.class ?? "").trim();
+    data.canConvert =
+      data.enableClassItems && !data.classes.length && !!String(this.actor._source.system?.details?.class ?? "").trim();
     data.breakdown = system.derivedFromClasses
       ? foundry.utils.expandObject({
           ...describeDerivation(system.classes, {

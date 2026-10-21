@@ -101,7 +101,10 @@ export default class OseActorSheet extends HandlebarsApplicationMixin(ActorSheet
       source: e.parent === this.actor ? null : (e.parent?.name ?? null),
       duration: durationText(e.duration ?? {}, (k) => game.i18n.localize(k)),
       itemId: e.parent !== this.actor && e.parent?.documentName === "Item" ? e.parent.id : null,
-      suppressed: e.parent?.documentName === "Item" && Object.hasOwn(e.parent.system ?? {}, "equipped") ? !e.parent.system.equipped : false,
+      suppressed:
+        e.parent?.documentName === "Item" && Object.hasOwn(e.parent.system ?? {}, "equipped")
+          ? !e.parent.system.equipped
+          : false,
     }));
     // Include any class's prime requisite XP adjustment.
     for (const cls of this.actor.system.classes ?? []) {
@@ -386,4 +389,3 @@ export default class OseActorSheet extends HandlebarsApplicationMixin(ActorSheet
     if (this.isEditable) return resetSpells(this, target);
   }
 }
-

@@ -105,7 +105,11 @@ export default class OseDataModelCharacterEncumbranceItemBased
             return acc;
           }
           if ((item.type === "item" || item.type === "container") && !item.system.equipped) {
-            return acc + ((item.system as any).cumulativeItemslots ?? Math.ceil((item.system.quantity?.value ?? 0) * item.system.itemslots));
+            return (
+              acc +
+              ((item.system as any).cumulativeItemslots ??
+                Math.ceil((item.system.quantity?.value ?? 0) * item.system.itemslots))
+            );
           }
           if (["weapon", "armor"].includes(item.type) && !item.system.equipped) {
             return acc + item.system.itemslots;
@@ -126,8 +130,15 @@ export default class OseDataModelCharacterEncumbranceItemBased
       );
     this.#equippedWeight = Math.ceil(
       items.reduce((acc, item: Item) => {
-        const { type, system: { itemslots, equipped } } = item;
-        if (type === "item" && equipped) return acc + ((item.system as any).cumulativeItemslots ?? Math.ceil((item.system.quantity?.value ?? 0) * itemslots));
+        const {
+          type,
+          system: { itemslots, equipped },
+        } = item;
+        if (type === "item" && equipped)
+          return (
+            acc +
+            ((item.system as any).cumulativeItemslots ?? Math.ceil((item.system.quantity?.value ?? 0) * itemslots))
+          );
         if (["weapon", "armor"].includes(type) && equipped) return acc + itemslots;
         return acc;
       }, 0),

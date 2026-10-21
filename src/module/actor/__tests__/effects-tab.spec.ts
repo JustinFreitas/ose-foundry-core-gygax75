@@ -299,13 +299,19 @@ describe("Phase 4: Active Effects Tab & Sheet Layout", () => {
       };
 
       expect(() => OseActorSheet._onEditEffect.call(mockSheet, {} as any, missingTarget as any)).not.toThrow();
-      await expect(OseActorSheet._onDeleteEffect.call(mockSheet, {} as any, missingTarget as any)).resolves.not.toThrow();
-      await expect(OseActorSheet._onToggleEffect.call(mockSheet, {} as any, missingTarget as any)).resolves.not.toThrow();
+      await expect(
+        OseActorSheet._onDeleteEffect.call(mockSheet, {} as any, missingTarget as any),
+      ).resolves.not.toThrow();
+      await expect(
+        OseActorSheet._onToggleEffect.call(mockSheet, {} as any, missingTarget as any),
+      ).resolves.not.toThrow();
 
       const missingItemTarget = {
         dataset: { itemId: "non-existent" },
       };
-      expect(() => OseActorSheet._onOpenEffectSource.call(mockSheet, {} as any, missingItemTarget as any)).not.toThrow();
+      expect(() =>
+        OseActorSheet._onOpenEffectSource.call(mockSheet, {} as any, missingItemTarget as any),
+      ).not.toThrow();
     });
 
     it("does not execute mutations if sheet is not editable", async () => {

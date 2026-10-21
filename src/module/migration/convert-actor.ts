@@ -79,7 +79,9 @@ export const convertSingleActor = async (actor: any) => {
     source: (entry.source && game.packs?.get(entry.source)?.title) || entry.source || "",
   });
   ui.notifications?.info(message);
-  const item = (entry.itemUuid && (actor.items.find((i: Item) => i.uuid === entry.itemUuid) || actor.items.get(entry.itemUuid))) || null;
+  const item =
+    (entry.itemUuid && (actor.items.find((i: Item) => i.uuid === entry.itemUuid) || actor.items.get(entry.itemUuid))) ||
+    null;
   if (item && actor.postClassChanges) {
     const i18n = game.i18n;
     const lines = [message];

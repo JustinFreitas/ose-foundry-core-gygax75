@@ -2,15 +2,23 @@
   "id": "ose",
   "title": "Old-School Essentials Development Build",
   "description": "Simple, robust rules compatible with decades of Basic/Expert material",
-  "version": "3.1.0-beta.2-gygax75.6",
+  "version": "3.1.0-beta.2-gygax75.7",
   "compatibility": {
     "minimum": "13",
     "verified": "14"
   },
   "documentTypes": {
+    "Actor": {
+      "character": {},
+      "monster": {}
+    },
     "Item": {
-      "class": { "htmlFields": ["description"] },
-      "race": { "htmlFields": ["description"] }
+      "item": {},
+      "weapon": {},
+      "armor": {},
+      "spell": {},
+      "ability": {},
+      "container": {}
     }
   },
   "authors": [
@@ -36,8 +44,12 @@
       "url": "https://github.com/NecroticGnome/ose-foundry-core#contributors-"
     }
   ],
-  "esmodules": ["dist/ose.js"],
-  "styles": ["dist/ose.css"],
+  "esmodules": [
+    "dist/ose.js"
+  ],
+  "styles": [
+    "dist/ose.css"
+  ],
   "packs": [],
   "languages": [
     {
@@ -52,17 +64,17 @@
     },
     {
       "lang": "fr",
-      "name": "Français (France)",
+      "name": "Fran\u00e7ais (France)",
       "path": "dist/lang/fr.json"
     },
     {
       "lang": "pt-BR",
-      "name": "Português (Brasil)",
+      "name": "Portugu\u00eas (Brasil)",
       "path": "dist/lang/pt-BR.json"
     },
     {
       "lang": "es",
-      "name": "Español (España)",
+      "name": "Espa\u00f1ol (Espa\u00f1a)",
       "path": "dist/lang/es.json"
     },
     {
@@ -72,12 +84,12 @@
     },
     {
       "lang": "ca",
-      "name": "Català (Andorra)",
+      "name": "Catal\u00e0 (Andorra)",
       "path": "dist/lang/ca.json"
     },
     {
       "lang": "cn",
-      "name": "简体中文 (中国)",
+      "name": "\u7b80\u4f53\u4e2d\u6587 (\u4e2d\u56fd)",
       "path": "dist/lang/zh-CN.json"
     },
     {
@@ -92,12 +104,12 @@
     },
     {
       "lang": "ko",
-      "name": "한국어 (한국)",
+      "name": "\ud55c\uad6d\uc5b4 (\ud55c\uad6d)",
       "path": "dist/lang/ko.json"
     },
     {
       "lang": "ru",
-      "name": "Русский (Россия)",
+      "name": "\u0420\u0443\u0441\u0441\u043a\u0438\u0439 (\u0420\u043e\u0441\u0441\u0438\u044f)",
       "path": "dist/lang/ru.json"
     }
   ],
@@ -125,22 +137,12 @@
   "flags": {
     "allowBugReporter": true,
     "hotReload": {
-      "extensions": ["css"],
-      "paths": ["dist/"]
-    }
-  },
-  "documentTypes": {
-    "Actor": {
-      "character": {},
-      "monster": {}
-    },
-    "Item": {
-      "item": {},
-      "weapon": {},
-      "armor": {},
-      "spell": {},
-      "ability": {},
-      "container": {}
+      "extensions": [
+        "css"
+      ],
+      "paths": [
+        "dist/"
+      ]
     }
   },
   "relationships": {}

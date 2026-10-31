@@ -304,6 +304,12 @@ Object.assign(globalThis, {
     CHAT_MESSAGE_STYLES: {
       OTHER: 0,
     },
+    TOKEN_DISPOSITIONS: {
+      SECRET: -2,
+      HOSTILE: -1,
+      NEUTRAL: 0,
+      FRIENDLY: 1,
+    },
   },
   OseDice: {
     Roll: (data: any) => data,

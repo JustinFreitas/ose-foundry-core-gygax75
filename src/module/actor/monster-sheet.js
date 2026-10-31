@@ -3,7 +3,7 @@
  */
 import OSE from "../config";
 import OseActorSheet from "./actor-sheet";
-import { addTreasureTable, removeTreasureTable } from "./treasure-links";
+import { addTreasureTable, removeTreasureTable, treasureSummary } from "./treasure-links";
 
 const TextEditor = foundry.applications.ux.TextEditor.implementation;
 
@@ -85,7 +85,10 @@ export default class OseActorSheetMonster extends OseActorSheet {
     data.config.morale = game.settings.get(game.system.id, "morale");
     const enrichOptions = { relativeTo: this.actor, secrets: game.user.isGM };
     data.treasureLink = await TextEditor.enrichHTML(this.actor.system.details.treasure.table, enrichOptions);
-    data.treasureMany = (this.actor.system.details.treasure.table?.match(/@UUID\[/g)?.length ?? 0) > 2;
+    const { table, type } = this.actor.system.details.treasure;
+    const summary = treasureSummary(table, type);
+    if (summary)
+      data.treasureMenu = { first: await TextEditor.enrichHTML(summary.first, enrichOptions), more: summary.more };
     data.isNew = this.actor.isNew();
 
     data.enrichedBiography = await TextEditor.enrichHTML(this.actor.system.details.biography, enrichOptions);
@@ -138,8 +141,9 @@ export default class OseActorSheetMonster extends OseActorSheet {
   }
 
   async _onDrop(event) {
-    await super._onDrop(event);
+    // Read the data before awaiting.
     const data = TextEditor.getDragEventData(event);
+    await super._onDrop(event);
     if (data.type !== "RollTable" || !this.isEditable) return;
 
     let link = "";

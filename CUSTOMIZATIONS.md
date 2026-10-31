@@ -298,3 +298,15 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Files**: Historical dialog wrappers
 * **Origin**: Foundry V11/V12
 * **Reason for Retirement**: Deprecated in Foundry V14 in favor of event-driven `DialogV2` constructor pattern with explicit `position` and `classes: ["ose", "dialog"]`.
+
+
+---
+
+## Release Log: `3.1.0-beta.2-gygax75.7`
+* **Upstream Synchronization**: Merged 12 upstream commits from `NecroticGnome/ose-foundry-core:main`:
+  - **PR #200 (Blair McMillan)**: Switched combat tracker to `this.viewed`, implemented bulk combatant reset (`updateEmbeddedDocuments`) for high-performance combat state clearing, and re-sequenced turn events via `#onNewRound()` before Core turn assignment.
+  - **PR #199 (Blair McMillan)**: Guarded ProseMirror form submissions on deleted documents in `actor-sheet.js` and `item-sheet.js`.
+  - **PR #198 & #193 (Blair McMillan & Tim Sandberg)**: Applied item-based STR modifier consistently against `packedLoad` and evaluated dual-threshold encumbrance checks.
+  - **PR #197 & #195 (Blair McMillan)**: Added monster sheet treasure summary dropdown flyout and synchronous drag event data resolution.
+* **Gygax '75 Conflict Resolution**: Preserved all Gygax '75 house rules, including BECMI encumbrance caps (2,400 cn), fast/slow initiative group sorting (`isFast`), and enriched Foundry test stubs.
+* **Verification**: 100% test coverage passing (546 / 546 vitest tests, Biome lint/formatting clean, Rollup/SASS distribution built cleanly).

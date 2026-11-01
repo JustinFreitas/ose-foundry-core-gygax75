@@ -475,7 +475,7 @@ const OseDice = {
     };
     if (skipDialog) {
       if (typeof onConfirm === "function") {
-        const warning = await onConfirm(null);
+        const warning = await onConfirm(null, rollData);
         if (warning) {
           rollData.flavor = rollData.flavor ? `${rollData.flavor} [${warning}]` : `[${warning}]`;
           rollData.title = rollData.title ? `${rollData.title} [${warning}]` : `[${warning}]`;
@@ -497,7 +497,7 @@ const OseDice = {
           rolled = true;
           rollData.form = button.form;
           if (typeof onConfirm === "function") {
-            const warning = await onConfirm(button.form);
+            const warning = await onConfirm(button.form, rollData);
             if (warning) {
               rollData.flavor = rollData.flavor ? `${rollData.flavor} [${warning}]` : `[${warning}]`;
               rollData.title = rollData.title ? `${rollData.title} [${warning}]` : `[${warning}]`;

@@ -267,6 +267,42 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Description**: Changes `.sheet-body .editor` from fixed `height: 300px;` to `height: 100%;`, allowing monster ecology and tactical text to expand responsively with window resizing.
 * **Recommendation**: **Restore**. Clean UI enhancement.
 
+#### `GYGAX-031`: Magical Ammunition Bonus Application & Auto-Range Band Modifiers
+* **Status**: `🟢 Active`
+* **Category**: Combat & Ammunition
+* **Files**: [`src/module/item/entity.ts`](src/module/item/entity.ts), [`src/module/helpers-dice.js`](src/module/helpers-dice.js), [`src/module/actor/entity.js`](src/module/actor/entity.js)
+* **Description**: Extracts magical ammunition bonuses (`+1`, `+2`, `-1`, or `system.bonus`) in `OseItem.extractAmmoBonus()` and injects them into attack and damage rolls via `options.onConfirm(form, rollData)` in `OseDice.Roll`. Also adds `OseActor.computeRangeModifier()` and automatic canvas token distance measurement to apply B/X missile range modifiers (`+1` Short, `0` Medium, `-1` Long, and out-of-range warning).
+
+#### `GYGAX-032`: Spell Slot Schema Levels 1–9
+* **Status**: `🟢 Active`
+* **Category**: Spellcasting & Progression
+* **Files**: [`template.json`](template.json), [`src/module/actor/data-model-character.js`](src/module/actor/data-model-character.js), [`src/module/actor/entity.js`](src/module/actor/entity.js), [`src/module/effects/effect-keys.ts`](src/module/effects/effect-keys.ts), [`src/module/item/item-sheet.js`](src/module/item/item-sheet.js)
+* **Description**: Expands spell slot schemas, class derivation, Active Effect keys, and spell item level selectors from levels `1–6` to `1–9` so high-level B/X & OSE modules (such as *I3–5 Desert of Desolation* NPC archmages and scrolls) work natively.
+
+#### `GYGAX-033`: Unidentified Items & Hidden GM Charges
+* **Status**: `🟢 Active`
+* **Category**: Inventory & Exploration
+* **Files**: [`src/module/item/data-model-item.ts`](src/module/item/data-model-item.ts), [`src/module/item/data-model-weapon.ts`](src/module/item/data-model-weapon.ts), [`src/module/item/data-model-armor.ts`](src/module/item/data-model-armor.ts), [`src/module/item/entity.ts`](src/module/item/entity.ts), [`src/module/item/item-sheet.js`](src/module/item/item-sheet.js), [`src/templates/actors/partials/character-inventory-tab.html`](src/templates/actors/partials/character-inventory-tab.html)
+* **Description**: Adds `identified`, `unidentifiedName`, `unidentifiedDescription`, and `hideCounter` fields to items, weapons, and armor. Non-GM players see the masked name/description and have charge counters hidden on wands/staves when `hideCounter` is enabled, while GMs retain full visibility.
+
+#### `GYGAX-034`: Conditional "Vs. Creature Group" Weapon Modifiers
+* **Status**: `🟢 Active`
+* **Category**: Combat & Magic Weapons
+* **Files**: [`src/module/item/data-model-weapon.ts`](src/module/item/data-model-weapon.ts), [`src/module/actor/entity.js`](src/module/actor/entity.js)
+* **Description**: Parses conditional weapon bonuses from manual tags (`+3 vs. undead`, `+2 vs dragons`, `+3 vs regenerating`) or `system.vsGroup` and automatically substitutes the higher conditional bonus on attack and damage rolls when targeting a matching creature group.
+
+#### `GYGAX-035`: Ability-Linked Roll-Under Proficiencies (`1d20 <= Ability Score ± Mod`)
+* **Status**: `🟢 Active`
+* **Category**: Abilities & Proficiencies
+* **Files**: [`src/module/item/data-model-ability.ts`](src/module/item/data-model-ability.ts), [`src/module/item/entity.ts`](src/module/item/entity.ts), [`src/module/item/item-sheet.js`](src/module/item/item-sheet.js), [`src/templates/items/ability-sheet.html`](src/templates/items/ability-sheet.html)
+* **Description**: Adds `abilityScore` and `targetMod` fields to Ability items so optional roll-under proficiencies resolve dynamically against the owning character's ability score (`1d20 <= scores[abilityScore].value + targetMod`) with situational modifier dialog support.
+
+#### `GYGAX-036`: Silver/Magic Weapon Gating, Damage Mitigation, MR %, & Mount Encumbrance
+* **Status**: `🟢 Active`
+* **Category**: Monsters & Retainers/Mounts
+* **Files**: [`src/module/actor/entity.js`](src/module/actor/entity.js), [`src/module/actor/data-model-monster.js`](src/module/actor/data-model-monster.js)
+* **Description**: Adds `OseActor.evaluateWeaponDamage()` and `applyDamage()` options for silver/magic weapon immunity gating, `immuneTo`, and `halfDamageFrom` resistances; adds `OseActor.rollMagicResistance()` (`1d100 <= mr%`); and enables carried weight + half-speed/overloaded movement breakpoints on Monster actors when `encumbrance.max > 0` for mounts and pack animals.
+
 ---
 
 ### 🔴 Obsolete Customizations
@@ -310,3 +346,16 @@ Whenever upstream changes are merged or new features are introduced, consult thi
   - **PR #197 & #195 (Blair McMillan)**: Added monster sheet treasure summary dropdown flyout and synchronous drag event data resolution.
 * **Gygax '75 Conflict Resolution**: Preserved all Gygax '75 house rules, including BECMI encumbrance caps (2,400 cn), fast/slow initiative group sorting (`isFast`), and enriched Foundry test stubs.
 * **Verification**: 100% test coverage passing (546 / 546 vitest tests, Biome lint/formatting clean, Rollup/SASS distribution built cleanly).
+
+---
+
+## Release Log: `3.1.0-beta.2-gygax75.8`
+* **B/X & Module Play Enhancements (`GYGAX-031` – `GYGAX-036`)**:
+  - **`GYGAX-031`**: Magical ammunition bonus extraction (`OseItem.extractAmmoBonus`) and automatic injection into attack and damage rolls via `options.onConfirm(form, rollData)`; automated B/X missile range band modifiers (`OseActor.computeRangeModifier`: `+1` Short, `0` Medium, `-1` Long, and out-of-range warning).
+  - **`GYGAX-032`**: Expanded spell slot schemas, class derivation, Active Effect keys, and spell item level selectors from levels `1–6` to `1–9` for high-level NPC casters and scrolls.
+  - **`GYGAX-033`**: Added `identified`, `unidentifiedName`, `unidentifiedDescription`, and `hideCounter` fields on items, weapons, and armor, masking unidentified names/descriptions and wand/staff charge pips for non-GM players while retaining full GM controls.
+  - **`GYGAX-034`**: Conditional `"vs. Creature Group"` weapon modifiers (`OseDataModelWeapon.parsedVsGroups`, `OseActor.matchesCreatureGroup`, `OseActor.resolveWeaponBonus`) supporting both manual tags (`+3 vs. undead`, `+2 vs dragons`, `+3 vs regenerating`) and `system.vsGroup`.
+  - **`GYGAX-035`**: Ability-linked roll-under proficiencies (`OseDataModelAbility`: `abilityScore` + `targetMod` -> `1d20 <= scores[abilityScore].value + targetMod`) with situational modifier dialog support.
+  - **`GYGAX-036`**: Monster silver/magic weapon immunity gating and damage mitigation (`OseActor.evaluateWeaponDamage`, enhanced `applyDamage`), percentile Magic Resistance rolls (`OseActor.rollMagicResistance`), and mount/pack-animal encumbrance & movement breakpoints (`OseDataModelMonster` when `encumbrance.max > 0`).
+* **Manifest Fix**: Restored `"class": { "htmlFields": ["description"] }` and `"race": { "htmlFields": ["description"] }` in `system.json` `documentTypes.Item`.
+* **Verification**: 100% test coverage passing (559 / 559 vitest tests across 44 test suites, Biome lint/formatting clean, Rollup/SASS distribution built cleanly).

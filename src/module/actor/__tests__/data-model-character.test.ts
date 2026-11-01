@@ -94,7 +94,7 @@ export default ({ describe, it, expect, after, before }: QuenchMethods) => {
     });
 
     describe("has spells", () => {
-      const spellLevels = new Set(["1", "2", "3", "4", "5", "6"]);
+      const spellLevels = new Set(["1", "2", "3", "4", "5", "6", "7", "8", "9"]);
 
       it("has spells", async () => {
         const actor = await getMockActorKey(key);

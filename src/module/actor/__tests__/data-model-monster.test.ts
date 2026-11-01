@@ -70,7 +70,7 @@ export default ({ describe, it, expect, after, afterEach, before }: QuenchMethod
 
     describe("has spells", () => {
       // @todo: Should we keep using numbers and keys for spell levels?
-      const spellLevels = new Set(["1", "2", "3", "4", "5", "6"]);
+      const spellLevels = new Set(["1", "2", "3", "4", "5", "6", "7", "8", "9"]);
 
       it("has spells", async () => {
         const actor = await createMockActor();

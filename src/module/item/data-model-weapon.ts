@@ -12,11 +12,13 @@ export default class OseDataModelWeapon extends foundry.abstract.TypeDataModel<a
   declare save: Save | "";
   declare range: { short: number; medium: number; long: number };
   declare bonus: number | null;
+  declare vsGroup: Record<string, number>;
   declare pattern: string;
   declare missile: boolean;
   declare melee: boolean;
   declare slow: boolean;
   declare counter: { value: number; max: number };
+  declare hideCounter: boolean;
   declare description: string;
   declare tags: ItemTag[];
   declare equipped: boolean;
@@ -25,6 +27,9 @@ export default class OseDataModelWeapon extends foundry.abstract.TypeDataModel<a
   declare quantity: { value: number | null; max: number | null };
   declare weight: number | null;
   declare itemslots: number;
+  declare identified: boolean;
+  declare unidentifiedName: string;
+  declare unidentifiedDescription: string;
 
   static defineSchema() {
     const { SchemaField, StringField, NumberField, BooleanField, ArrayField, ObjectField } = foundry.data.fields;
@@ -40,6 +45,7 @@ export default class OseDataModelWeapon extends foundry.abstract.TypeDataModel<a
         long: new NumberField({ integer: true, min: 0, initial: 0 }),
       }),
       bonus: new NumberField({}),
+      vsGroup: new ObjectField({ initial: {} }),
       pattern: new StringField(),
       missile: new BooleanField(),
       melee: new BooleanField({ initial: true }),
@@ -48,6 +54,7 @@ export default class OseDataModelWeapon extends foundry.abstract.TypeDataModel<a
         value: new NumberField({ integer: true, min: 0, initial: 0 }),
         max: new NumberField({ integer: true, min: 0, initial: 0 }),
       }),
+      hideCounter: new BooleanField({ initial: false }),
       cost: new NumberField({ min: 0, initial: 0 }),
       containerId: new StringField(),
       quantity: new SchemaField({
@@ -56,7 +63,35 @@ export default class OseDataModelWeapon extends foundry.abstract.TypeDataModel<a
       }),
       weight: new NumberField({ min: 0, initial: 0 }),
       itemslots: new NumberField({ min: 0, initial: 1 }),
+      identified: new BooleanField({ initial: true }),
+      unidentifiedName: new StringField({ initial: "" }),
+      unidentifiedDescription: new StringField({ initial: "" }),
     };
+  }
+
+  /**
+   * Returns a normalized map of conditional creature-group bonuses from both
+   * `this.vsGroup` and manual tags formatted like `"+3 vs. undead"` or `"+2 vs dragons"`.
+   */
+  get parsedVsGroups(): Record<string, number> {
+    const map: Record<string, number> = {};
+    for (const [k, v] of Object.entries(this.vsGroup ?? {})) {
+      const num = Number(v);
+      if (Number.isFinite(num) && k.trim()) {
+        map[k.trim().toLowerCase()] = num;
+      }
+    }
+    for (const tag of this.tags ?? []) {
+      const m = /^([+-]?\d+)\s+vs\.?\s+([a-z0-9\s_-]+)$/i.exec((tag.value ?? "").trim());
+      if (m?.[1] && m?.[2]) {
+        const num = Number.parseInt(m[1], 10);
+        const group = m[2].trim().toLowerCase();
+        if (Number.isFinite(num) && group) {
+          map[group] = num;
+        }
+      }
+    }
+    return map;
   }
 
   get #missileTag(): DisplayTag[] | null {

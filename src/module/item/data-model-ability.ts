@@ -20,6 +20,8 @@ export default class OseDataModelAbility extends foundry.abstract.TypeDataModel<
   declare rollTarget: number | null;
   declare targetFrom: string;
   declare exploration: string;
+  declare abilityScore: string;
+  declare targetMod: number;
   declare blindroll: boolean;
   declare description: string;
   declare tags: ItemTag[];
@@ -43,6 +45,10 @@ export default class OseDataModelAbility extends foundry.abstract.TypeDataModel<
       targetFrom: new StringField(),
       // An exploration skill the roll target raises on a character e.g. ld.
       exploration: new StringField(),
+      // Optional ability score (str, int, wis, dex, con, cha) for roll-under proficiency checks.
+      abilityScore: new StringField({ initial: "" }),
+      // Modifier added to the linked ability score target (e.g. +2 for extra proficiency slots).
+      targetMod: new NumberField({ initial: 0 }),
       blindroll: new BooleanField(),
       description: new StringField(),
       tags: new ArrayField(new ObjectField()),
@@ -77,14 +83,18 @@ export default class OseDataModelAbility extends foundry.abstract.TypeDataModel<
     this.tablePath = target;
   }
 
-  /** On a character: its table column's current value, or the exploration skill a 1d6 ≤ ability raises. */
+  /** On a character: its table column's current value, exploration skill, linked ability score, or static rollTarget. */
   get effectiveTarget(): number | null {
     const system = this.parent?.actor?.system;
     const [table = "", column = ""] = this.tablePath.split(".");
     const current = system?.tables?.[table]?.[column]?.current;
     if (typeof current === "number") return current;
     const explored = this.exploration && chanceInSix(this) !== null && system?.exploration?.[this.exploration];
-    return explored || this.rollTarget;
+    if (explored) return explored;
+    if (this.abilityScore && system?.scores?.[this.abilityScore]?.value != null) {
+      return Number(system.scores[this.abilityScore].value) + (Number(this.targetMod) || 0);
+    }
+    return this.rollTarget;
   }
 
   get #rollTag(): DisplayTag | null {

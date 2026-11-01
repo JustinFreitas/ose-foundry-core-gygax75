@@ -663,5 +663,14 @@
   "OSE.abilities.TargetFromExploration": "The character's {skill} chance.",
   "OSE.exploration.FromAbility": "Raised by {ability}",
   "OSE.classes.ShowTables": "Show tables",
-  "OSE.classes.HideTables": "Hide tables"
+  "OSE.classes.HideTables": "Hide tables",
+  "OSE.items.Identified": "Identified",
+  "OSE.items.Unidentified": "Unidentified Item",
+  "OSE.items.UnidentifiedName": "Unidentified Name",
+  "OSE.items.HideCounter": "Hide Charges (GM)",
+  "OSE.abilities.AbilityScore": "Ability Score Target",
+  "OSE.abilities.AbilityScoreHint": "On a character, sets the roll target to the chosen ability score plus Target Modifier (for 1d20 <= Score proficiency checks).",
+  "OSE.abilities.TargetMod": "Target Modifier",
+  "OSE.details.magicResistance": "Magic Resistance (%)",
+  "OSE.warn.outOfRange": "{name} target is beyond maximum range ({distance}')."
 }

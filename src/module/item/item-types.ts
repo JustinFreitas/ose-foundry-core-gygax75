@@ -52,6 +52,9 @@ export interface PhysicalItemData {
   quantity: { value: number | null; max: number | null };
   weight: number | null;
   itemslots: number;
+  identified?: boolean;
+  unidentifiedName?: string;
+  unidentifiedDescription?: string;
 
   readonly manualTags: ItemTag[] | null;
   readonly autoTags: DisplayTag[];
@@ -59,6 +62,7 @@ export interface PhysicalItemData {
 
 export interface MiscItemData extends PhysicalItemData {
   treasure: boolean;
+  hideCounter?: boolean;
 
   readonly cumulativeWeight: number;
   readonly cumulativeCost: number;
@@ -89,11 +93,13 @@ export interface WeaponItemData extends PhysicalItemData {
   save: Save | "";
   range: { short: number; medium: number; long: number };
   bonus: number | null;
+  vsGroup?: Record<string, number>;
   pattern: string;
   missile: boolean;
   melee: boolean;
   slow: boolean;
   counter: { value: number; max: number };
+  hideCounter?: boolean;
 
   /** Auto-tags carrying an image, plus manual tags — the inventory grid's "Qualities" column. */
   readonly qualities: DisplayTag[];
@@ -145,6 +151,8 @@ export interface AbilityItemData extends NonPhysicalItemData {
   rollTarget: number | null;
   targetFrom: string;
   exploration: string;
+  abilityScore?: string;
+  targetMod?: number;
   blindroll: boolean;
 }
 

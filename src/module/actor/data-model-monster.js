@@ -9,15 +9,83 @@ import OseDataModelCharacterSpells from "./data-model-classes/data-model-charact
 const getItemsOfActorOfType = (actor, filterType, filterFn = null) =>
   actor.items.filter(({ type }) => type === filterType).filter(filterFn || (() => true));
 
+/**
+ * Compute carried weight for a monster / mount / pack animal when `encumbrance.max > 0`.
+ */
+const computeMonsterCarriedWeight = (items = []) => {
+  let total = 0;
+  for (const item of items) {
+    if (
+      !item?.system ||
+      item.type === "spell" ||
+      item.type === "ability" ||
+      item.type === "class" ||
+      item.type === "race"
+    ) {
+      continue;
+    }
+    if (item.type === "container") {
+      total += Number(item.system.weight) || 0;
+      continue;
+    }
+    if (typeof item.system.cumulativeWeight === "number") {
+      total += item.system.cumulativeWeight;
+    } else {
+      const qty = item.system.quantity?.value ?? 1;
+      const max = item.system.quantity?.max ?? 0;
+      const weight = Number(item.system.weight) || 0;
+      total += max > 0 ? (weight / max) * qty : weight * qty;
+    }
+  }
+  return Math.round(total * 100) / 100;
+};
+
 export default class OseDataModelMonster extends foundry.abstract.TypeDataModel {
   prepareDerivedData() {
-    this.encumbrance = new OseDataModelCharacterEncumbranceDisabled();
+    const maxLoad = Number(this.encumbrance?.max) || 0;
+    const rawBaseMove = Number(this.movement?.base) || 120;
+    if (maxLoad > 0) {
+      const carried = computeMonsterCarriedWeight([...(this.parent?.items ?? [])]);
+      const halfLoad = maxLoad / 2;
+      const overMax = carried > maxLoad;
+      const overHalf = carried > halfLoad;
+      this.encumbrance = {
+        variant: "mount",
+        enabled: true,
+        value: carried,
+        max: maxLoad,
+        pct: Math.clamp((carried / maxLoad) * 100, 0, 100),
+        steps: [50],
+        encumbered: overMax,
+        atFirstBreakpoint: false,
+        atSecondBreakpoint: overHalf,
+        atThirdBreakpoint: false,
+      };
+      const autoMove = Boolean(this.config?.movementAuto ?? this.movementAuto);
+      const effectiveBase = autoMove
+        ? overMax
+          ? 0
+          : overHalf
+            ? Math.floor(rawBaseMove / 2)
+            : rawBaseMove
+        : rawBaseMove;
+      this.movement = new OseDataModelCharacterMove(
+        new OseDataModelCharacterEncumbranceDisabled(),
+        false,
+        effectiveBase,
+      );
+    } else {
+      this.encumbrance = new OseDataModelCharacterEncumbranceDisabled();
+      this.config.movementAuto = false;
+      this.movement = new OseDataModelCharacterMove(this.encumbrance, false, rawBaseMove);
+    }
+
     this.spells = new OseDataModelCharacterSpells(this.spells, this.#spellList);
-    this.config.movementAuto = false;
-    this.movement = new OseDataModelCharacterMove(this.encumbrance, false, this.movement.base);
-    const source = this.parent._source.system;
-    if (this.ac.value !== source.ac?.value) this.aac.value = 19 - this.ac.value;
-    else if (this.aac.value !== source.aac?.value) this.ac.value = 19 - this.aac.value;
+    const source = this.parent?._source?.system ?? {};
+    if (this.ac && this.aac) {
+      if (this.ac.value !== source.ac?.value) this.aac.value = 19 - this.ac.value;
+      else if (this.aac.value !== source.aac?.value) this.ac.value = 19 - this.aac.value;
+    }
   }
 
   /**
@@ -27,7 +95,7 @@ export default class OseDataModelMonster extends foundry.abstract.TypeDataModel 
     OseDataModelMonster.#migrateMonsterLanguages(source);
     OseDataModelMonster.#migrateCantrips(source);
 
-    return super.migrateData(source);
+    return super.migrateData ? super.migrateData(source) : source;
   }
 
   /**
@@ -185,6 +253,7 @@ export default class OseDataModelMonster extends foundry.abstract.TypeDataModel 
   }
 
   get #spellList() {
+    if (!this.parent?.items) return [];
     return getItemsOfActorOfType(this.parent, "spell", ({ system: { containerId } }) => !containerId);
   }
 

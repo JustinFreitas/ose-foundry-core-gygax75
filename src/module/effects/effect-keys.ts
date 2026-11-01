@@ -20,7 +20,7 @@ const shared = (): EffectKey[] => [
   ...Object.entries(OSE.saves_long).map(([s, label]) => ({ key: `system.saves.${s}.value`, label })),
   { key: "system.initiative.mod", label: "OSE.InitiativeBonus" },
   { key: "system.movement.base", label: "OSE.movement.base" },
-  ...[1, 2, 3, 4, 5, 6].map((level) => ({
+  ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map((level) => ({
     key: `system.spells.${level}.max`,
     label: "OSE.classes.changes.SpellSlots",
     data: { level },

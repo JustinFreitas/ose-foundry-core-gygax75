@@ -23,7 +23,7 @@
           class="item-image" data-action="rollItem"
           style="background-image: url({{item.img}})"
         ></div>
-        <h4 class="item-name" data-action="toggleSummary" data-tooltip="{{item.name}}">{{item.name~}}</h4>
+        <h4 class="item-name" data-action="toggleSummary" data-tooltip="{{item.displayName}}">{{item.displayName~}}</h4>
         {{#if (lookup @root.warnedItems item.id)}}<i class="fas fa-triangle-exclamation item-warning" data-tooltip="{{lookup @root.warnedItems item.id}}"></i>{{/if}}
         <div class="tag-row icon-row">
           {{#each item.system.qualities as |tag|}} {{#if tag.image}}
@@ -103,7 +103,7 @@
           class="item-image" data-action="rollItem"
           style="background-image: url({{item.img}})"
         ></div>
-        <h4 class="item-name" data-action="toggleSummary" data-tooltip="{{item.name}}">{{item.name~}}</h4>
+        <h4 class="item-name" data-action="toggleSummary" data-tooltip="{{item.displayName}}">{{item.displayName~}}</h4>
         {{#if (lookup @root.warnedItems item.id)}}<i class="fas fa-triangle-exclamation item-warning" data-tooltip="{{lookup @root.warnedItems item.id}}"></i>{{/if}}
         <div class="field-short">
           {{#if @root.config.ascendingAC}} {{item.system.aac.value}} {{else}}
@@ -222,7 +222,7 @@
               class="item-image" data-action="rollItem"
               style="background-image: url({{item.img}})"
             ></div>
-            <h4 class="item-name" data-action="toggleSummary" data-tooltip="{{item.name}}">{{item.name~}}</h4>
+            <h4 class="item-name" data-action="toggleSummary" data-tooltip="{{item.displayName}}">{{item.displayName~}}</h4>
             <div class="field-short quantity">
               <input
                 value="{{item.system.quantity.value}}"
@@ -254,7 +254,7 @@
             </div>
             {{/if}}
           </div>
-          {{#if item.system.quantity.max }} {{#if (lte item.system.quantity.max
+          {{#if item.isCounterVisible}} {{#if item.system.quantity.max }} {{#if (lte item.system.quantity.max
           38)}}
           <div class="consumable-counter">
             <label>{{localize "OSE.items.uses"}}</label>
@@ -265,7 +265,7 @@
             <div class="empty-mark" data-action="consumableRestore"></div>
             {{/times}}
           </div>
-          {{/if}} {{/if}}
+          {{/if}} {{/if}} {{/if}}
           <div class="item-summary{{#if item.isExpanded}} expanded{{/if}}">
             {{> (path "/templates/actors/partials/actor-item-summary.html")
             item=item}}
@@ -301,7 +301,7 @@
           class="item-image" data-action="rollItem"
           style="background-image: url({{item.img}})"
         ></div>
-        <h4 class="item-name" data-action="toggleSummary" data-tooltip="{{item.name}}">{{item.name~}}</h4>
+        <h4 class="item-name" data-action="toggleSummary" data-tooltip="{{item.displayName}}">{{item.displayName~}}</h4>
         <div class="field-short quantity">
           <input
             value="{{item.system.quantity.value}}"
@@ -340,7 +340,7 @@
         </div>
         {{/if}}
       </div>
-      {{#if item.system.quantity.max }} {{#if (lte item.system.quantity.max
+      {{#if item.isCounterVisible}} {{#if item.system.quantity.max }} {{#if (lte item.system.quantity.max
       38)}}
       <div class="consumable-counter">
         <label>{{localize "OSE.items.uses"}}</label>
@@ -351,7 +351,7 @@
         <div class="empty-mark" data-action="consumableRestore"></div>
         {{/times}}
       </div>
-      {{/if}} {{/if}}
+      {{/if}} {{/if}} {{/if}}
       <div class="item-summary{{#if item.isExpanded}} expanded{{/if}}">
         {{> (path "/templates/actors/partials/actor-item-summary.html")
         item=item}}
@@ -388,7 +388,7 @@
           class="item-image" data-action="rollItem"
           style="background-image: url({{item.img}})"
         ></div>
-        <h4 class="item-name" data-action="toggleSummary" data-tooltip="{{item.name}}">{{item.name~}}</h4>
+        <h4 class="item-name" data-action="toggleSummary" data-tooltip="{{item.displayName}}">{{item.displayName~}}</h4>
         <div class="field-long">
           {{round item.system.cumulativeCost}}
         </div>

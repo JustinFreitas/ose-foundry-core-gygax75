@@ -2,6 +2,7 @@
  * @file The system-specific Item entity, containing logic for operating on all available Item types.
  */
 import OSE from "../config";
+import skipRollDialogCheck from "../helpers-behaviour";
 import OseDice from "../helpers-dice";
 import { getRollMode } from "../helpers-message-mode";
 import type OseDataModelClass from "./data-model-class";
@@ -47,6 +48,25 @@ export default class OseItem extends Item {
       class: "icons/sundries/books/book-red-exclamation.webp",
       race: "icons/environment/people/group.webp",
     };
+  }
+
+  /**
+   * Extract a numeric magic bonus from an ammunition item (either from `system.bonus`
+   * or a signed token like `+1`, `+2`, `-1` in the item's name).
+   */
+  // biome-ignore lint/suspicious/noExplicitAny: accepts Item or plain mock object
+  static extractAmmoBonus(ammoItem: any): number {
+    const sysBonus = Number(ammoItem?.system?.bonus);
+    if (Number.isFinite(sysBonus) && sysBonus !== 0) {
+      return sysBonus;
+    }
+    const name = String(ammoItem?.name ?? "");
+    const match = /(?:^|[\s(])([+-]\d+)(?=[\s),]|$)/.exec(name);
+    if (match?.[1]) {
+      const parsed = Number.parseInt(match[1], 10);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+    return 0;
   }
 
   // Narrowing these to Item.CreateData / CreateOperation breaks static-side
@@ -106,14 +126,41 @@ export default class OseItem extends Item {
     return super._preUpdate(changed, options, user);
   }
 
+  get isIdentified(): boolean {
+    return (this.system as AnyItemSystem)?.identified !== false;
+  }
+
+  get displayName(): string {
+    if (game.user?.isGM || this.isIdentified) {
+      return this.name ?? "";
+    }
+    const unidentified = (this.system as AnyItemSystem)?.unidentifiedName;
+    if (unidentified && String(unidentified).trim()) {
+      return String(unidentified).trim();
+    }
+    const localized = game.i18n?.localize?.("OSE.items.Unidentified");
+    return localized && localized !== "OSE.items.Unidentified" ? localized : "Unidentified Item";
+  }
+
+  get displayDescription(): string {
+    if (game.user?.isGM || this.isIdentified) {
+      return (this.system as AnyItemSystem)?.description ?? "";
+    }
+    return (this.system as AnyItemSystem)?.unidentifiedDescription ?? "";
+  }
+
+  get isCounterVisible(): boolean {
+    return Boolean(game.user?.isGM || !(this.system as AnyItemSystem)?.hideCounter);
+  }
+
   prepareData() {
     super.prepareData();
   }
 
   async prepareDerivedData(): Promise<void> {
-    // Rich text description
+    // Rich text description (respects unidentified state for non-GM players)
     (this.system as AnyItemSystem).enrichedDescription =
-      await foundry.applications.ux.TextEditor.implementation.enrichHTML((this.system as AnyItemSystem).description, {
+      await foundry.applications.ux.TextEditor.implementation.enrichHTML(this.displayDescription, {
         secrets: game.user?.isGM,
       });
   }
@@ -167,7 +214,7 @@ export default class OseItem extends Item {
 
     let type = isNPC ? "attack" : "melee";
     const rollData = {
-      item: this._source,
+      item: { ...(this._source as Record<string, unknown>), name: this.displayName },
       actor: this.actor as OwningActor,
       roll: {
         save: itemData.save,
@@ -257,12 +304,14 @@ export default class OseItem extends Item {
       return true;
     }
 
+    // biome-ignore lint/suspicious/noExplicitAny: actor.items filter callback
     const validAmmo = actor.items.filter((i: any) => {
       if (i.type !== "item" && i.type !== "weapon") return false;
       const iName = (i.name ?? "").toLowerCase();
       return requiredAmmo?.some((req) => iName.includes(req));
     });
 
+    // biome-ignore lint/suspicious/noExplicitAny: actor.items filter callback
     const availableAmmo = validAmmo.filter((i: any) => (i.system?.quantity?.value ?? 0) > 0);
 
     if (availableAmmo.length === 0) {
@@ -276,30 +325,55 @@ export default class OseItem extends Item {
       return true;
     }
 
+    // biome-ignore lint/suspicious/noExplicitAny: sort callback
     availableAmmo.sort((a: any, b: any) => {
-      const aMagic = a.name.includes("+");
-      const bMagic = b.name.includes("+");
+      const aMagic = OseItem.extractAmmoBonus(a) !== 0 || a.name.includes("+");
+      const bMagic = OseItem.extractAmmoBonus(b) !== 0 || b.name.includes("+");
       if (aMagic && !bMagic) return 1;
       if (!aMagic && bMagic) return -1;
       return a.name.localeCompare(b.name);
     });
 
+    // biome-ignore lint/suspicious/noExplicitAny: map callback
     options.ammoOptions = availableAmmo.map((a: any) => ({
       id: a.id,
       name: a.name,
       quantity: a.system.quantity.value,
+      bonus: OseItem.extractAmmoBonus(a),
     }));
 
-    options.onConfirm = async (form: HTMLFormElement | null) => {
+    // biome-ignore lint/suspicious/noExplicitAny: rollData passed from OseDice.Roll
+    options.onConfirm = async (form: HTMLFormElement | null, rollData?: any) => {
       const ammoId =
         (form?.elements?.namedItem("ammoId") as HTMLSelectElement | HTMLInputElement)?.value ||
+        // biome-ignore lint/suspicious/noExplicitAny: fallback form access
         (form as any)?.elements?.ammoId?.value ||
+        // biome-ignore lint/suspicious/noExplicitAny: ammoOptions array
         (options.ammoOptions as any[])[0].id;
       const ammoItem = actor.items.get(ammoId);
       if (ammoItem) {
         const currentAmmoQty = ammoItem.system?.quantity?.value ?? 0;
         const newQty = Math.max(0, currentAmmoQty - 1);
         await ammoItem.update({ "system.quantity.value": newQty });
+
+        const ammoBonus = OseItem.extractAmmoBonus(ammoItem);
+        options.selectedAmmo = ammoItem;
+        options.selectedAmmoBonus = ammoBonus;
+
+        if (rollData) {
+          if (rollData.data?.roll) {
+            rollData.data.roll.ammo = ammoItem;
+          }
+          if (ammoBonus !== 0) {
+            rollData.parts?.push(ammoBonus);
+            const globalIgnore = game.settings?.get?.(game.system?.id ?? "ose", "ignoreAttackBonusOnDamageRoll");
+            const actorIgnore = rollData.data?.actor?.system?.config?.ignoreBonusDamage;
+            if (!globalIgnore && !actorIgnore && Array.isArray(rollData.data?.roll?.dmg)) {
+              rollData.data.roll.dmg.push(ammoBonus);
+            }
+          }
+        }
+
         return `${ammoItem.name} (${newQty} left)`;
       }
       return null;
@@ -308,8 +382,8 @@ export default class OseItem extends Item {
     return true;
   }
 
-  async rollFormula(options: { event?: Event } = {}) {
-    const itemData = this.system;
+  async rollFormula(options: { event?: Event; skipDialog?: boolean } = {}) {
+    const itemData = this.system as AnyItemSystem;
 
     if (!itemData.roll) {
       throw new Error("This Item does not have a formula to roll!");
@@ -322,7 +396,7 @@ export default class OseItem extends Item {
 
     const rollData: Record<string, unknown> = {
       actor: this.actor as OwningActor,
-      item: this._source,
+      item: { ...(this._source as Record<string, unknown>), name: this.displayName },
       description: null,
       save: itemData.save,
       properties: this.system.autoTags,
@@ -337,12 +411,20 @@ export default class OseItem extends Item {
       rollData.description = itemData.description;
     }
 
+    const hasAbilityScore = Boolean(itemData.abilityScore);
+    const skipDialog =
+      options.skipDialog !== undefined
+        ? options.skipDialog
+        : hasAbilityScore
+          ? skipRollDialogCheck(options.event)
+          : true;
+
     // Roll and return
     return OseDice.Roll({
       event: options.event,
       parts: rollParts,
       data: rollData,
-      skipDialog: true,
+      skipDialog,
       // biome-ignore lint/suspicious/noExplicitAny: getSpeaker expects an Actor; this passes the Item, as the original did
       speaker: ChatMessage.getSpeaker({ actor: this as any }),
       flavor: game.i18n.format("OSE.roll.formula", { label }),
@@ -555,7 +637,7 @@ export default class OseItem extends Item {
 
       case "ability": {
         if (itemData.roll) {
-          this.rollFormula();
+          this.rollFormula(options);
         } else {
           this.show();
         }
@@ -583,9 +665,9 @@ export default class OseItem extends Item {
     const templateData: Record<string, unknown> = {
       actor: this.actor as OwningActor,
       tokenId: token ? `${token.parent?.id}.${token.id}` : null,
-      item: this._source,
+      item: { ...(this._source as Record<string, unknown>), name: this.displayName },
       itemId: (this._source as { _id?: string })._id,
-      data: await this.getChatData(),
+      data: { ...(await this.getChatData()), description: this.displayDescription },
       labels: (this as unknown as Record<string, unknown>).labels,
       isHealing: (this as unknown as Record<string, unknown>).isHealing,
       hasDamage: (this as unknown as Record<string, unknown>).hasDamage,

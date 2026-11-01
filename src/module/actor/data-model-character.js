@@ -43,7 +43,7 @@ export default class OseDataModelCharacter extends foundry.abstract.TypeDataMode
     this.derivedFromClasses = true;
     for (const [key, value] of Object.entries(derived.saves)) this.saves[key].value = value;
     this.thac0 = { ...this.thac0, value: derived.thac0, bba: derived.bba };
-    for (const lvl of ["1", "2", "3", "4", "5", "6"]) {
+    for (const lvl of ["1", "2", "3", "4", "5", "6", "7", "8", "9"]) {
       this.spells[lvl] = { ...(this.spells[lvl] ?? {}), max: derived.spellSlots[lvl] ?? 0 };
     }
     if (Object.values(derived.spellSlots).some((n) => n > 0)) this.spells.enabled = true;

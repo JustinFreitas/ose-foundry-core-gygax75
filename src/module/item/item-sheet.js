@@ -192,6 +192,7 @@ export default class OseItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
       type: item.type,
       system: item.system,
       owner: item.isOwner,
+      isGM: game.user?.isGM,
       config: {
         ...CONFIG.OSE,
         encumbrance: game.settings.get(game.system.id, "encumbranceOption"),
@@ -220,6 +221,16 @@ export default class OseItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
     const [table, column] = system.tablePath.split(".");
     if (typeof actor.system.tables?.[table]?.[column]?.current === "number") {
       return { value: system.effectiveTarget, tooltip: actor.system.tableSources(system.tablePath) };
+    }
+    if (system.abilityScore && actor.system.scores?.[system.abilityScore]?.value != null) {
+      const scoreLabel = game.i18n.localize(
+        CONFIG.OSE.scores[system.abilityScore] ?? system.abilityScore.toUpperCase(),
+      );
+      const modText = system.targetMod ? ` ${system.targetMod > 0 ? "+" : ""}${system.targetMod}` : "";
+      return {
+        value: system.effectiveTarget,
+        tooltip: `${scoreLabel} (${actor.system.scores[system.abilityScore].value})${modText}`,
+      };
     }
     if (system.effectiveTarget === system.rollTarget) return null;
     const skill = game.i18n.localize(CONFIG.OSE.exploration_skills[system.exploration]);
@@ -313,7 +324,7 @@ export default class OseItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
       ...context,
       saveKeys: SAVE_KEYS,
       // Viewing shows only spell levels the class ever gets slots for.
-      spellLevels: ["1", "2", "3", "4", "5", "6"].filter(
+      spellLevels: ["1", "2", "3", "4", "5", "6", "7", "8", "9"].filter(
         (lvl) => this.editing || system.levels.some((row) => row.spellSlots?.[lvl] > 0),
       ),
       scoreOptions: Object.fromEntries(Object.keys(CONFIG.OSE.scores).map((k) => [k, k.toUpperCase()])),

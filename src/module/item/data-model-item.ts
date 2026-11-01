@@ -17,6 +17,10 @@ export default class OseDataModelItem extends foundry.abstract.TypeDataModel<any
   declare quantity: { value: number | null; max: number | null };
   declare weight: number | null;
   declare itemslots: number;
+  declare identified: boolean;
+  declare unidentifiedName: string;
+  declare unidentifiedDescription: string;
+  declare hideCounter: boolean;
 
   static defineSchema() {
     const { SchemaField, StringField, NumberField, BooleanField, ArrayField, ObjectField } = foundry.data.fields;
@@ -33,6 +37,10 @@ export default class OseDataModelItem extends foundry.abstract.TypeDataModel<any
       }),
       weight: new NumberField({ min: 0, initial: 0 }),
       itemslots: new NumberField({ min: 0, initial: 0 }),
+      identified: new BooleanField({ initial: true }),
+      unidentifiedName: new StringField({ initial: "" }),
+      unidentifiedDescription: new StringField({ initial: "" }),
+      hideCounter: new BooleanField({ initial: false }),
     };
   }
 

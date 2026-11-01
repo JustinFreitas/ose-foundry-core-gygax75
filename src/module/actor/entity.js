@@ -25,7 +25,179 @@ import OseItem from "../item/entity";
  */
 const removeFalsyElements = (arr) => arr.filter((b) => b);
 
+const CREATURE_GROUP_PATTERNS = {
+  undead: [
+    "undead",
+    "skeleton",
+    "zombie",
+    "ghoul",
+    "wight",
+    "wraith",
+    "mummy",
+    "spectre",
+    "specter",
+    "vampire",
+    "ghost",
+    "lich",
+    "phantom",
+    "haunt",
+    "shadow",
+    "revenant",
+  ],
+  dragon: ["dragon", "dragonkind", "wyvern", "hydra", "drake", "chimera"],
+  giant: [
+    "giant",
+    "giantkind",
+    "ogre",
+    "troll",
+    "ettin",
+    "cyclops",
+    "titan",
+    "bugbear",
+    "gnoll",
+    "goblin",
+    "hobgoblin",
+    "orc",
+    "kobold",
+  ],
+  regenerating: ["regenerating", "regenerate", "troll"],
+  lycanthrope: [
+    "lycanthrope",
+    "shapechanger",
+    "werewolf",
+    "wererat",
+    "wereboar",
+    "weretiger",
+    "werebear",
+    "doppelganger",
+  ],
+  enchanted: [
+    "enchanted",
+    "planar",
+    "summoned",
+    "elemental",
+    "djinn",
+    "djinni",
+    "efreet",
+    "efreeti",
+    "invisible stalker",
+    "salamander",
+    "demon",
+    "devil",
+    "fiend",
+    "gargoyle",
+    "golem",
+  ],
+  construct: ["construct", "golem", "statue", "gargoyle"],
+};
+
 export default class OseActor extends Actor {
+  /**
+   * Compute B/X & OSE missile range band modifier (+1 Short, 0 Medium, -1 Long).
+   */
+  static computeRangeModifier(range, distance) {
+    const dist = Number(distance);
+    const short = Number(range?.short) || 0;
+    const medium = Number(range?.medium) || 0;
+    const long = Number(range?.long) || 0;
+    if (!(dist > 0) || !(long > 0)) {
+      return { modifier: 0, band: null, outOfRange: false, distance: dist };
+    }
+    if (short > 0 && dist <= short) {
+      return { modifier: 1, band: "short", outOfRange: false, distance: dist };
+    }
+    if (medium > 0 && dist <= medium) {
+      return { modifier: 0, band: "medium", outOfRange: false, distance: dist };
+    }
+    if (dist <= long) {
+      return { modifier: -1, band: "long", outOfRange: false, distance: dist };
+    }
+    return { modifier: -1, band: "out", outOfRange: true, distance: dist };
+  }
+
+  /**
+   * Extract normalized `vsGroup` map from a weapon or ammo item/system object.
+   */
+  static extractVsGroups(itemOrSystem) {
+    const sys = itemOrSystem?.system ?? itemOrSystem ?? {};
+    if (sys.parsedVsGroups && typeof sys.parsedVsGroups === "object") {
+      return sys.parsedVsGroups;
+    }
+    const map = {};
+    for (const [k, v] of Object.entries(sys.vsGroup ?? {})) {
+      const num = Number(v);
+      if (Number.isFinite(num) && k.trim()) {
+        map[k.trim().toLowerCase()] = num;
+      }
+    }
+    for (const tag of sys.tags ?? []) {
+      const m = /^([+-]?\d+)\s+vs\.?\s+([a-z0-9\s_-]+)$/i.exec(String(tag?.value ?? "").trim());
+      if (m?.[1] && m?.[2]) {
+        const num = Number.parseInt(m[1], 10);
+        const group = m[2].trim().toLowerCase();
+        if (Number.isFinite(num) && group) {
+          map[group] = num;
+        }
+      }
+    }
+    return map;
+  }
+
+  /**
+   * Determine whether a target Actor or Token belongs to a creature group (e.g. "undead", "dragons", "regenerating").
+   */
+  static matchesCreatureGroup(target, groupKey) {
+    const actor = target?.actor ?? target;
+    if (!actor) return false;
+    const rawGroup = String(groupKey ?? "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+creatures?$/, "")
+      .replace(/kind$/, "")
+      .replace(/s$/, "");
+    if (!rawGroup) return false;
+
+    const details = actor.system?.details ?? {};
+    const explicitGroups = [
+      details.group,
+      details.creatureType,
+      ...(Array.isArray(details.creatureGroups) ? details.creatureGroups : [details.creatureGroups]),
+    ]
+      .filter(Boolean)
+      .map((g) => String(g).toLowerCase());
+
+    const haystack = [actor.name ?? "", details.biography ?? "", ...explicitGroups].join(" ").toLowerCase();
+
+    if (haystack.includes(rawGroup)) return true;
+
+    const keywords = CREATURE_GROUP_PATTERNS[rawGroup];
+    if (keywords) {
+      return keywords.some((kw) => haystack.includes(kw));
+    }
+    return false;
+  }
+
+  /**
+   * Resolve the effective magic bonus of a weapon against a specific target,
+   * substituting a matching `vsGroup` bonus (e.g. +3 vs. undead) when applicable.
+   */
+  static resolveWeaponBonus(item, target) {
+    const baseBonus = Number(item?.system?.bonus) || 0;
+    if (!target || !item) return baseBonus;
+    const vsGroups = OseActor.extractVsGroups(item);
+    let bestBonus = baseBonus;
+    let matched = false;
+    for (const [groupKey, bonus] of Object.entries(vsGroups)) {
+      if (OseActor.matchesCreatureGroup(target, groupKey)) {
+        if (!matched || bonus > bestBonus) {
+          bestBonus = bonus;
+          matched = true;
+        }
+      }
+    }
+    return bestBonus;
+  }
+
   static migrateData(source) {
     // Fixing missing img
     if (source?.img === "") {
@@ -209,7 +381,7 @@ export default class OseActor extends Actor {
       hp: (hp.max ?? 0) + (hp.fraction ?? 0),
       thac0: thac0.value ?? 0,
       saves: Object.fromEntries(SAVE_KEYS.map((k) => [k, saves[k]?.value ?? 0])),
-      spells: Object.fromEntries([1, 2, 3, 4, 5, 6].map((l) => [l, spells?.slots?.[l]?.max ?? 0])),
+      spells: Object.fromEntries([1, 2, 3, 4, 5, 6, 7, 8, 9].map((l) => [l, spells?.slots?.[l]?.max ?? 0])),
     };
   }
 
@@ -233,7 +405,7 @@ export default class OseActor extends Actor {
       thac0: i18n.localize("OSE.Thac0"),
       ...Object.fromEntries(SAVE_KEYS.map((k) => [`saves.${k}`, i18n.localize(`OSE.saves.${k}.long`)])),
       ...Object.fromEntries(
-        [1, 2, 3, 4, 5, 6].map((l) => [`spells.${l}`, i18n.format(key("SpellSlots"), { level: l })]),
+        [1, 2, 3, 4, 5, 6, 7, 8, 9].map((l) => [`spells.${l}`, i18n.format(key("SpellSlots"), { level: l })]),
       ),
       hd: i18n.localize("OSE.HitDice"),
     };
@@ -480,6 +652,30 @@ export default class OseActor extends Actor {
       speaker: ChatMessage.getSpeaker({ actor: this }),
       flavor: game.i18n.format("OSE.roll.save", { save: label }),
       title: game.i18n.format("OSE.roll.save", { save: label }),
+      chatMessage: options.chatMessage,
+    });
+  }
+
+  rollMagicResistance(options = {}) {
+    const mr = Number(this.system?.details?.magicResistance ?? this.system?.mr) || 0;
+    const rollParts = ["1d100"];
+    const label = game.i18n?.localize?.("OSE.details.magicResistance") || "Magic Resistance";
+    const data = {
+      actor: this,
+      roll: {
+        type: "below",
+        target: mr,
+      },
+      details: `Roll 1d100 <= ${mr}%`,
+    };
+    return OseDice.Roll({
+      event: options.event,
+      parts: rollParts,
+      data,
+      skipDialog: options.skipDialog ?? true,
+      speaker: ChatMessage.getSpeaker({ actor: this }),
+      flavor: `${label} (${mr}%)`,
+      title: `${label} (${mr}%)`,
       chatMessage: options.chatMessage,
     });
   }
@@ -867,6 +1063,31 @@ export default class OseActor extends Actor {
     }
   }
 
+  #measureTargetDistance(target, options = {}) {
+    const explicitDist = Number(options.targetDistance ?? options.distance);
+    if (Number.isFinite(explicitDist) && explicitDist > 0) {
+      return explicitDist;
+    }
+    const targetToken = target?.object ?? target;
+    const attackerToken =
+      this.token?.object ?? this.getActiveTokens?.()?.[0] ?? globalThis.canvas?.tokens?.controlled?.[0];
+    if (!attackerToken?.center || !targetToken?.center) return 0;
+
+    if (typeof globalThis.canvas?.grid?.measurePath === "function") {
+      try {
+        const res = globalThis.canvas.grid.measurePath([attackerToken.center, targetToken.center]);
+        if (Number.isFinite(res?.distance) && res.distance > 0) return res.distance;
+      } catch {
+        // Fallback to Euclidean below
+      }
+    }
+    const gridPixels = Number(globalThis.canvas?.dimensions?.size) || 100;
+    const gridUnits = Number(globalThis.canvas?.dimensions?.distance) || 5;
+    const dx = attackerToken.center.x - targetToken.center.x;
+    const dy = attackerToken.center.y - targetToken.center.y;
+    return (Math.hypot(dx, dy) / gridPixels) * gridUnits;
+  }
+
   /**
    * Constructs the attack roll formula for an attack
    *
@@ -897,12 +1118,17 @@ export default class OseActor extends Actor {
       attData.item?.system?.damage ?? "1d6",
     ]);
 
+    // Resolve weapon bonus (including conditional vsGroup bonus when a matching target is selected)
+    const target = attData.roll?.target ?? options.target;
+    const effectiveWeaponBonus = OseActor.resolveWeaponBonus(attData.item, target);
+
     // Weapon Damage Bonus
     const globalIgnoreAttackBonusOnDamageRoll = game.settings.get(game.system.id, "ignoreAttackBonusOnDamageRoll");
 
     // Global and per-actor flag to ignore bonus dmg are set
-    if (!globalIgnoreAttackBonusOnDamageRoll && !this.system.config?.ignoreBonusDamage && attData.item?.system?.bonus)
-      dmgParts.push(attData.item?.system?.bonus);
+    if (!globalIgnoreAttackBonusOnDamageRoll && !this.system.config?.ignoreBonusDamage && effectiveWeaponBonus) {
+      dmgParts.push(effectiveWeaponBonus);
+    }
 
     const rollParts = ["1d20"];
     const ascending = game.settings.get(game.system.id, "ascendingAC");
@@ -927,6 +1153,18 @@ export default class OseActor extends Actor {
     if (options.type === "missile") {
       attackMods = [data.scores?.dex?.mod, data.thac0?.mod?.missile];
       if (data.damage?.mod?.missile) dmgParts.push(data.damage.mod.missile);
+
+      const dist = this.#measureTargetDistance(target, options);
+      if (dist > 0 && attData.item?.system?.range) {
+        const { modifier: rangeMod, outOfRange } = OseActor.computeRangeModifier(attData.item.system.range, dist);
+        if (outOfRange) {
+          ui.notifications?.warn?.(
+            game.i18n?.format?.("OSE.warn.outOfRange", { name: attData.item.name, distance: Math.round(dist) }) ||
+              `${attData.item.name} target is beyond maximum range (${Math.round(dist)}').`,
+          );
+        }
+        if (rangeMod !== 0) attackMods.push(rangeMod);
+      }
     }
 
     // Tactical combat modifiers (Retreat / Custom)
@@ -934,7 +1172,7 @@ export default class OseActor extends Actor {
     if (options.customBonus) attackMods.push(options.customBonus);
 
     // Add weapon bonus to attack roll only (already added to dmgParts)
-    if (attData.item) attackMods.push(attData.item?.system?.bonus);
+    if (attData.item && effectiveWeaponBonus) attackMods.push(effectiveWeaponBonus);
 
     rollParts.push(...removeFalsyElements(attackMods));
 
@@ -947,7 +1185,7 @@ export default class OseActor extends Actor {
         thac0: data.thac0.value,
         dmg: dmgParts,
         save: attData.roll?.save,
-        target: attData.roll?.target,
+        target,
       },
     };
     // Roll and return
@@ -966,12 +1204,84 @@ export default class OseActor extends Actor {
   }
 
   /**
+   * Evaluate weapon/damage-type gating and mitigation on this Actor (silver/magic requirements,
+   * immunities, and half-damage resistances).
+   */
+  evaluateWeaponDamage(rawDamage, { weapon = null, ammo = null, damageType = "" } = {}) {
+    const sys = this.system ?? {};
+    const details = sys.details ?? {};
+    const requiresMagicBonus =
+      Number(details.requiresMagicBonus ?? sys.requiresMagicBonus) ||
+      (details.requiresMagic || sys.OnlyHurtByMagic ? 1 : 0);
+    const requiresSilver = Boolean(details.requiresSilver || sys.OnlyHurtBySilver);
+    const toList = (val) =>
+      Array.isArray(val)
+        ? val.map((v) => String(v).toLowerCase().trim()).filter(Boolean)
+        : typeof val === "string"
+          ? val
+              .split(",")
+              .map((v) => v.toLowerCase().trim())
+              .filter(Boolean)
+          : [];
+    const immuneTo = toList(details.immuneTo ?? sys.immuneTo);
+    const halfDamageFrom = toList(details.halfDamageFrom ?? sys.halfDamageFrom);
+
+    if (!requiresMagicBonus && !requiresSilver && !immuneTo.length && !halfDamageFrom.length) {
+      return { damage: rawDamage, amount: rawDamage, immune: false, halved: false, reason: null };
+    }
+
+    const weaponBonus = OseActor.resolveWeaponBonus(weapon, this);
+    const ammoBonus = OseItem.extractAmmoBonus(ammo);
+    const effectiveBonus = Math.max(weaponBonus, ammoBonus);
+
+    const tags = [
+      ...(weapon?.system?.tags ?? []).map((t) => String(t.value ?? "").toLowerCase()),
+      ...(ammo?.system?.tags ?? []).map((t) => String(t.value ?? "").toLowerCase()),
+    ];
+    const names = `${weapon?.name ?? ""} ${ammo?.name ?? ""}`.toLowerCase();
+    const isSilver = tags.includes("silver") || names.includes("silver");
+    const isMagic = effectiveBonus > 0 || tags.includes("magic") || tags.includes("magical");
+
+    if (requiresMagicBonus > 0 && effectiveBonus < requiresMagicBonus) {
+      if (!(requiresSilver && isSilver)) {
+        return { damage: 0, amount: 0, immune: true, halved: false, reason: "requiresMagic" };
+      }
+    } else if (requiresSilver && !isSilver && !isMagic) {
+      return { damage: 0, amount: 0, immune: true, halved: false, reason: "requiresSilver" };
+    }
+
+    const activeTypes = new Set(tags);
+    if (damageType) activeTypes.add(String(damageType).toLowerCase().trim());
+
+    if (immuneTo.some((t) => activeTypes.has(t))) {
+      return { damage: 0, amount: 0, immune: true, halved: false, reason: "immuneType" };
+    }
+
+    if (halfDamageFrom.some((t) => activeTypes.has(t))) {
+      const halvedAmt = Math.floor(rawDamage / 2);
+      return { damage: halvedAmt, amount: halvedAmt, immune: false, halved: true, reason: "halfDamage" };
+    }
+
+    return { damage: rawDamage, amount: rawDamage, immune: false, halved: false, reason: null };
+  }
+
+  /**
    * @param {number | string} amount
    * @param {1 | -1} multiplier
+   * @param {object} [options]
    * @returns
    */
-  async applyDamage(amount = 0, multiplier = 1) {
-    const damage = Math.floor(Number.parseInt(amount, 10) * multiplier);
+  async applyDamage(amount = 0, multiplier = 1, options = {}) {
+    let damage = Math.floor(Number.parseInt(amount, 10) * multiplier);
+
+    if (damage > 0 && (options.weapon || options.ammo || options.damageType)) {
+      const evalResult = this.evaluateWeaponDamage(damage, options);
+      if (evalResult.immune) {
+        ui.notifications?.warn?.(`${this.name} is immune to this attack (${evalResult.reason}).`);
+        return this;
+      }
+      damage = evalResult.damage;
+    }
 
     const { value, max } = this.system.hp;
 

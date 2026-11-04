@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "ose",
-  "version": "3.1.0-beta.2-gygax75.8",
+  "version": "3.1.0-beta.3-gygax75.1",
   "description": "",
   "type": "module",
   "scripts": {

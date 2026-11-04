@@ -4,7 +4,8 @@
 import { deriveTables } from "../classes/actor-tables";
 import { deriveFromClasses, summariseClasses } from "../classes/derive";
 import { clampRaceModifier, readChanges } from "../classes/effects";
-import { primeReqBonus, scoreValues } from "../classes/progression";
+import { primeReqBonus, SAVE_KEYS, scoreValues } from "../classes/progression";
+import { totalRaceSaveBonus } from "../classes/race-saves";
 import { buildSpellPools } from "../classes/spells";
 import { computeWarnings, contextKey } from "../classes/warnings";
 import OseDataModelCharacterAC from "./data-model-classes/data-model-character-ac";
@@ -18,6 +19,10 @@ const getItemsOfActorOfType = (actor, filterType, filterFn = null) =>
 
 export default class OseDataModelCharacter extends foundry.abstract.TypeDataModel {
   prepareBaseData() {
+    // Resolve an unset packed cap so effects modify the real value.
+    if ("packedMax" in this.encumbrance) {
+      this.encumbrance.packedMax ??= CONFIG.OSE.encumbrance.caps?.(this.encumbrance.max).packed;
+    }
     this.derivedFromClasses = false;
     if (!game.settings?.get?.(game.system?.id ?? "ose", "enableClassItems")) {
       return;
@@ -83,6 +88,7 @@ export default class OseDataModelCharacter extends foundry.abstract.TypeDataMode
     }
     this.#clampRaceModifiers();
     this.scores = new OseDataModelCharacterScores(this.scores);
+    this.#applyRaceSaveBonuses();
 
     // eslint-disable-next-line new-cap
     this.encumbrance = new CONFIG.OSE.encumbrance(
@@ -91,6 +97,7 @@ export default class OseDataModelCharacter extends foundry.abstract.TypeDataMode
       {
         significantTreasure: game.settings.get(game.system.id, "significantTreasure"),
         scores: this.scores,
+        packedMax: this.encumbrance.packedMax,
       },
       this.scores.str.mod,
     );
@@ -130,6 +137,14 @@ export default class OseDataModelCharacter extends foundry.abstract.TypeDataMode
       const score = /^system\.scores\.(\w+)\.value$/.exec(key)?.[1];
       if (type !== "add" || !this.scores[score]) continue;
       this.scores[score].value = clampRaceModifier(this.scores[score].value, Number(value) || 0);
+    }
+  }
+
+  #applyRaceSaveBonuses() {
+    const race = this.race;
+    if (!this.derivedFromClasses || !race) return;
+    for (const key of SAVE_KEYS) {
+      this.saves[key].value -= totalRaceSaveBonus(race.system.saveBonuses, key, this.scores.con.value);
     }
   }
 
@@ -206,8 +221,7 @@ export default class OseDataModelCharacter extends foundry.abstract.TypeDataMode
             id: race.id,
             name: race.name,
             key: race.system.key,
-            limits: Object.fromEntries(race.system.classLimits.map((l) => [l.classKey, l.maxLevel])),
-            allowedKeys: race.system.classLimits.map((l) => l.classKey),
+            classAccess: (classKey) => race.system.classAccess(classKey),
             requirements: race.system.requirements,
           }
         : null,

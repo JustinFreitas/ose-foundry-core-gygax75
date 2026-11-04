@@ -316,6 +316,14 @@ Object.assign(globalThis, {
   },
   foundry: {
     abstract: { TypeDataModel },
+    documents: {
+      Combat: class Combat {},
+      ChatMessage: {
+        implementation: {
+          create: vi.fn().mockResolvedValue({}),
+        },
+      },
+    },
     applications: {
       handlebars: {
         renderTemplate: vi.fn().mockResolvedValue("<div>Template</div>"),
@@ -391,6 +399,7 @@ Object.assign(globalThis, {
       fields: { DataField, StringField, HTMLField, NumberField, BooleanField, ArrayField, ObjectField, SchemaField },
     },
     utils: {
+      debounce: (fn: any) => fn,
       mergeObject: (target: any, source: any) => Object.assign(target || {}, source),
       escapeHTML: (str: string) => str,
       getProperty: (obj: any, path: string) => {

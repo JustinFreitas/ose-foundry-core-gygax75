@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { OSECombat } from "./combat";
 import { OSECombatant } from "./combatant";
 
 describe("OSECombatant and Fast Combat", () => {
@@ -263,6 +264,18 @@ describe("OSECombatant and Fast Combat", () => {
 
       await combatant.assignGroup("custom-group");
       expect(mockCombat.assignGroup).toHaveBeenCalledWith(combatant, "custom-group");
+    });
+
+    it("excludes both 'slow' and 'fast' groups from rollGroupInitiative", async () => {
+      const combat = new OSECombat() as any;
+      combat.isOwner = true;
+      combat.updateEmbeddedDocuments = vi.fn().mockResolvedValue([]);
+      const result = await combat.rollGroupInitiative([
+        { id: "g1", name: "slow", members: new Set([{}]) },
+        { id: "g2", name: "fast", members: new Set([{}]) },
+      ]);
+      expect(result).toBe(combat);
+      expect(combat.updateEmbeddedDocuments).not.toHaveBeenCalled();
     });
   });
 });

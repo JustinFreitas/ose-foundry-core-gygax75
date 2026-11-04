@@ -802,7 +802,14 @@ export default ({ describe, it, expect, after, before }: QuenchMethods) => {
       return actor as Actor;
     };
 
+    let prevEnableClassItems: boolean;
+    before(async () => {
+      prevEnableClassItems = game.settings.get(game.system.id, "enableClassItems");
+      await game.settings.set(game.system.id, "enableClassItems", true);
+    });
+
     after(async () => {
+      await game.settings.set(game.system.id, "enableClassItems", prevEnableClassItems);
       await cleanUpActorsByKey(`${key}-cls`);
     });
 
@@ -854,6 +861,25 @@ export default ({ describe, it, expect, after, before }: QuenchMethods) => {
           : { name: "Test", changes: [{ key: "system.saves.death.value", mode: 2, value: "-1" }] };
       await actor.createEmbeddedDocuments("ActiveEffect", [effect]);
       expect(actor.system.saves.death.value).equal(9);
+      await actor.delete();
+    });
+
+    it("lowers derived saves by the race's unconditional bonuses", async () => {
+      const actor = await classActor();
+      await actor.update({ "system.scores.con.value": 15 });
+      const dwarf = {
+        name: "Dwarf",
+        type: "race",
+        system: {
+          saveBonuses: [
+            { saves: ["death"], bonus: null, against: "" },
+            { saves: [], bonus: 2, against: "illusions" },
+          ],
+        },
+      };
+      await actor.createEmbeddedDocuments("Item", [fighter, dwarf]);
+      expect(actor.system.saves.death.value).equal(6);
+      expect(actor.system.saves.wand.value).equal(11);
       await actor.delete();
     });
 

@@ -359,3 +359,18 @@ Whenever upstream changes are merged or new features are introduced, consult thi
   - **`GYGAX-036`**: Monster silver/magic weapon immunity gating and damage mitigation (`OseActor.evaluateWeaponDamage`, enhanced `applyDamage`), percentile Magic Resistance rolls (`OseActor.rollMagicResistance`), and mount/pack-animal encumbrance & movement breakpoints (`OseDataModelMonster` when `encumbrance.max > 0`).
 * **Manifest Fix**: Restored `"class": { "htmlFields": ["description"] }` and `"race": { "htmlFields": ["description"] }` in `system.json` `documentTypes.Item`.
 * **Verification**: 100% test coverage passing (559 / 559 vitest tests across 44 test suites, Biome lint/formatting clean, Rollup/SASS distribution built cleanly).
+
+---
+
+## Release Log: `3.1.0-beta.3-gygax75.1`
+* **Upstream Synchronization (`v3.1.0-beta.3` + post-release `main`)**: Merged 21 upstream commits from `NecroticGnome/ose-foundry-core:main` (`1a9b485..f293f0d`):
+  - **PR #203 & #204 (Blair McMillan)**: Added player-rollable group initiative buttons (`rollGroup`), right-click manual group initiative prompt (`#promptGroupInitiative`), consolidated single chat card for group initiative rolls (`OSECombat.rollGroupInitiative`), whole-group rolling from combatant initiative clicks, and debounced combat tracker group updates (`#renderTracker`).
+  - **PR #201 (Blair McMillan)**: Separated equipped (`system.encumbrance.max`) and packed (`system.encumbrance.packedMax`) item-based encumbrance tweaks and Active Effect keys (`EncumbranceItemBased.caps`).
+  - **PR #205 & #207 (Tim Sandberg)**: Extracted `actor.addClass()` and `actor.setRace()` headless APIs, exposed class derivation/progression/conversion helpers on `game.ose`, and structured class requirements (`min`/`max` bounds), `classAccess` (`npcOnly`), infravision, and racial save bonuses (`saveBonuses` fixed or scaled by CON) on class and race items.
+* **Gygax '75 Conflict Resolution & Harmonization**:
+  - Preserved BECMI 2,400 cn and B/X 1,600 cn default max recognition in `EncumbranceItemBased.caps(max, packedMax)` alongside `cumulativeItemslots` bundle math (`GYGAX-005`, `GYGAX-019`).
+  - Preserved `fast` group rendering (`fa-bolt-lightning`) and excluded `"fast"` alongside `"slow"` from `rollGroupInitiative`, `rollInitiative`, `#warnUnrolled`, and the group header right-click manual initiative prompt (`GYGAX-004`).
+  - Enforced Foundry V14 `DialogV2` styling (`classes: ["ose", "dialog"]` and explicit `position` dimensions) across `#promptGroupInitiative`, `offerAbilities`, and `onDropRace` (`GYGAX-014`).
+  - Preserved `enableClassItems` setting gate in `OseDataModelCharacter.prepareBaseData()`, `onDropClass`, and `onDropRace` (`GYGAX-001`), spell levels `1–9` (`GYGAX-032`), and all B/X & module enhancements (`GYGAX-031`–`GYGAX-036`).
+* **Verification**: 100% test coverage passing (603 / 603 vitest tests across 47 test suites, Biome lint/formatting clean, Rollup/SASS distribution built cleanly).
+

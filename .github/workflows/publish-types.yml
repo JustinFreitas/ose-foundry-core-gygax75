@@ -12,7 +12,7 @@ permissions:
 jobs:
   publish:
     # Manual runs should publish from main only.
-    if: github.event_name == 'release' || github.ref == 'refs/heads/main'
+    if: github.repository == 'NecroticGnome/ose-foundry-core' && (github.event_name == 'release' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

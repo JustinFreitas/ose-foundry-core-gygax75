@@ -374,3 +374,14 @@ Whenever upstream changes are merged or new features are introduced, consult thi
   - Preserved `enableClassItems` setting gate in `OseDataModelCharacter.prepareBaseData()`, `onDropClass`, and `onDropRace` (`GYGAX-001`), spell levels `1–9` (`GYGAX-032`), and all B/X & module enhancements (`GYGAX-031`–`GYGAX-036`).
 * **Verification**: 100% test coverage passing (603 / 603 vitest tests across 47 test suites, Biome lint/formatting clean, Rollup/SASS distribution built cleanly).
 
+---
+
+## Release Log: `3.2.0-gygax75.1`
+* **Upstream Synchronization (`v3.2.0` Official Stable Release)**: Merged upstream tag `3.2.0` (`dea95fb`) from `NecroticGnome/ose-foundry-core:main`:
+  - **PR #208 (Blair McMillan)**: Added `@ose-foundry-core/types` automated CI publishing workflow (`publish-types.yml`), type declaration drift check in `test.yml`, and `noCheck: true` in `tsconfig.types.json`.
+  - Guarded `.github/workflows/publish-types.yml` with `github.repository == 'NecroticGnome/ose-foundry-core'` so fork releases on `JustinFreitas/ose-foundry-core-gygax75` cleanly skip upstream npm OIDC publishing.
+* **Dependency & Security Hardening**:
+  - Updated devDependencies (`rollup` `4.68.0`, `sass` `1.108.1`, `vitest` `5.1.0`, `@rollup/plugin-typescript` `12.3.1`, `rollup-plugin-dts` `6.5.1`, `tslib` `2.9.1`, `yargs` `17.7.3`, `@types/livereload` `0.9.5`) and ran `npm audit fix`, remediating 20 transitive advisories (including `handlebars`, `rollup`, `vite`, `@vitest/mocker`, `ws`, `engine.io`, `socket.io-parser`, `picomatch`, `minimatch`, `brace-expansion`, `shell-quote`, `immutable`, `prosemirror-view`, `qs`, `source-map-js`, and `deepmerge`).
+* **Verification**: 100% test coverage passing (603 / 603 vitest tests across 47 test suites, Biome lint/formatting clean, Rollup/SASS and TypeScript declaration builds clean).
+
+

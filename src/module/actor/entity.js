@@ -1335,22 +1335,19 @@ export default class OseActor extends Actor {
     // and str/dex modifier only if it's non-zero
     let attackMods = [];
 
-    // Melee: str.mod + thac0.mod.melee go to the attack roll; Str modifier and
-    // explicit damage.mod.melee Active Effects add to melee damage, while the
-    // melee attack tweak (thac0.mod.melee) does not.
+    // Melee: str.mod + thac0.mod.melee go to the attack roll; Str modifier adds
+    // to melee damage, while the melee attack tweak (thac0.mod.melee) does not.
     if (options.type === "melee") {
       attackMods = [data.scores?.str?.mod, data.thac0?.mod?.melee];
       if (options.twoWeapons) attackMods.push(1);
       if (data.scores?.str?.mod) dmgParts.push(data.scores.str.mod);
-      if (data.damage?.mod?.melee) dmgParts.push(data.damage.mod.melee);
     }
 
     // Missile: dex.mod + thac0.mod.missile go to the attack roll only (RAW: missile
-    // attacks get no inherent bonus damage). An explicit damage.mod.missile lever
-    // (e.g. from Bless) does add to missile damage.
+    // attacks get no inherent bonus damage). Explicit damage.mod.{melee,missile}
+    // bonuses are applied once below.
     if (options.type === "missile") {
       attackMods = [data.scores?.dex?.mod, data.thac0?.mod?.missile];
-      if (data.damage?.mod?.missile) dmgParts.push(data.damage.mod.missile);
 
       const dist = this.#measureTargetDistance(target, options);
       if (dist > 0 && weapon?.system?.range) {
@@ -1373,6 +1370,9 @@ export default class OseActor extends Actor {
     if (weapon && effectiveWeaponBonus) attackMods.push(effectiveWeaponBonus);
 
     rollParts.push(...removeFalsyElements(attackMods));
+
+    const damageMod = data.damage?.mod?.[options.type];
+    if (damageMod) dmgParts.push(damageMod);
 
     const weaponId = weapon?.id ?? weapon?._id;
     const rollData = {

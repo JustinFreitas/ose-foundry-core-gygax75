@@ -300,9 +300,12 @@ export default class OseDataModelCharacter extends foundry.abstract.TypeDataMode
         fraction: new NumberField({ initial: 0 }),
       }),
       thac0: new ObjectField(),
-      // Damage modifiers (e.g. damage.mod.missile), applied via Active Effects.
-      // Read in rollAttack; mirrors the untyped thac0 ObjectField.
-      damage: new ObjectField(),
+      damage: new SchemaField({
+        mod: new SchemaField({
+          melee: new NumberField({ integer: false, initial: 0 }),
+          missile: new NumberField({ integer: false, initial: 0 }),
+        }),
+      }),
       languages: new ObjectField(),
       saves: new SchemaField({
         breath: new SchemaField({ value: new NumberField({ integer: true }) }),

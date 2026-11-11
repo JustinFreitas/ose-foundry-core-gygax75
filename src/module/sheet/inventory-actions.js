@@ -88,22 +88,28 @@ export const updateItemQuantity = async (sheet, event) => {
 export const toggleItemEquipped = (item) => item.update({ system: { equipped: !item.system.equipped } });
 
 export const removeItemFromActor = async (actor, item) => {
+  const itemId = item.id ?? item._id;
   if (item.type === "ability" || item.type === "spell") {
-    return actor.deleteEmbeddedDocuments("Item", [item._id]);
+    return actor.deleteEmbeddedDocuments("Item", [itemId]);
   }
-  if (item.type !== "container" && item.system.containerId !== "") {
+  if (item.type !== "container" && item.system?.containerId) {
     const { containerId } = item.system;
-    const newItemIds = actor.items.get(containerId).system.itemIds.filter((o) => o !== item.id);
-    await actor.updateEmbeddedDocuments("Item", [{ _id: containerId, system: { itemIds: newItemIds } }]);
+    const container = actor.items?.get?.(containerId);
+    if (container?.system?.itemIds) {
+      const newItemIds = container.system.itemIds.filter((o) => o !== itemId);
+      await actor.updateEmbeddedDocuments("Item", [{ _id: containerId, "system.itemIds": newItemIds }]);
+    }
   }
-  if (item.type === "container" && item.system.itemIds) {
+  if (item.type === "container" && Array.isArray(item.system?.itemIds) && item.system.itemIds.length > 0) {
     const updateData = item.system.itemIds.reduce((acc, val) => {
-      if (actor.items.get(val)) acc.push({ _id: val, "system.containerId": "" });
+      if (actor.items?.get?.(val)) acc.push({ _id: val, "system.containerId": "" });
       return acc;
     }, []);
-    await actor.updateEmbeddedDocuments("Item", updateData);
+    if (updateData.length > 0) {
+      await actor.updateEmbeddedDocuments("Item", updateData);
+    }
   }
-  return actor.deleteEmbeddedDocuments("Item", [item._id]);
+  return actor.deleteEmbeddedDocuments("Item", [itemId]);
 };
 
 export const promptRemoveItemFromActor = (sheet, item) =>
@@ -111,12 +117,14 @@ export const promptRemoveItemFromActor = (sheet, item) =>
     classes: ["ose", "dialog"],
     position: { width: 400, height: "auto" },
     window: { title: game.i18n.localize("OSE.dialog.deleteItem") },
-    content: game.i18n.format("OSE.dialog.confirmDeleteItem", { name: item.name }),
+    content: game.i18n.format("OSE.dialog.confirmDeleteItem", {
+      name: foundry.utils.escapeHTML(item.displayName ?? item.name ?? ""),
+    }),
     yes: {
       default: false,
       callback: () => removeItemFromActor(sheet.actor, item),
     },
-    defaultYes: false,
+    rejectClose: false,
   });
 
 export const createItem = (sheet, target) => {
@@ -130,6 +138,7 @@ export const createItem = (sheet, target) => {
   if (type === "choice") {
     const choices = header.dataset.choices.split(",");
     return chooseItemType(choices).then((dialogInput) => {
+      if (!dialogInput) return null;
       const itemData = buildItem(dialogInput.type, dialogInput.name);
       return sheet.actor.createEmbeddedDocuments("Item", [itemData], {});
     });

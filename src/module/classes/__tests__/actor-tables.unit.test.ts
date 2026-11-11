@@ -28,8 +28,8 @@ const thief = {
 describe("deriveTables", () => {
   it("lists each column with its current value (ranges as their top) and every level", () => {
     const { tables, from } = deriveTables([thief]);
-    expect(tables.skills.hs).toEqual({ current: 20, levels: [10, 15, 20] });
-    expect(tables.skills.hn).toEqual({ current: 3, levels: ["1-2", "1-2", "1-3"] });
+    expect(tables.skills?.hs).toEqual({ current: 20, levels: [10, 15, 20] });
+    expect(tables.skills?.hn).toEqual({ current: 3, levels: ["1-2", "1-2", "1-3"] });
     expect(from["skills.hs"]).toEqual({ cls: "Thief", name: "Hide in shadows", level: 3 });
   });
 
@@ -55,8 +55,8 @@ describe("deriveTables", () => {
       tables: [table("skills", [["hs", "Hide in shadows"]], [{ hs: 1 }, { hs: 2 }, { hs: 3 }, { hs: 4 }, { hs: 5 }])],
     };
     const { tables, from, shared } = deriveTables([thief, assassin]);
-    expect(tables.skills.hs.current).toBe(5);
-    expect(from["skills.hs"].cls).toBe("Assassin");
+    expect(tables.skills?.hs?.current).toBe(5);
+    expect(from["skills.hs"]?.cls).toBe("Assassin");
     expect(shared).toEqual([{ id: "a", key: "skills.hs", cls: "Assassin", other: "Thief", used: "Assassin" }]);
   });
 });

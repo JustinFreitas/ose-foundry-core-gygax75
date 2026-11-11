@@ -2,7 +2,7 @@
   "id": "ose",
   "title": "Old-School Essentials Development Build",
   "description": "Simple, robust rules compatible with decades of Basic/Expert material",
-  "version": "3.2.0-gygax75.1",
+  "version": "3.2.0-gygax75.2",
   "compatibility": {
     "minimum": "13",
     "verified": "14"
@@ -30,7 +30,6 @@
     },
     {
       "name": "VTT RED",
-      "email": "ose-system@vtt.red",
       "url": "https://vtt.red"
     },
     {
@@ -46,12 +45,8 @@
       "url": "https://github.com/NecroticGnome/ose-foundry-core#contributors-"
     }
   ],
-  "esmodules": [
-    "dist/ose.js"
-  ],
-  "styles": [
-    "dist/ose.css"
-  ],
+  "esmodules": ["dist/ose.js"],
+  "styles": ["dist/ose.css"],
   "packs": [],
   "languages": [
     {
@@ -66,17 +61,17 @@
     },
     {
       "lang": "fr",
-      "name": "Fran\u00e7ais (France)",
+      "name": "Français (France)",
       "path": "dist/lang/fr.json"
     },
     {
       "lang": "pt-BR",
-      "name": "Portugu\u00eas (Brasil)",
+      "name": "Português (Brasil)",
       "path": "dist/lang/pt-BR.json"
     },
     {
       "lang": "es",
-      "name": "Espa\u00f1ol (Espa\u00f1a)",
+      "name": "Español (España)",
       "path": "dist/lang/es.json"
     },
     {
@@ -86,12 +81,12 @@
     },
     {
       "lang": "ca",
-      "name": "Catal\u00e0 (Andorra)",
+      "name": "Català (Andorra)",
       "path": "dist/lang/ca.json"
     },
     {
       "lang": "cn",
-      "name": "\u7b80\u4f53\u4e2d\u6587 (\u4e2d\u56fd)",
+      "name": "简体中文 (中国)",
       "path": "dist/lang/zh-CN.json"
     },
     {
@@ -106,12 +101,12 @@
     },
     {
       "lang": "ko",
-      "name": "\ud55c\uad6d\uc5b4 (\ud55c\uad6d)",
+      "name": "한국어 (한국)",
       "path": "dist/lang/ko.json"
     },
     {
       "lang": "ru",
-      "name": "\u0420\u0443\u0441\u0441\u043a\u0438\u0439 (\u0420\u043e\u0441\u0441\u0438\u044f)",
+      "name": "Русский (Россия)",
       "path": "dist/lang/ru.json"
     }
   ],
@@ -139,12 +134,8 @@
   "flags": {
     "allowBugReporter": true,
     "hotReload": {
-      "extensions": [
-        "css"
-      ],
-      "paths": [
-        "dist/"
-      ]
+      "extensions": ["css"],
+      "paths": ["dist/"]
     }
   },
   "relationships": {}

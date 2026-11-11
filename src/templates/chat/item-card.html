@@ -1,10 +1,10 @@
-<div class="ose chat-card item-card collapsible" data-actor-id="{{actor.id}}" data-item-id="{{item._id}}" {{#if
+<div class="ose chat-card item-card collapsible" data-actor-id="{{actor.id}}" data-item-id="{{#if item.id}}{{item.id}}{{else}}{{item._id}}{{/if}}" {{#if
     tokenId}}data-token-id="{{tokenId}}" {{/if}}>
     <div class="ose chat-block">
         <div class="flexrow chat-header">
             {{#if item.img}}<img class="chat-item-img" src="{{item.img}}" alt="" />{{/if}}
             <div class="chat-title">
-                <h2>{{item.name}}</h2>
+                <h2>{{#if item.displayName}}{{item.displayName}}{{else}}{{item.name}}{{/if}}</h2>
             </div>
             {{#if actor.img}}<div class="chat-img" style="background-image:url('{{actor.img}}')"></div>{{/if}}
         </div>

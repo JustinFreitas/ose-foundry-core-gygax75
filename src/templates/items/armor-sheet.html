@@ -9,7 +9,7 @@
         {{#each @root.system.tags as |tag|}}
         <li class="tag" data-tooltip="{{tag.title}}" data-tag="{{tag.value}}">
           <span>{{tag.value}}</span>
-          <a class="tag-delete" data-action="tagDelete"><i class="fas fa-times"></i></a>
+          {{#if @root.editable}}<a class="tag-delete" data-action="tagDelete"><i class="fas fa-times"></i></a>{{/if}}
         </li>
         {{/each}}
       </ol>
@@ -18,6 +18,7 @@
   <section class="sheet-body">
     <div class="flexrow">
       <div class="stats">
+        {{#unless isUnidentifiedForPlayer}}
         <div class="form-group">
           <div class="form-fields">
             <input
@@ -50,6 +51,7 @@
             />
           </div>
         </label>
+        {{/unless}}
         <label class="form-group">
           <span class="form-label">{{localize 'OSE.armor.type'}}</span>
           <div class="form-fields">
@@ -59,6 +61,7 @@
             </select>
           </div>
         </label>
+        {{#unless isUnidentifiedForPlayer}}
         <label class="form-group">
           <span class="form-label">{{localize 'OSE.items.Cost'}}{{#if system.quantity.max}}{{localize 'OSE.items.BundleSuffix'}}{{/if}}</span>
           <div class="form-fields">
@@ -70,6 +73,7 @@
             />
           </div>
         </label>
+        {{/unless}}
         {{#unless (eq @root.config.encumbrance 'itembased')}}
         <label class="form-group">
           <span class="form-label">{{localize 'OSE.items.Weight'}}{{#if system.quantity.max}}{{localize 'OSE.items.BundleSuffix'}}{{/if}}</span>
@@ -120,6 +124,16 @@
               placeholder="{{localize 'OSE.items.Unidentified'}}"
               data-dtype="String"
             />
+          </div>
+        </label>
+        <label class="form-group block-input">
+          <span class="form-label">{{localize 'OSE.items.UnidentifiedDescription'}}</span>
+          <div class="form-fields">
+            <textarea
+              name="system.unidentifiedDescription"
+              rows="3"
+              placeholder="{{localize 'OSE.items.UnidentifiedDescription'}}"
+            >{{system.unidentifiedDescription}}</textarea>
           </div>
         </label>
         {{/unless}}

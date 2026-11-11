@@ -71,10 +71,37 @@ describe("OseDataModelContainer", () => {
       expect(container.totalWeight).toBe(7);
     });
 
-    it("counts a zero quantity as one, since the fallback is falsy-based", () => {
+    it("counts a zero quantity as zero", () => {
       const container = new OseDataModelContainer({}, { parent: parentIn([carried(CONTAINER_ID, 7, { value: 0 })]) });
 
-      expect(container.totalWeight).toBe(7);
+      expect(container.totalWeight).toBe(0);
+    });
+
+    it("uses cumulativeWeight when present for bundled items (max > 0)", () => {
+      const bundledArrows = {
+        system: {
+          containerId: CONTAINER_ID,
+          weight: 20,
+          quantity: { value: 10, max: 20 },
+          cumulativeWeight: 10,
+        },
+      };
+      const container = new OseDataModelContainer({}, { parent: parentIn([bundledArrows]) });
+
+      expect(container.totalWeight).toBe(10);
+    });
+
+    it("computes bundle-proportional weight even when cumulativeWeight getter is absent", () => {
+      const bundledArrows = {
+        system: {
+          containerId: CONTAINER_ID,
+          weight: 20,
+          quantity: { value: 10, max: 20 },
+        },
+      };
+      const container = new OseDataModelContainer({}, { parent: parentIn([bundledArrows]) });
+
+      expect(container.totalWeight).toBe(10);
     });
 
     it("treats a missing weight as 0", () => {

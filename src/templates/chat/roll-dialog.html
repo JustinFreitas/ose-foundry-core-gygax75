@@ -1,5 +1,9 @@
 <form class="ose roll-dialog">
-    {{#if data.rollData.details}}
+    {{#if data.details}}
+    <div class="roll-details">
+        {{data.details}}
+    </div>
+    {{else if data.rollData.details}}
     <div class="roll-details">
         {{data.rollData.details}}
     </div>

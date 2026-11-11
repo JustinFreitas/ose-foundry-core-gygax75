@@ -17,31 +17,46 @@ import { rollTreasure } from "./helpers-treasure";
  */
 export async function createOseMacro(data, slot) {
   if (data.type === "Macro") {
-    return game.user.assignHotbarMacro(await fromUuid(data.uuid), slot);
+    const macro = data.uuid ? await fromUuid(data.uuid) : null;
+    if (!macro) return;
+    return game.user.assignHotbarMacro(macro, slot);
   }
   if (data.type === "RollTable") {
+    const table = data.table ?? (data.uuid ? await fromUuid(data.uuid) : null);
+    if (!table) {
+      return ui.notifications.error(
+        game.i18n.format("OSE.error.noRollTableWithUuId", {
+          uuid: data.uuid ?? "",
+        }),
+      );
+    }
     const command = `game.ose.rollTableMacro(${JSON.stringify(data.uuid)});`;
-    const table = await fromUuid(data.uuid);
-    const macro = await Macro.create({
-      name: table.name,
-      type: "script",
-      img: table.img,
-      command,
-      flags: { "ose.tableMacro": true },
-    });
+    let macro = game.macros.contents.find((m) => m.name === table.name && m.command === command);
+    if (!macro || macro.ownership?.[game.userId] === undefined) {
+      macro = await Macro.create({
+        name: table.name,
+        type: "script",
+        img: table.img,
+        command,
+        flags: { "ose.tableMacro": true },
+      });
+    }
     return game.user.assignHotbarMacro(macro, slot);
   }
   if (data.type !== "Item") return ui.notifications.warn(game.i18n.localize("OSE.warn.macrosNotAnItem"));
-  if (data.uuid.indexOf("Item.") <= 0)
+  if (!data.uuid || data.uuid.indexOf("Item.") <= 0)
     return ui.notifications.warn(game.i18n.localize("OSE.warn.macrosOnlyForOwnedItems"));
-  const { item } = data;
+  const item = data.item ?? (await fromUuid(data.uuid));
+  if (!item) return ui.notifications.warn(game.i18n.localize("OSE.warn.macrosNotAnItem"));
+
+  const itemName = item.displayName || item.name;
 
   // Create the macro command
-  const command = `game.ose.rollItemMacro(${JSON.stringify(item.name)});`;
-  let macro = game.macros.contents.find((m) => m.name === item.name && m.command === command);
-  if (!macro || macro.ownership[game.userId] === undefined) {
+  const command = `game.ose.rollItemMacro(${JSON.stringify(itemName)});`;
+  let macro = game.macros.contents.find((m) => m.name === itemName && m.command === command);
+  if (!macro || macro.ownership?.[game.userId] === undefined) {
     macro = await Macro.create({
-      name: item.name,
+      name: itemName,
       type: "script",
       img: item.img,
       command,
@@ -54,8 +69,7 @@ export async function createOseMacro(data, slot) {
 /* -------------------------------------------- */
 
 /**
- * Create a Macro from an Item drop.
- * Get an existing item macro if one exists, otherwise create a new one.
+ * Roll an item macro by item display name or true name (for GMs / identified items).
  *
  * @param {string} itemName - Name of item to roll
  * @returns {Promise} - Promise of item roll or notification
@@ -73,8 +87,14 @@ export function rollItemMacro(itemName) {
   }
   if (!actor) actor = game.actors.get(speaker.actor);
 
-  // Get matching items
-  const items = actor ? actor.items.filter((i) => i.name === itemName) : [];
+  // Get matching items without leaking unidentified item names to non-GMs
+  const items = actor
+    ? actor.items.filter((i) => {
+        const visibleName = i.displayName || i.name;
+        if (visibleName === itemName) return true;
+        return Boolean(game.user?.isGM) && i.name === itemName;
+      })
+    : [];
   if (items.length > 1) {
     ui.notifications.warn(
       game.i18n.format("OSE.warn.moreThanOneItemWithName", {
@@ -85,7 +105,7 @@ export function rollItemMacro(itemName) {
   } else if (items.length === 0) {
     return ui.notifications.error(
       game.i18n.format("OSE.error.noItemWithName", {
-        actorName: actor.name,
+        actorName: actor?.name ?? "",
         itemName,
       }),
     );
@@ -102,15 +122,14 @@ export function rollItemMacro(itemName) {
  * @param {string} tableUuId - UuId of the RollTable
  */
 export function rollTableMacro(tableUuId) {
-  fromUuid(tableUuId).then((table) => {
-    if (table === null) {
+  return fromUuid(tableUuId).then((table) => {
+    if (!table) {
       return ui.notifications.error(
         game.i18n.format("OSE.error.noRollTableWithUuId", {
           uuid: tableUuId,
         }),
       );
     }
-    //
 
     if (table.getFlag(game.system.id, "treasure")) {
       return rollTreasure(table);

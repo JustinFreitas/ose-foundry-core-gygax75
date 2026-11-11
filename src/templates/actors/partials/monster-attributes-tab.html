@@ -26,14 +26,14 @@
                     {{ localize "OSE.AscArmorClassShort" }}</h4>
                 <div class="attribute-value">
                     <input name="system.aac.value" type="text" value="{{system.aac.value}}" data-dtype="Number"
-                        placeholder="10" data-dtype="Number" />
+                        placeholder="10" />
                 </div>
                 {{else}}
                 <h4 class="attribute-name box-title" data-tooltip="OSE.ArmorClass">
                     {{ localize "OSE.ArmorClassShort" }}</h4>
                 <div class="attribute-value">
                     <input name="system.ac.value" type="text" value="{{system.ac.value}}" data-dtype="Number"
-                        placeholder="9" data-dtype="Number" />
+                        placeholder="9" />
                 </div>
                 {{/if}}
             </li>
@@ -79,7 +79,7 @@
     <section class="flexrow attribute-row">
         {{!-- Skills and abilities --}}
         <div class="flex3 panel inventory abilities">
-            <li class="flexrow panel-title">
+            <div class="flexrow panel-title">
                 <div class="category-name">{{localize 'OSE.category.abilities'}} & {{localize
                     'OSE.category.equipment'}}
                 </div>
@@ -91,7 +91,7 @@
                         data-choices="weapon,ability"><i class="fas fa-plus"></i></a>
                     {{/if}}
                 </div>
-            </li>
+            </div>
             <ol class="item-list resizable" data-base-size="240">
                 {{! Attack pattern group}}
                 {{#each attackPatterns as |section pattern|}}
@@ -157,6 +157,7 @@
                     <div class="attribute-value">
                         <input name="system.saves.death.value" type="text" value="{{system.saves.death.value}}"
                             placeholder="0" data-dtype="Number" />
+                    </div>
                 </li>
                 <li class="attribute saving-throw" data-save="wand">
                     <h4 class="attribute-name box-title">
@@ -165,6 +166,7 @@
                     <div class="attribute-value">
                         <input name="system.saves.wand.value" type="text" value="{{system.saves.wand.value}}"
                             placeholder="0" data-dtype="Number" />
+                    </div>
                 </li>
                 <li class="attribute saving-throw" data-save="paralysis">
                     <h4 class="attribute-name box-title">
@@ -173,6 +175,7 @@
                     <div class="attribute-value">
                         <input name="system.saves.paralysis.value" type="text" value="{{system.saves.paralysis.value}}"
                             placeholder="0" data-dtype="Number" />
+                    </div>
                 </li>
                 <li class="attribute saving-throw" data-save="breath">
                     <h4 class="attribute-name box-title">
@@ -181,6 +184,7 @@
                     <div class="attribute-value">
                         <input name="system.saves.breath.value" type="text" value="{{system.saves.breath.value}}"
                             placeholder="0" data-dtype="Number" />
+                    </div>
                 </li>
                 <li class="attribute saving-throw" data-save="spell">
                     <h4 class="attribute-name box-title">
@@ -188,7 +192,8 @@
                     </h4>
                     <div class="attribute-value">
                         <input name="system.saves.spell.value" type="text" value="{{system.saves.spell.value}}"
-                            placeholder="0" />
+                            placeholder="0" data-dtype="Number" />
+                    </div>
                 </li>
             </ul>
         </div>

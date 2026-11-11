@@ -74,7 +74,7 @@
             item=bag}}
           </div>
           <ol class="item-list contained-items">
-            {{#each bag.system.itemIds as |item|}}
+            {{#each bag.system.contents as |item|}}
             <li class="item-entry item" data-item-id="{{item.id}}">
               <div class="item-header flexrow">
                 <div
@@ -103,30 +103,6 @@
       </div>
       <ol class="item-list">
         {{#each owned.items as |item|}}
-        <li class="item-entry item" data-item-id="{{item.id}}">
-          <div class="item-header flexrow">
-            <div
-              class="item-image"
-              style="background-image: url({{item.img}})"
-            ></div>
-            <div class="item-name" title="{{item.name}}">{{item.name~}}</div>
-            <div class="field-short">
-              {{localize "OSE.items.Quantity"}} {{item.system.quantity.value}}
-            </div>
-          </div>
-          <div class="item-summary">
-            {{> (path "/templates/actors/partials/actor-item-summary.html")
-            item=item}}
-          </div>
-        </li>
-        {{/each}}
-      </ol>
-      {{!-- Treasure items --}}
-      <div id="treasure" class="item-category-title">
-        <div class="category-name">{{localize "OSE.items.Treasure"}}</div>
-      </div>
-      <ol class="item-list">
-        {{#each owned.treasures as |item|}}
         <li class="item-entry item" data-item-id="{{item.id}}">
           <div class="item-header flexrow">
             <div

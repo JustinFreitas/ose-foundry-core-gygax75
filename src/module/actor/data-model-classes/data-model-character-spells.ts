@@ -17,7 +17,7 @@ type Slots = Record<number, Slot>;
 type Spells = Record<number, Item[]>;
 
 const reducedSpells = (list: Spells, item: Item) => {
-  const { lvl } = item.system;
+  const lvl = (item.system as { lvl: number }).lvl;
   const othersAtLvl = list[lvl] || [];
   return {
     ...list,
@@ -64,7 +64,7 @@ export default class OseDataModelCharacterSpells implements CharacterSpells {
     const maxLevel = levels.length ? Math.max(...levels) : 0;
 
     this.#slots = Array.from({ length: maxLevel + 1 }).reduce<Slots>(
-      (list, item, idx) => this.#usedAndMaxSlots(list, item, idx, usedSlots, maxSlots),
+      (list, item, idx) => this.#usedAndMaxSlots(list, item as string, idx, usedSlots, maxSlots),
       {},
     );
   }
@@ -83,13 +83,13 @@ export default class OseDataModelCharacterSpells implements CharacterSpells {
 
   // eslint-disable-next-line class-methods-use-this
   #reducedUsedSlots(list: { [n: number]: number }, item: Item) {
-    const { lvl } = item.system;
-    let { cast } = item.system;
+    const { lvl, cast: rawCast } = item.system as { lvl: number; cast?: number };
+    let cast = rawCast;
     if (!cast || Number.isNaN(cast)) cast = 0;
     const usedAtLvl = list[lvl] || 0;
     return {
       ...list,
-      [lvl]: usedAtLvl + cast,
+      [lvl]: usedAtLvl + (cast ?? 0),
     };
   }
 

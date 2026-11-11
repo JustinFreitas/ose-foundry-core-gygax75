@@ -48,10 +48,19 @@ export default class OseDataModelContainer
   get totalWeight(): number {
     if (!this.contents) return 0;
 
-    return this.contents.reduce(
-      (acc, { system: { weight, quantity } }) => acc + (weight ?? 0) * (quantity?.value || 1),
-      0,
-    );
+    return this.contents.reduce((acc, item) => {
+      const sys = item.system as CarriedItem["system"] & {
+        cumulativeWeight?: number;
+        quantity?: { value: number | null; max?: number | null };
+      };
+      if (typeof sys.cumulativeWeight === "number") {
+        return acc + sys.cumulativeWeight;
+      }
+      const qty = (item as { type?: string }).type === "armor" ? sys.quantity?.value || 1 : (sys.quantity?.value ?? 1);
+      const max = sys.quantity?.max ?? 0;
+      const weight = sys.weight ?? 0;
+      return acc + (max > 0 ? (weight / max) * qty : weight * qty);
+    }, 0);
   }
 
   get manualTags(): ItemTag[] | null {

@@ -53,11 +53,9 @@ export default ({ describe, it, expect, assert, after }: QuenchMethods) => {
   });
 
   describe("_submit(data)", () => {
-    // biome-ignore lint/suspicious/noExplicitAny: Foundry documents
     const tweak = (actor: any, id: string) => actor.effects.find((e: any) => e.getFlag(game.system.id, "tweak") === id);
 
     it("saves modifiers as their own effects", async () => {
-      // biome-ignore lint/suspicious/noExplicitAny: Foundry documents
       const actor: any = await createMockActor("character");
       await new OseEntityTweaks(actor)._submit({ "tweaks.initiative": 2, "tweaks.melee": 1, "tweaks.ac": 0 });
       expect(tweak(actor, "initiative")?.name).equal(game.i18n.localize("OSE.InitiativeBonus"));
@@ -67,7 +65,6 @@ export default ({ describe, it, expect, assert, after }: QuenchMethods) => {
     });
 
     it("removes a modifier's effect when set to 0", async () => {
-      // biome-ignore lint/suspicious/noExplicitAny: Foundry documents
       const actor: any = await createMockActor("character");
       const sheet = new OseEntityTweaks(actor);
       await sheet._submit({ "tweaks.magic": 2 });
@@ -78,7 +75,6 @@ export default ({ describe, it, expect, assert, after }: QuenchMethods) => {
     });
 
     it("shows stored values and effects together", async () => {
-      // biome-ignore lint/suspicious/noExplicitAny: Foundry documents
       const actor: any = await createMockActor("monster", { system: { initiative: { mod: 1 } } });
       const data = await new OseEntityTweaks(actor)._prepareContext();
       expect(data.tweaks).deep.equal({ initiative: 1 });
@@ -87,7 +83,6 @@ export default ({ describe, it, expect, assert, after }: QuenchMethods) => {
 
   describe("migrateActorTweaks", () => {
     it("moves stored modifiers into effects once, keeping the values", async () => {
-      // biome-ignore lint/suspicious/noExplicitAny: Foundry documents
       const actor: any = await createMockActor("character", {
         system: { initiative: { mod: 1 }, thac0: { mod: { missile: 2 } }, ac: { mod: 1 }, aac: { mod: 1 } },
       });
@@ -105,7 +100,6 @@ export default ({ describe, it, expect, assert, after }: QuenchMethods) => {
     });
 
     it("leaves a free-text class's XP bonus as its prime requisite", async () => {
-      // biome-ignore lint/suspicious/noExplicitAny: Foundry documents
       const actor: any = await createMockActor("character", {
         system: { details: { class: "Fighter", xp: { bonus: 10 } } },
       });
@@ -118,7 +112,6 @@ export default ({ describe, it, expect, assert, after }: QuenchMethods) => {
       [5, -5],
     ] as const) {
       it(`class conversion keeps a ${bonus}% Bonus Experience as the class bonus plus any difference`, async () => {
-        // biome-ignore lint/suspicious/noExplicitAny: Foundry documents
         const actor: any = await createMockActor("character", {
           system: {
             details: { class: "Fighter" },
@@ -146,7 +139,6 @@ export default ({ describe, it, expect, assert, after }: QuenchMethods) => {
     }
 
     it("leaves a classed character's XP bonus to its class", async () => {
-      // biome-ignore lint/suspicious/noExplicitAny: Foundry documents
       const actor: any = await createMockActor("character", { system: { details: { xp: { bonus: 10 } } } });
       await actor.createEmbeddedDocuments("Item", [{ name: "Class", type: "class", system: { key: "class" } }]);
       expect(await migrateActorTweaks(actor)).equal(false);

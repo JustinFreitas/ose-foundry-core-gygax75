@@ -26,7 +26,7 @@ export default class OseEntityTweaks extends HandlebarsApplicationMixin(Applicat
 
   static DEFAULT_OPTIONS = {
     id: "entity-tweaks",
-    classes: ["sheet-tweaks"],
+    classes: ["ose", "dialog", "sheet-tweaks"],
     tag: "form",
     form: {
       handler: OseEntityTweaks.#onSubmitForm,

@@ -160,14 +160,14 @@ Hooks.on("activateActorDirectory", party.addControl);
  * @param {HTMLElement} html
  */
 Hooks.on("renderSettings", async (_app, html) => {
-  const gamesystem = html.querySelector("section.info");
+  const gamesystem = html?.querySelector?.("section.info");
+  if (!gamesystem) return;
   const template = `${OSE.systemPath()}/templates/chat/license.html`;
   const rendered = await foundry.applications.handlebars.renderTemplate(template);
   gamesystem.insertAdjacentHTML("afterend", rendered);
 });
 
 Hooks.on("renderChatLog", (_app, html) => OseItem.chatListeners(html));
-Hooks.on("getChatLogEntryContext", chat.addChatMessageContextOptions);
 Hooks.on("getChatMessageContextOptions", chat.addChatMessageContextOptions);
 Hooks.on("renderChatMessageHTML", chat.addChatMessageButtons);
 Hooks.on("renderRollTableSheet", treasure.augmentTable);

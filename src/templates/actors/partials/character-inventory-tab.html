@@ -33,13 +33,13 @@
             width="24"
             height="24"
           />
-          {{/if}} {{/each}} {{#each item.system.manualTags as |tag|}} {{#unless
+          {{/if}} {{/each}} {{#if (or @root.isGM item.isIdentified)}} {{#each item.system.manualTags as |tag|}} {{#unless
           (getTagIcon tag.value)}}
           <span data-tooltip="{{tag.title}}"
             >{{tag.value}}{{#unless @last}},{{/unless}}</span
           >
 
-          {{/unless}} {{/each}}
+          {{/unless}} {{/each}} {{/if}}
         </div>
         <div class="field-short">
           {{#if (eq @root.config.encumbrance
@@ -106,8 +106,10 @@
         <h4 class="item-name" data-action="toggleSummary" data-tooltip="{{item.displayName}}">{{item.displayName~}}</h4>
         {{#if (lookup @root.warnedItems item.id)}}<i class="fas fa-triangle-exclamation item-warning" data-tooltip="{{lookup @root.warnedItems item.id}}"></i>{{/if}}
         <div class="field-short">
+          {{#if (or @root.isGM item.isIdentified)}}
           {{#if @root.config.ascendingAC}} {{item.system.aac.value}} {{else}}
           {{item.system.ac.value}} {{/if}}
+          {{else}}?{{/if}}
         </div>
         <div class="field-short">
           {{#if (eq @root.config.encumbrance
@@ -224,6 +226,7 @@
             ></div>
             <h4 class="item-name" data-action="toggleSummary" data-tooltip="{{item.displayName}}">{{item.displayName~}}</h4>
             <div class="field-short quantity">
+              {{#if item.isCounterVisible}}
               <input
                 value="{{item.system.quantity.value}}"
                 type="text"
@@ -231,6 +234,9 @@
                 data-field="value"
               />{{#if
               item.system.quantity.max}}<span>/{{item.system.quantity.max}}</span>{{/if}}
+              {{else}}
+              <span>?</span>
+              {{/if}}
             </div>
             <div class="field-short">
               {{#if (eq @root.config.encumbrance "basic")}}_{{else if (eq
@@ -303,6 +309,7 @@
         ></div>
         <h4 class="item-name" data-action="toggleSummary" data-tooltip="{{item.displayName}}">{{item.displayName~}}</h4>
         <div class="field-short quantity">
+          {{#if item.isCounterVisible}}
           <input
             value="{{item.system.quantity.value}}"
             type="text"
@@ -310,6 +317,9 @@
             data-field="value"
           />{{#if
           item.system.quantity.max}}<span>/{{item.system.quantity.max}}</span>{{/if}}
+          {{else}}
+          <span>?</span>
+          {{/if}}
         </div>
         <div class="field-short">
           {{#if (eq @root.config.encumbrance "basic")}}_{{else if (eq
@@ -390,9 +400,10 @@
         ></div>
         <h4 class="item-name" data-action="toggleSummary" data-tooltip="{{item.displayName}}">{{item.displayName~}}</h4>
         <div class="field-long">
-          {{round item.system.cumulativeCost}}
+          {{#if (or @root.isGM item.isIdentified)}}{{round item.system.cumulativeCost}}{{else}}?{{/if}}
         </div>
         <div class="field-short quantity">
+          {{#if item.isCounterVisible}}
           <input
             value="{{item.system.quantity.value}}"
             type="text"
@@ -401,6 +412,9 @@
           />
           {{#if item.system.quantity.max}}
           <span>/{{item.system.quantity.max}}</span>
+          {{/if}}
+          {{else}}
+          <span>?</span>
           {{/if}}
         </div>
         <div class="field-short">

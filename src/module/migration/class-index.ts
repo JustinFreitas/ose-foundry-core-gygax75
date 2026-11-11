@@ -62,14 +62,15 @@ export const buildClassIndex = async (): Promise<IndexEntry[]> => {
   }
   for (const group of Object.values(CONFIG.OSE.classes ?? {})) {
     for (const [name, cls] of Object.entries(group ?? {})) {
-      const data = classicClassToItemData(cls, CLASSIC_PRIME_REQS[name as ClassicClassName] ?? [], (key, d) =>
+      const data = classicClassToItemData(cls, CLASSIC_PRIME_REQS[name as ClassicClassName], (key, d) =>
         game.i18n.format(key, d),
       );
       entries.push({
         name,
         key: data.system.key ?? "",
         source: game.system.id,
-        load: async () => foundry.utils.deepClone(data) as Record<string, unknown>,
+        load: async () =>
+          (foundry.utils.deepClone ? foundry.utils.deepClone(data) : structuredClone(data)) as Record<string, unknown>,
       });
     }
   }

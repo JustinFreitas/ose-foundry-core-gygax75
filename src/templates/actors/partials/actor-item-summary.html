@@ -1,5 +1,7 @@
 <div class="item-description">
+  {{#if (or @root.isGM item.isIdentified)}}
   {{> (path "/templates/actors/partials/item-auto-tags-partial.html")
-  tags=system.autoTags}}
+  tags=item.system.autoTags}}
+  {{/if}}
   <div>{{{item.system.enrichedDescription}}}</div>
 </div>

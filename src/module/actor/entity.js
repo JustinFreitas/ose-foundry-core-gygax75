@@ -7,7 +7,6 @@ import {
   divideHp,
   formatHp,
   hdFlatBonus,
-  rollableHd,
   SAVE_KEYS,
   splitStartingHp,
   splitXp,
@@ -26,6 +25,15 @@ import OseItem from "../item/entity";
  * @returns {[]} - an array
  */
 const removeFalsyElements = (arr) => arr.filter((b) => b);
+
+const stripHtmlTags = (value) =>
+  String(value ?? "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const CREATURE_GROUP_PATTERNS = {
   undead: [
@@ -93,6 +101,63 @@ const CREATURE_GROUP_PATTERNS = {
   construct: ["construct", "golem", "statue", "gargoyle"],
 };
 
+function normalizeCreatureGroupKey(raw) {
+  let cleaned = stripHtmlTags(raw)
+    .toLowerCase()
+    .replace(/\s+creatures?$/, "");
+  if (cleaned.length > 4 && cleaned.endsWith("kind")) {
+    cleaned = cleaned.slice(0, -4);
+  }
+  if (!cleaned) return "";
+  if (CREATURE_GROUP_PATTERNS[cleaned]) return cleaned;
+
+  if (cleaned.length > 4 && cleaned.endsWith("ves")) {
+    const fCandidate = `${cleaned.slice(0, -3)}f`;
+    if (CREATURE_GROUP_PATTERNS[fCandidate]) return fCandidate;
+    return fCandidate;
+  }
+  if (cleaned.length > 4 && cleaned.endsWith("ies")) {
+    const yCandidate = `${cleaned.slice(0, -3)}y`;
+    const ieCandidate = `${cleaned.slice(0, -3)}ie`;
+    if (CREATURE_GROUP_PATTERNS[yCandidate]) return yCandidate;
+    if (CREATURE_GROUP_PATTERNS[ieCandidate]) return ieCandidate;
+    return yCandidate;
+  }
+  if (/(?:ches|shes|xes|zes|sses)$/.test(cleaned)) {
+    return cleaned.slice(0, -2);
+  }
+  if (/[^s]s$/.test(cleaned)) {
+    return cleaned.slice(0, -1);
+  }
+  return cleaned;
+}
+
+function buildCreatureWordRegex(term) {
+  const clean = stripHtmlTags(term).toLowerCase();
+  if (!clean) return null;
+  if (clean.length > 3 && clean.endsWith("ves")) {
+    const stem = escapeRegExp(clean.slice(0, -3));
+    return new RegExp(`\\b${stem}(?:f|fe|ve|fs|fes|ves)\\b`, "i");
+  }
+  if (clean.length > 2 && clean.endsWith("f")) {
+    const stem = escapeRegExp(clean.slice(0, -1));
+    return new RegExp(`\\b${stem}(?:f|fs|ves)\\b`, "i");
+  }
+  if (clean.length > 3 && clean.endsWith("fe")) {
+    const stem = escapeRegExp(clean.slice(0, -2));
+    return new RegExp(`\\b${stem}(?:fe|fes|ves)\\b`, "i");
+  }
+  if (clean.length > 3 && clean.endsWith("ies")) {
+    const stem = escapeRegExp(clean.slice(0, -3));
+    return new RegExp(`\\b${stem}(?:y|ie|ies)\\b`, "i");
+  }
+  if (clean.length > 2 && /[^aeiou]y$/.test(clean)) {
+    const stem = escapeRegExp(clean.slice(0, -1));
+    return new RegExp(`\\b${stem}(?:y|ies)\\b`, "i");
+  }
+  return new RegExp(`\\b${escapeRegExp(clean)}(?:es|s)?\\b`, "i");
+}
+
 export default class OseActor extends Actor {
   /**
    * Compute B/X & OSE missile range band modifier (+1 Short, 0 Medium, -1 Long).
@@ -151,30 +216,28 @@ export default class OseActor extends Actor {
   static matchesCreatureGroup(target, groupKey) {
     const actor = target?.actor ?? target;
     if (!actor) return false;
-    const rawGroup = String(groupKey ?? "")
-      .trim()
-      .toLowerCase()
-      .replace(/\s+creatures?$/, "")
-      .replace(/kind$/, "")
-      .replace(/s$/, "");
-    if (!rawGroup) return false;
+    const normalizedGroup = normalizeCreatureGroupKey(groupKey);
+    if (!normalizedGroup) return false;
 
     const details = actor.system?.details ?? {};
     const explicitGroups = [
       details.group,
       details.creatureType,
+      details.type,
       ...(Array.isArray(details.creatureGroups) ? details.creatureGroups : [details.creatureGroups]),
     ]
       .filter(Boolean)
-      .map((g) => String(g).toLowerCase());
+      .map((g) => stripHtmlTags(g));
 
-    const haystack = [actor.name ?? "", details.biography ?? "", ...explicitGroups].join(" ").toLowerCase();
+    const haystack = [stripHtmlTags(actor.name ?? ""), ...explicitGroups].filter(Boolean).join(" ");
+    if (!haystack) return false;
 
-    if (haystack.includes(rawGroup)) return true;
+    const groupRegex = buildCreatureWordRegex(normalizedGroup);
+    if (groupRegex?.test(haystack)) return true;
 
-    const keywords = CREATURE_GROUP_PATTERNS[rawGroup];
+    const keywords = CREATURE_GROUP_PATTERNS[normalizedGroup];
     if (keywords) {
-      return keywords.some((kw) => haystack.includes(kw));
+      return keywords.some((kw) => buildCreatureWordRegex(kw)?.test(haystack));
     }
     return false;
   }
@@ -217,6 +280,10 @@ export default class OseActor extends Actor {
     return source;
   }
 
+  #isClassItemsEnabled() {
+    return Boolean(game.settings?.get?.(game.system?.id ?? "ose", "enableClassItems"));
+  }
+
   applyActiveEffects(phase) {
     if (phase !== "final") this.system.prepareTables?.();
     return super.applyActiveEffects(phase);
@@ -226,7 +293,7 @@ export default class OseActor extends Actor {
   getRollData() {
     const data = super.getRollData();
     if (this.type !== "character") return data;
-    const classes = this.system.classes ?? [];
+    const classes = this.#isClassItemsEnabled() ? (this.system.classes ?? []) : [];
     if (classes.length) {
       data.classTables = Object.fromEntries(
         classes.map((c) => [c.system.key || c.id, tableRowValues(c.system.tables ?? [], c.system.level)]),
@@ -283,9 +350,9 @@ export default class OseActor extends Actor {
     /* -------------------------------------------- */
   async getExperience(value, _options = {}) {
     if (this.type !== "character") return;
-    const classes = this.system.classes;
+    const classes = this.#isClassItemsEnabled() ? (this.system.classes ?? []) : [];
     let gained;
-    if (classes.length) {
+    if (classes.length > 0) {
       const shares = splitXp(value, classes.length).map((share, i) => {
         return applyXpBonus(share, this.system.classXpBonus(classes[i]) + this.system.xpBonusFromEffects);
       });
@@ -390,6 +457,7 @@ export default class OseActor extends Actor {
    */
   async addClass(data, { level, rollHp = false, replace } = {}) {
     this.#requireCharacter();
+    if (!this.#isClassItemsEnabled()) return undefined;
     const item = foundry.utils.deepClone(data);
     const progress =
       replace && level === undefined
@@ -417,6 +485,7 @@ export default class OseActor extends Actor {
    */
   async setRace(data, { modifiersIncluded = false } = {}) {
     this.#requireCharacter();
+    if (!this.#isClassItemsEnabled()) return undefined;
     const item = foundry.utils.deepClone(data);
     if (modifiersIncluded) {
       const modifiers = (item.effects ?? []).find((e) => e.flags?.[game.system.id]?.raceModifiers);
@@ -701,7 +770,8 @@ export default class OseActor extends Actor {
 
   async rollHP(_options = {}) {
     const { total } = await new Roll(this.system.hp.hd).evaluate();
-    return this.update({ "system.hp": { max: total, value: total } });
+    const hp = Math.max(1, total);
+    return this.update({ "system.hp": { max: hp, value: hp } });
   }
 
   rollSave(save, options = {}) {
@@ -908,9 +978,9 @@ export default class OseActor extends Actor {
     const flatBonus = parts[4] ? Number.parseInt(parts[4], 10) * flatSign : 0;
 
     let rollParts;
-    // B/X & BECMI Name-Level progression (e.g. "9d8+2" at Level 10+):
-    // Levels past base Hit Dice (Level 9+) gain static flat HP per level without CON modifier.
-    if (baseDice >= 8 && flatBonus !== 0) {
+    // B/X & BECMI Name-Level progression (e.g. "9d8+2" at Level 10+, or custom class past baseDice):
+    // Levels past base Hit Dice gain static flat HP per level without CON modifier.
+    if (flatBonus !== 0 && (baseDice >= 8 || level > baseDice)) {
       if (single) {
         if (level > baseDice) {
           const flatPerLevel = Math.max(1, Math.round(Math.abs(flatBonus) / (level - baseDice))) * flatSign;
@@ -921,7 +991,23 @@ export default class OseActor extends Actor {
         }
       } else {
         const conTotal = actorData.scores.con.mod * baseDice;
-        rollParts = [`max(${baseDice}d${dieSize} + ${conTotal}, ${baseDice}) + ${flatBonus}`];
+        rollParts = [
+          flatBonus > 0
+            ? `max(${baseDice}d${dieSize} + ${conTotal}, ${baseDice}) + ${flatBonus}`
+            : `max(${baseDice}d${dieSize} + ${conTotal} - ${Math.abs(flatBonus)}, ${baseDice})`,
+        ];
+      }
+    } else if (flatBonus !== 0) {
+      // Pre-Name-Level HD formula with explicit flat modifier (e.g. "2d6+2" or "1d6-1"):
+      const numDice = single ? 1 : Math.max(level, baseDice);
+      const conBonus = actorData.scores.con.mod * numDice;
+      const appliedFlat = single && baseDice > 1 ? (flatBonus % baseDice === 0 ? flatBonus / baseDice : 0) : flatBonus;
+      if (appliedFlat > 0) {
+        rollParts = [`max(${numDice}d${dieSize} + ${conBonus}, ${numDice}) + ${appliedFlat}`];
+      } else if (appliedFlat < 0) {
+        rollParts = [`max(${numDice}d${dieSize} + ${conBonus} - ${Math.abs(appliedFlat)}, ${numDice})`];
+      } else {
+        rollParts = [`max(${numDice}d${dieSize} + ${conBonus}, ${numDice})`];
       }
     } else {
       // Standard progression (Levels 1-9):
@@ -981,38 +1067,58 @@ export default class OseActor extends Actor {
       });
     }
 
+    if (options.skipDialog || options.fastForward || options.hdRollType) {
+      return this.selectSingleOrAllHitDiceRoll({
+        hdRollType: "all",
+        ...options,
+      });
+    }
+
     // Gygax75 - Roll character HD from single/all dialog.
-    new foundry.applications.api.DialogV2({
-      classes: ["ose", "dialog"],
-      position: { width: 400, height: "auto" },
-      window: {
-        title: game.i18n.localize("OSE.dialog.hitDice.title"),
-      },
-      content: `<form><p>${game.i18n.localize("OSE.dialog.hitDice.prompt")}</p></form>`,
-      buttons: [
-        {
-          action: "single",
-          label: game.i18n.localize("OSE.dialog.hitDice.single"),
-          callback: () => {
-            options.hdRollType = "single";
-            this.selectSingleOrAllHitDiceRoll(options);
+    return new Promise((resolve) => {
+      let settled = false;
+      let pendingRoll = false;
+      const finish = async (result) => {
+        if (settled) return;
+        settled = true;
+        resolve(await result);
+      };
+      const dialog = new foundry.applications.api.DialogV2({
+        classes: ["ose", "dialog"],
+        position: { width: 400, height: "auto" },
+        window: {
+          title: game.i18n.localize("OSE.dialog.hitDice.title"),
+        },
+        content: `<form><p>${game.i18n.localize("OSE.dialog.hitDice.prompt")}</p></form>`,
+        buttons: [
+          {
+            action: "single",
+            label: game.i18n.localize("OSE.dialog.hitDice.single"),
+            callback: () => {
+              pendingRoll = this.selectSingleOrAllHitDiceRoll({ ...options, hdRollType: "single" });
+            },
           },
-        },
-        {
-          action: "all",
-          label: game.i18n.localize("OSE.dialog.hitDice.all"),
-          callback: () => {
-            options.hdRollType = "all";
-            this.selectSingleOrAllHitDiceRoll(options);
+          {
+            action: "all",
+            label: game.i18n.localize("OSE.dialog.hitDice.all"),
+            callback: () => {
+              pendingRoll = this.selectSingleOrAllHitDiceRoll({ ...options, hdRollType: "all" });
+            },
           },
-        },
-        {
-          action: "close",
-          label: game.i18n.localize("OSE.Close"),
-          default: true,
-        },
-      ],
-    }).render(true);
+          {
+            action: "close",
+            label: game.i18n.localize("OSE.Close"),
+            default: true,
+            callback: () => {
+              pendingRoll = false;
+            },
+          },
+        ],
+        submit: () => finish(pendingRoll),
+      });
+      dialog.addEventListener?.("close", () => finish(pendingRoll));
+      dialog.render({ force: true });
+    });
   }
 
   rollAppearing(options = {}) {
@@ -1108,9 +1214,14 @@ export default class OseActor extends Actor {
       dmgParts.push("1d6");
     }
 
-    // Add Str to damage
-    if (attData.roll?.type === "melee" && data.scores.str.mod) {
-      dmgParts.push(data.scores.str.mod);
+    // Add Str and melee damage modifiers to melee damage
+    if (attData.roll?.type === "melee") {
+      if (data.scores?.str?.mod) {
+        dmgParts.push(data.scores.str.mod);
+      }
+      if (data.damage?.mod?.melee) {
+        dmgParts.push(data.damage.mod.melee);
+      }
     }
 
     // Damage roll
@@ -1128,9 +1239,14 @@ export default class OseActor extends Actor {
   async targetAttack(data, type, options = {}) {
     if (game.user.targets?.size > 0) {
       for (const t of game.user.targets.values()) {
-        if (!data.roll) data.roll = {};
-        data.roll.target = t;
-        await this.rollAttack(data, {
+        const perTargetData = {
+          ...data,
+          roll: {
+            ...(data?.roll ?? {}),
+            target: t,
+          },
+        };
+        await this.rollAttack(perTargetData, {
           ...options,
           type,
         });
@@ -1172,22 +1288,22 @@ export default class OseActor extends Actor {
    * Constructs the attack roll formula for an attack
    *
    * @param {object} attData - the attack data
-   * @param {OseItem} attData.item - the item being used in the attack
-   * @param {OseActor} attData.actor - this actor (at least it should be!)
-   * @param {object} attData.roll - the attack roll data
-   * @param {string} attData.roll.save - the save roll that may be used against the attack
-   * @param {OseActor} attData.roll.target - the target of the attack
-   * @param {object} options - the type of attack and whether to skip the dialog
-   * @param {string} options.type - the type of attack, i.e. melee or missile
-   * @param {boolean} options.skipDialog - whether to skip the dialog
+   * @param {OseItem} [attData.item] - the item being used in the attack
+   * @param {OseActor} [attData.actor] - this actor (at least it should be!)
+   * @param {object} [attData.roll] - the attack roll data
+   * @param {string} [attData.roll.save] - the save roll that may be used against the attack
+   * @param {object} [attData.roll.target] - the target of the attack
+   * @param {Record<string, unknown>} [options] - the type of attack and whether to skip the dialog
    * @returns {OseDice.Roll} - the attack roll with completed rollParts and other data
    */
-  rollAttack(attData, options = {}) {
+  rollAttack(attData = {}, options = {}) {
     const data = this.system;
+    const weapon = options.weapon ?? attData.item;
+    const weaponName = weapon?.displayName || weapon?.name;
 
-    const label = attData.item
+    const label = weapon
       ? game.i18n.format("OSE.roll.attacksWith", {
-          name: attData.item.name,
+          name: weaponName,
         })
       : game.i18n.format("OSE.roll.attacks", {
           name: this.name,
@@ -1195,12 +1311,12 @@ export default class OseActor extends Actor {
 
     const dmgParts = removeFalsyElements([
       // Weapon damage roll value
-      attData.item?.system?.damage ?? "1d6",
+      weapon?.system?.damage ?? attData.item?.system?.damage ?? "1d6",
     ]);
 
     // Resolve weapon bonus (including conditional vsGroup bonus when a matching target is selected)
     const target = attData.roll?.target ?? options.target;
-    const effectiveWeaponBonus = OseActor.resolveWeaponBonus(attData.item, target);
+    const effectiveWeaponBonus = OseActor.resolveWeaponBonus(weapon, target);
 
     // Weapon Damage Bonus
     const globalIgnoreAttackBonusOnDamageRoll = game.settings.get(game.system.id, "ignoreAttackBonusOnDamageRoll");
@@ -1219,12 +1335,14 @@ export default class OseActor extends Actor {
     // and str/dex modifier only if it's non-zero
     let attackMods = [];
 
-    // Melee: str.mod + thac0.mod.melee go to the attack roll; only the Str
-    // modifier also adds to damage (RAW). The melee attack tweak does not.
+    // Melee: str.mod + thac0.mod.melee go to the attack roll; Str modifier and
+    // explicit damage.mod.melee Active Effects add to melee damage, while the
+    // melee attack tweak (thac0.mod.melee) does not.
     if (options.type === "melee") {
       attackMods = [data.scores?.str?.mod, data.thac0?.mod?.melee];
       if (options.twoWeapons) attackMods.push(1);
       if (data.scores?.str?.mod) dmgParts.push(data.scores.str.mod);
+      if (data.damage?.mod?.melee) dmgParts.push(data.damage.mod.melee);
     }
 
     // Missile: dex.mod + thac0.mod.missile go to the attack roll only (RAW: missile
@@ -1235,12 +1353,12 @@ export default class OseActor extends Actor {
       if (data.damage?.mod?.missile) dmgParts.push(data.damage.mod.missile);
 
       const dist = this.#measureTargetDistance(target, options);
-      if (dist > 0 && attData.item?.system?.range) {
-        const { modifier: rangeMod, outOfRange } = OseActor.computeRangeModifier(attData.item.system.range, dist);
+      if (dist > 0 && weapon?.system?.range) {
+        const { modifier: rangeMod, outOfRange } = OseActor.computeRangeModifier(weapon.system.range, dist);
         if (outOfRange) {
           ui.notifications?.warn?.(
-            game.i18n?.format?.("OSE.warn.outOfRange", { name: attData.item.name, distance: Math.round(dist) }) ||
-              `${attData.item.name} target is beyond maximum range (${Math.round(dist)}').`,
+            game.i18n?.format?.("OSE.warn.outOfRange", { name: weaponName, distance: Math.round(dist) }) ||
+              `${weaponName} target is beyond maximum range (${Math.round(dist)}').`,
           );
         }
         if (rangeMod !== 0) attackMods.push(rangeMod);
@@ -1252,14 +1370,15 @@ export default class OseActor extends Actor {
     if (options.customBonus) attackMods.push(options.customBonus);
 
     // Add weapon bonus to attack roll only (already added to dmgParts)
-    if (attData.item && effectiveWeaponBonus) attackMods.push(effectiveWeaponBonus);
+    if (weapon && effectiveWeaponBonus) attackMods.push(effectiveWeaponBonus);
 
     rollParts.push(...removeFalsyElements(attackMods));
 
+    const weaponId = weapon?.id ?? weapon?._id;
     const rollData = {
       actor: this,
-      item: attData.item,
-      itemId: attData.item?._id,
+      item: weapon,
+      itemId: weaponId,
       roll: {
         type: options.type,
         thac0: data.thac0.value,
@@ -1276,7 +1395,7 @@ export default class OseActor extends Actor {
       skipDialog: options.skipDialog,
       speaker: ChatMessage.getSpeaker({ actor: this }),
       flavor: label,
-      flags: { ose: { roll: "attack", itemId: attData.item?._id } },
+      flags: { ose: { roll: "attack", itemId: weaponId } },
       title: label,
       ammoOptions: options.ammoOptions,
       onConfirm: options.onConfirm,

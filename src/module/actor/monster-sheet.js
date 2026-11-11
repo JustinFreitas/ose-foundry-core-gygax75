@@ -18,6 +18,7 @@ export default class OseActorSheetMonster extends OseActorSheet {
       rollMorale: OseActorSheetMonster._onRollMorale,
       rollReaction: OseActorSheetMonster._onRollReaction,
       rollAppearing: OseActorSheetMonster._onRollAppearing,
+      rollMagicResistance: OseActorSheetMonster._onRollMagicResistance,
       rollHP: OseActorSheetMonster._onRollHP,
       cyclePattern: OseActorSheetMonster._onCyclePattern,
       resetAttacks: OseActorSheetMonster._onResetAttacks,
@@ -39,7 +40,6 @@ export default class OseActorSheetMonster extends OseActorSheet {
         { id: "attributes", label: "OSE.category.attributes" },
         { id: "inventory", label: "OSE.category.inventory" },
         { id: "spells", label: "OSE.category.spells" },
-        { id: "effects", label: "OSE.category.effects" },
         { id: "notes", label: "OSE.category.notes" },
         { id: "effects", label: "OSE.category.effects" },
       ],
@@ -230,6 +230,10 @@ export default class OseActorSheetMonster extends OseActorSheet {
 
   static _onRollAppearing(event, target) {
     return this.actor.rollAppearing({ event, check: target.closest(".check-field").dataset.check });
+  }
+
+  static _onRollMagicResistance(event) {
+    return this.actor.rollMagicResistance({ event });
   }
 
   static _onRollHP(event) {

@@ -138,4 +138,54 @@ describe("OseDataModelWeapon", () => {
       });
     });
   });
+
+  describe("cumulative getters", () => {
+    it("treats null quantity as 1 for single weapons", () => {
+      const sword = new OseDataModelWeapon({
+        weight: 60,
+        cost: 10,
+        itemslots: 1,
+        quantity: { value: null, max: null },
+      });
+
+      expect(sword.cumulativeWeight).toBe(60);
+      expect(sword.cumulativeCost).toBe(10);
+      expect(sword.cumulativeItemslots).toBe(1);
+    });
+
+    it("multiplies weight, cost, and itemslots by explicit quantity and respects 0", () => {
+      const daggers = new OseDataModelWeapon({
+        weight: 30,
+        cost: 3,
+        itemslots: 1,
+        quantity: { value: 3, max: 0 },
+      });
+      const depleted = new OseDataModelWeapon({
+        weight: 30,
+        cost: 3,
+        itemslots: 1,
+        quantity: { value: 0, max: 0 },
+      });
+
+      expect(daggers.cumulativeWeight).toBe(90);
+      expect(daggers.cumulativeCost).toBe(9);
+      expect(daggers.cumulativeItemslots).toBe(3);
+      expect(depleted.cumulativeWeight).toBe(0);
+      expect(depleted.cumulativeCost).toBe(0);
+      expect(depleted.cumulativeItemslots).toBe(0);
+    });
+
+    it("calculates unit-proportional values for bundled missile weapons (max > 0)", () => {
+      const darts = new OseDataModelWeapon({
+        weight: 10,
+        cost: 5,
+        itemslots: 1,
+        quantity: { value: 5, max: 10 },
+      });
+
+      expect(darts.cumulativeWeight).toBe(5);
+      expect(darts.cumulativeCost).toBe(2.5);
+      expect(darts.cumulativeItemslots).toBe(1);
+    });
+  });
 });

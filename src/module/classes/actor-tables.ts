@@ -39,7 +39,10 @@ export const deriveTables = (classes: TableClass[]) => {
           });
         if (seen && cls.level <= seen.level) continue;
         tables[table.key] ??= {};
-        tables[table.key][key] = { current: cellTarget(cell) ?? cell, levels: table.rows.map((r) => r[key] ?? "") };
+        (tables[table.key] as Record<string, unknown>)[key] = {
+          current: cellTarget(cell) ?? cell,
+          levels: table.rows.map((r) => r[key] ?? ""),
+        };
         from[path] = { cls: cls.name, name: name || key.toUpperCase(), level: cls.level };
       }
     }

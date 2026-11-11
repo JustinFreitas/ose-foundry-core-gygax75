@@ -97,35 +97,44 @@ export default class OseActorSheet extends HandlebarsApplicationMixin(ActorSheet
   }
 
   #effectGroups() {
-    const rows = [...this.actor.allApplicableEffects()].map((e) => ({
-      uuid: e.uuid,
-      id: e.id,
-      name: e.name,
-      img: e.img,
-      disabled: e.disabled,
-      temporary: e.isTemporary,
-      source: e.parent === this.actor ? null : (e.parent?.name ?? null),
-      duration: durationText(e.duration ?? {}, (k) => game.i18n.localize(k)),
-      itemId: e.parent !== this.actor && e.parent?.documentName === "Item" ? e.parent.id : null,
-      suppressed:
-        e.parent?.documentName === "Item" && Object.hasOwn(e.parent.system ?? {}, "equipped")
-          ? !e.parent.system.equipped
-          : false,
-    }));
-    // Include any class's prime requisite XP adjustment.
-    for (const cls of this.actor.system.classes ?? []) {
-      const bonus = this.actor.system.classXpBonus(cls);
-      if (!bonus) continue;
+    const isGM = Boolean(game.user?.isGM);
+    const rows = [];
+    for (const e of this.actor.allApplicableEffects()) {
+      const parentItem = e.parent !== this.actor && e.parent?.documentName === "Item" ? e.parent : null;
+      if (!isGM && parentItem && !(parentItem.isIdentified ?? parentItem.system?.identified !== false)) {
+        continue;
+      }
       rows.push({
-        uuid: cls.uuid,
-        name: game.i18n.format("OSE.effects.ClassXp", { bonus: bonus > 0 ? `+${bonus}` : `${bonus}` }),
-        img: cls.img,
-        disabled: false,
-        temporary: false,
-        source: cls.name,
-        duration: "",
-        fixed: true,
+        uuid: e.uuid,
+        id: e.id,
+        name: e.name,
+        img: e.img,
+        disabled: e.disabled,
+        temporary: e.isTemporary,
+        source: e.parent === this.actor ? null : (e.parent?.displayName ?? e.parent?.name ?? null),
+        duration: durationText(e.duration ?? {}, (k) => game.i18n.localize(k)),
+        itemId: parentItem ? parentItem.id : null,
+        suppressed:
+          Boolean(e.isSuppressed) ||
+          (parentItem && Object.hasOwn(parentItem.system ?? {}, "equipped") ? !parentItem.system.equipped : false),
       });
+    }
+    // Include any class's prime requisite XP adjustment when class items are enabled.
+    if (game.settings.get(game.system.id, "enableClassItems")) {
+      for (const cls of this.actor.system.classes ?? []) {
+        const bonus = this.actor.system.classXpBonus(cls);
+        if (!bonus) continue;
+        rows.push({
+          uuid: cls.uuid,
+          name: game.i18n.format("OSE.effects.ClassXp", { bonus: bonus > 0 ? `+${bonus}` : `${bonus}` }),
+          img: cls.img,
+          disabled: false,
+          temporary: false,
+          source: cls.name,
+          duration: "",
+          fixed: true,
+        });
+      }
     }
     return groupEffects(rows).map((g) => ({ ...g, label: `OSE.effects.${g.key}` }));
   }
@@ -154,7 +163,8 @@ export default class OseActorSheet extends HandlebarsApplicationMixin(ActorSheet
     return Object.assign(context, {
       ...this.actor.toObject(false),
       system: this.actor.system,
-      cssClass: this.options.classes.join(" "),
+      isGM: Boolean(game.user?.isGM),
+      cssClass: (this.options?.classes ?? this.constructor.DEFAULT_OPTIONS?.classes ?? []).join(" "),
       ...(await prepareActorContext(this.actor, this._expanded)),
       effectGroups: this._effectsTabEnabled() ? this.#effectGroups() : null,
     });
@@ -344,7 +354,7 @@ export default class OseActorSheet extends HandlebarsApplicationMixin(ActorSheet
         duration: isTemporary ? { rounds: 1 } : {},
       },
     ]);
-    effect?.sheet?.render(true);
+    effect?.sheet?.render({ force: true });
   }
 
   static _getEffectFromTarget(actor, target) {
@@ -356,7 +366,7 @@ export default class OseActorSheet extends HandlebarsApplicationMixin(ActorSheet
   }
 
   static _onEditEffect(_event, target) {
-    OseActorSheet._getEffectFromTarget(this.actor, target)?.sheet?.render(true);
+    OseActorSheet._getEffectFromTarget(this.actor, target)?.sheet?.render({ force: true });
   }
 
   static async _onToggleEffect(_event, target) {
@@ -380,7 +390,7 @@ export default class OseActorSheet extends HandlebarsApplicationMixin(ActorSheet
   static _onOpenEffectSource(_event, target) {
     const itemId = target.dataset.itemId || target.closest?.("[data-item-id]")?.dataset.itemId;
     const item = this.actor.items.get(itemId);
-    return item?.sheet?.render(true);
+    return item?.sheet?.render({ force: true });
   }
 
   static _onConsumableSpend(_event, target) {

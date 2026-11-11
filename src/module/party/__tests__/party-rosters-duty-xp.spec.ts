@@ -125,6 +125,53 @@ describe("Party Sheet Rosters & Duty XP", () => {
       expect(infoSpy).toHaveBeenCalledWith("No characters currently have active Duty XP.");
       expect((globalThis as any).ChatMessage.create).not.toHaveBeenCalled();
     });
+
+    it("preserves active Tweaks XP bonus Active Effects without double-dipping on reset", async () => {
+      // Actor has +5% from Tweaks AE and +5% from legacy Duty XP flag (total derived = 10%, origXpBonus = 5%)
+      const actorWithTweaks = {
+        name: "Elf Ranger",
+        flags: { dutyXP: { origXpBonus: 5, duties: ["Trailblazer"] } },
+        effects: [
+          {
+            id: "tweak-xp",
+            disabled: false,
+            isSuppressed: false,
+            flags: { ose: { tweak: "xp" } },
+            changes: [{ key: "system.details.xp.bonus", value: "5" }],
+          },
+        ],
+        system: { details: { xp: { bonus: 10 } } },
+        update: vi.fn().mockResolvedValue(true),
+      };
+
+      await resetDutyXP([actorWithTweaks as any]);
+
+      expect(actorWithTweaks.update).toHaveBeenCalledWith({
+        "flags.-=dutyXP": null,
+        "system.details.xp.bonus": 0,
+      });
+    });
+
+    it("deletes ActiveEffect-based Duty XP documents when present", async () => {
+      const actorWithDutyAe = {
+        name: "Dwarf Mapper",
+        flags: {},
+        effects: [
+          {
+            id: "duty-ae-1",
+            disabled: false,
+            flags: { ose: { dutyXP: true, duties: ["Mapper"] } },
+          },
+        ],
+        system: { details: { xp: { bonus: 5 } } },
+        deleteEmbeddedDocuments: vi.fn().mockResolvedValue([]),
+        update: vi.fn().mockResolvedValue(true),
+      };
+
+      await resetDutyXP([actorWithDutyAe as any]);
+
+      expect(actorWithDutyAe.deleteEmbeddedDocuments).toHaveBeenCalledWith("ActiveEffect", ["duty-ae-1"]);
+    });
   });
 
   describe("OsePartySheet._prepareContext", () => {

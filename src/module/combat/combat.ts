@@ -3,13 +3,34 @@
  */
 import { OSE } from "../config";
 import OSECombatGroupSelector from "./combat-set-groups";
-import type { OSECombatant } from "./combatant";
+import { OSECombatant } from "./combatant";
 
 export const actionGroups = {
   slow: "OSE.items.Slow",
   cast: "OSE.spells.Cast",
   fast: "OSE.combat.Fast",
 };
+
+interface CombatantLike {
+  id: string | null;
+  name?: string | null;
+  initiative?: number | string | null;
+  isDefeated?: boolean;
+  isFast?: boolean;
+  isSlow?: boolean;
+  disposition?: number;
+  hasPlayerOwner?: boolean;
+  group?: { name?: string | null; initiative?: number | string | null } | string | null;
+  system?: { retainer?: { enabled?: boolean } };
+  actor?: { system?: { retainer?: { enabled?: boolean } } } | null;
+}
+
+function getCombatantGroupObj(
+  combatant: CombatantLike,
+): { name?: string | null; initiative?: number | string | null } | undefined {
+  const grp = combatant.group;
+  return typeof grp === "object" && grp !== null ? grp : undefined;
+}
 
 /**
  * An extension of Foundry's Combat class that implements initiative for individual combatants.
@@ -21,11 +42,11 @@ export class OSECombat extends foundry.documents.Combat {
 
   static GROUP_FORMULA = "1d6";
 
-  static get GROUPS() {
+  static get GROUPS(): Record<string, string> {
     return {
       ...OSE.colors,
-      ...Object.entries(actionGroups).reduce((acc, [key, value]) => {
-        (acc as Record<string, string>)[key] = game.i18n.localize(value);
+      ...Object.entries(actionGroups).reduce<Record<string, string>>((acc, [key, value]) => {
+        acc[key] = game.i18n.localize(value);
         return acc;
       }, {}),
     };
@@ -33,10 +54,10 @@ export class OSECombat extends foundry.documents.Combat {
 
   // Track combatant groups since multiple combatants can trigger group creation
   // at the same time.
-  #combatantGroups = new Map<string, Promise<CombatantGroup>>();
+  #combatantGroups = new Map<string, Promise<unknown>>();
 
   get #rerollBehavior() {
-    return game.settings.get(game.system.id, "rerollInitiative");
+    return game.settings.get(game.system.id as "ose", "rerollInitiative");
   }
 
   /**
@@ -45,7 +66,7 @@ export class OSECombat extends foundry.documents.Combat {
    * @returns {boolean} True if the combat is using group initiative, false otherwise.
    */
   get isGroupInitiative(): boolean {
-    return game.settings.get(game.system.id, "initiative") === "group";
+    return game.settings.get(game.system.id as "ose", "initiative") === "group";
   }
 
   // ===========================================================================
@@ -63,14 +84,15 @@ export class OSECombat extends foundry.documents.Combat {
    */
   async #rollAbsolutelyEveryone({ excludeAlreadyRolled = false, updateTurn = false } = {}) {
     const formula = this.isGroupInitiative ? OSECombat.GROUP_FORMULA : OSECombat.FORMULA;
+    const ids = this.combatants
+      .filter((c) => !c.defeated && (!excludeAlreadyRolled || c.initiative === null))
+      .map((c) => c.id)
+      .filter((id): id is string => typeof id === "string" && id.length > 0);
 
-    await this.rollInitiative(
-      this.combatants.filter((c) => !c.defeated && (!excludeAlreadyRolled || c.initiative === null)).map((c) => c.id),
-      {
-        formula,
-        updateTurn,
-      },
-    );
+    await this.rollInitiative(ids, {
+      formula,
+      updateTurn,
+    });
   }
 
   /**
@@ -103,26 +125,27 @@ export class OSECombat extends foundry.documents.Combat {
    * @param {CombatantGroup[]} groups - The groups to roll for.
    */
   async rollGroupInitiative(groups: CombatantGroup[]) {
-    const toRoll = groups.filter((g) => g.members.size > 0 && !["slow", "fast"].includes(g.name));
+    const toRoll = groups.filter((g) => g.members.size > 0 && !["slow", "fast"].includes(g.name ?? ""));
     if (!toRoll.length) return this;
 
     if (!this.isOwner) {
-      const gm = game.users.activeGM;
+      const gm = game.users?.activeGM;
       if (!gm) {
-        ui.notifications.warn("OSE.combat.NoActiveGM", { localize: true });
+        ui.notifications?.warn("OSE.combat.NoActiveGM", { localize: true });
         return this;
       }
-      await gm.query(`${game.system.id}.rollGroupInitiative`, {
+      const queryFn = gm.query as unknown as (key: string, data: Record<string, unknown>) => Promise<unknown>;
+      await queryFn.call(gm, `${game.system.id}.rollGroupInitiative`, {
         combatId: this.id,
         groupIds: toRoll.map((g) => g.id),
-        userId: game.user.id,
+        userId: game.user?.id,
       });
       return this;
     }
 
-    const rolls = [];
-    const updates = [];
-    const rows = [];
+    const rolls: Roll[] = [];
+    const updates: Array<{ _id: string | null; initiative: number | undefined }> = [];
+    const rows: string[] = [];
     for (const group of toRoll) {
       const roll = await new Roll(OSECombat.GROUP_FORMULA).evaluate();
       rolls.push(roll);
@@ -141,7 +164,7 @@ export class OSECombat extends foundry.documents.Combat {
       content: `<ul class="ose-initiative-groups">${rows.join("")}</ul>`,
       rolls,
       sound: CONFIG.sounds.dice,
-      flags: { "core.initiativeRoll": true },
+      flags: { core: { initiativeRoll: true } },
     });
     return this;
   }
@@ -152,20 +175,22 @@ export class OSECombat extends foundry.documents.Combat {
    * @param {CombatantGroup} group - The group to set.
    * @param {number|null} value - The initiative value.
    */
-  async setGroupInitiative(group: CombatantGroup, value: number | null) {
+  async setGroupInitiative(group: CombatantGroup, value: number | null): Promise<CombatantGroup | undefined> {
     if (this.isOwner) return group.update({ initiative: value });
-    const gm = game.users.activeGM;
+    const gm = game.users?.activeGM;
     if (!gm) {
-      ui.notifications.warn("OSE.combat.NoActiveGM", { localize: true });
-      return;
+      ui.notifications?.warn("OSE.combat.NoActiveGM", { localize: true });
+      return undefined;
     }
-    const applied = await gm.query(`${game.system.id}.rollGroupInitiative`, {
+    const queryFn = gm.query as unknown as (key: string, data: Record<string, unknown>) => Promise<unknown>;
+    const applied = await queryFn.call(gm, `${game.system.id}.rollGroupInitiative`, {
       combatId: this.id,
       groupIds: [group.id],
-      userId: game.user.id,
+      userId: game.user?.id,
       value,
     });
-    if (!applied) ui.notifications.warn("OSE.combat.GroupInitiativeRefused", { localize: true });
+    if (!applied) ui.notifications?.warn("OSE.combat.GroupInitiativeRefused", { localize: true });
+    return undefined;
   }
 
   /**
@@ -178,8 +203,8 @@ export class OSECombat extends foundry.documents.Combat {
     { combatId, groupIds, userId, value }: { combatId: string; groupIds: string[]; userId: string; value?: number },
     context: { user?: User } = {},
   ) {
-    const combat = game.combats.get(combatId) as OSECombat | undefined;
-    const user = context.user ?? game.users.get(userId);
+    const combat = game.combats?.get(combatId) as OSECombat | undefined;
+    const user = context.user ?? game.users?.get(userId);
     if (!combat || !user) return false;
     if (value !== undefined && !Number.isInteger(value)) return false;
     const groups = groupIds
@@ -198,14 +223,14 @@ export class OSECombat extends foundry.documents.Combat {
   }
 
   /** @override */
-  async rollInitiative(ids: string | string[], options = {}) {
+  override async rollInitiative(ids: string | string[], options = {}) {
     if (!this.isGroupInitiative) return super.rollInitiative(ids, options);
     const idList = typeof ids === "string" ? [ids] : ids;
     const groups = new Set<CombatantGroup>();
-    const loose = [];
+    const loose: string[] = [];
     for (const id of idList) {
       const group = this.combatants.get(id)?.group as CombatantGroup | undefined;
-      if (group && !["slow", "fast"].includes(group.name)) groups.add(group);
+      if (group && !["slow", "fast"].includes(group.name ?? "")) groups.add(group);
       else loose.push(id);
     }
     if (loose.length) await super.rollInitiative(loose, options);
@@ -229,24 +254,24 @@ export class OSECombat extends foundry.documents.Combat {
 
   // Batch group updates into one tracker render.
   #renderTracker = foundry.utils.debounce(() => {
-    if (this.isView) ui.combat.render();
+    if (this.isView) ui.combat?.render();
   }, 50);
 
   /** @override */
-  async rollAll(options: object) {
+  override async rollAll(options?: Combat.InitiativeOptions) {
     await super.rollAll(options);
     // Preserve the fact that it's no-one's turn currently.
     let turn = this.turn === null || this.turns.length === 0 ? null : 0;
     if (this.settings.skipDefeated && turn !== null) {
       turn = this.turns.findIndex((t) => !t.isDefeated);
       if (this.turns.length > 0 && turn === -1) {
-        ui.notifications.warn("COMBAT.NoneRemaining", { localize: true });
+        ui.notifications?.warn("COMBAT.NoneRemaining", { localize: true });
         turn = 0;
       }
     }
     await this.update({ turn });
     this.setupTurns();
-    await ui.combat.render({ force: true });
+    await ui.combat?.render({ force: true });
     return this;
   }
 
@@ -255,7 +280,7 @@ export class OSECombat extends foundry.documents.Combat {
   // ===========================================================================
 
   /** @override */
-  async startCombat() {
+  override async startCombat() {
     await super.startCombat();
     if (this.#rerollBehavior !== "reset")
       await this.smartRerollInitiative({
@@ -266,18 +291,19 @@ export class OSECombat extends foundry.documents.Combat {
   }
 
   /** @override */
-  async nextTurn() {
+  override async nextTurn() {
     this.#warnUnrolled();
     return super.nextTurn();
   }
 
   /** Warn without blocking when an active combatant has no initiative yet. */
   #warnUnrolled() {
-    const unrolled = this.combatants.some(
-      (c) =>
-        !c.isDefeated && !c.isSlow && !c.isFast && !["slow", "fast"].includes(c.group?.name) && c.initiative === null,
-    );
-    if (unrolled) ui.notifications.warn("OSE.combat.UnrolledInitiative", { localize: true });
+    const unrolled = this.combatants.some((raw) => {
+      const c = raw as OSECombatant;
+      const groupName = getCombatantGroupObj(c as unknown as CombatantLike)?.name ?? "";
+      return !c.isDefeated && !c.isSlow && !c.isFast && !["slow", "fast"].includes(groupName) && c.initiative === null;
+    });
+    if (unrolled) ui.notifications?.warn("OSE.combat.UnrolledInitiative", { localize: true });
   }
 
   /**
@@ -292,13 +318,24 @@ export class OSECombat extends foundry.documents.Combat {
   }
 
   /** @override */
-  async _manageTurnEvents() {
+  override async _manageTurnEvents() {
+    const prevRound = this.previous?.round;
+    const currRound = this.current?.round;
     // Re-roll before core picks who starts the round, so turn events go to the new first combatant.
-    if (game.user.isActiveGM && this.started && this.previous?.round && this.current.round > this.previous.round) {
+    if (
+      game.user?.isActiveGM &&
+      this.started &&
+      typeof prevRound === "number" &&
+      prevRound > 0 &&
+      typeof currRound === "number" &&
+      currRound > prevRound
+    ) {
       const previous = { ...this.previous };
       await this.#onNewRound();
       // v13 overwrites the previous state on combatant updates even without turn events.
-      Object.assign(this.previous, previous);
+      if (this.previous) {
+        Object.assign(this.previous, previous);
+      }
     }
     return super._manageTurnEvents();
   }
@@ -309,7 +346,7 @@ export class OSECombat extends foundry.documents.Combat {
   async #onNewRound() {
     switch (this.#rerollBehavior) {
       case "reset":
-        await this.resetAll({ updateTurn: false });
+        await this.resetAll({ updateTurn: false } as Combat.Database.UpdateOperation);
         break;
 
       case "reroll":
@@ -322,8 +359,8 @@ export class OSECombat extends foundry.documents.Combat {
   }
 
   /** @override */
-  async resetAll(args: object) {
-    await super.resetAll(args);
+  override async resetAll(options?: Combat.Database.UpdateOperation) {
+    await (super.resetAll as (opts?: Combat.Database.UpdateOperation) => Promise<this>).call(this, options);
 
     if (this.isGroupInitiative) {
       const groupUpdates = this.groups.map((g: CombatantGroup) => ({
@@ -335,6 +372,8 @@ export class OSECombat extends foundry.documents.Combat {
         await this.updateEmbeddedDocuments("CombatantGroup", groupUpdates);
       }
     }
+
+    return this;
   }
 
   /**
@@ -343,7 +382,7 @@ export class OSECombat extends foundry.documents.Combat {
    * @param {number} turn - The turn number of the combatant to activate.
    */
   async activateCombatant(turn: number) {
-    if (game.user.isGM) {
+    if (game.user?.isGM) {
       await this.update({ turn });
     }
   }
@@ -376,16 +415,15 @@ export class OSECombat extends foundry.documents.Combat {
     if (!group) {
       return;
     }
-    await combatant.update({ group: group.id });
+    await combatant.update({ group: group.id } as unknown as Combatant.UpdateData);
   }
 
   /**
    * Determine which group each combatant should be added to, or if a new group should be created.
-   *
-   * @returns {Map<string, { combatants: OSECombatant[], expanded: boolean }>}
    */
   async createGroups() {
-    for (const combatant of this.combatants) {
+    for (const rawCombatant of this.combatants) {
+      const combatant = rawCombatant as OSECombatant;
       if (combatant.group) continue;
 
       const key = combatant.groupRaw;
@@ -401,28 +439,34 @@ export class OSECombat extends foundry.documents.Combat {
    * Prompts to set the combatant groups.
    */
   setCombatantGroups() {
-    new OSECombatGroupSelector().render({ force: true, focus: true });
+    new OSECombatGroupSelector().render({ force: true });
   }
 
   /** @override */
-  _sortCombatants(a, b) {
+  override _sortCombatants(a: Combatant.Implementation, b: Combatant.Implementation): number {
+    const ca = a as unknown as CombatantLike;
+    const cb = b as unknown as CombatantLike;
+
     // First sort by initiative
-    const ia: number = OSECombat.getInitiativeForCombatant(a);
-    const ib: number = OSECombat.getInitiativeForCombatant(b);
-    const initiativeDiff = ib - ia;
-    if (initiativeDiff) return initiativeDiff;
+    const ia = OSECombat.getInitiativeForCombatant(ca as unknown as OSECombatant);
+    const ib = OSECombat.getInitiativeForCombatant(cb as unknown as OSECombatant);
+    if (ia !== ib) {
+      return ib - ia;
+    }
 
     // If still tied, sort by group name if available
-    if (a.group?.name && b.group?.name && a.group?.name !== b.group?.name) {
+    const groupNameA = getCombatantGroupObj(ca)?.name;
+    const groupNameB = getCombatantGroupObj(cb)?.name;
+    if (groupNameA && groupNameB && groupNameA !== groupNameB) {
       // Fast groups always sort first, slow groups always sort last.
       // Use an explicit rank so the comparator stays transitive.
       const groupRank = (name: string) => (name === "fast" ? -1 : name === "slow" ? 1 : 0);
-      const rankDiff = groupRank(a.group.name) - groupRank(b.group.name);
+      const rankDiff = groupRank(groupNameA) - groupRank(groupNameB);
       if (rankDiff !== 0) return rankDiff;
 
       const colorsKeys = Object.keys(OSECombat.GROUPS);
-      const indexA = colorsKeys.indexOf(a.group.name);
-      const indexB = colorsKeys.indexOf(b.group.name);
+      const indexA = colorsKeys.indexOf(groupNameA);
+      const indexB = colorsKeys.indexOf(groupNameB);
 
       const colorDiff = indexA - indexB;
       if (colorDiff !== 0) return colorDiff;
@@ -430,8 +474,8 @@ export class OSECombat extends foundry.documents.Combat {
 
     // If still tied, sort by disposition
     // Higher values of CONST.TOKEN_DISPOSITIONS are sorted first (e.g. Friendly).
-    const dispositionA = a.disposition ?? CONST.TOKEN_DISPOSITIONS.NEUTRAL;
-    const dispositionB = b.disposition ?? CONST.TOKEN_DISPOSITIONS.NEUTRAL;
+    const dispositionA = ca.disposition ?? CONST.TOKEN_DISPOSITIONS.NEUTRAL;
+    const dispositionB = cb.disposition ?? CONST.TOKEN_DISPOSITIONS.NEUTRAL;
     if (dispositionA !== dispositionB) {
       // Return negative to prioritize higher disposition values
       return dispositionB - dispositionA;
@@ -439,37 +483,51 @@ export class OSECombat extends foundry.documents.Combat {
 
     // If still tied, sort by player ownership and retainer status together
     // Player-owned combatants come before non-player-owned ones
-    if (a.hasPlayerOwner !== b.hasPlayerOwner) {
-      return a.hasPlayerOwner ? -1 : 1;
+    const ownerA = Boolean(ca.hasPlayerOwner);
+    const ownerB = Boolean(cb.hasPlayerOwner);
+    if (ownerA !== ownerB) {
+      return ownerA ? -1 : 1;
     }
-    if (a.hasPlayerOwner && b.hasPlayerOwner) {
+    const isRetainerA = Boolean(ca.system?.retainer?.enabled ?? ca.actor?.system?.retainer?.enabled);
+    const isRetainerB = Boolean(cb.system?.retainer?.enabled ?? cb.actor?.system?.retainer?.enabled);
+    if (ownerA && ownerB) {
       // Both are player-owned, sort non-retainers first
-      const isRetainerA = !!a.system?.retainer?.enabled;
-      const isRetainerB = !!b.system?.retainer?.enabled;
       if (isRetainerA !== isRetainerB) {
-        return isRetainerA ? 1 : -1; // Reverse order for player-owned
+        return isRetainerA ? 1 : -1;
       }
-    } else if (!a.hasPlayerOwner && !b.hasPlayerOwner) {
+    } else if (!ownerA && !ownerB) {
       // For non-player owned, sort retainers before non-retainers
-      const isRetainerA = !!a.system?.retainer?.enabled;
-      const isRetainerB = !!b.system?.retainer?.enabled;
       if (isRetainerA !== isRetainerB) {
         return isRetainerA ? -1 : 1;
       }
     }
 
-    if (a.name && a.name === b.name) {
-      // Use ID comparison if the names are the same
-      return a.id > b.id ? 1 : -1;
+    if (ca.name && ca.name === cb.name) {
+      const idA = ca.id ?? "";
+      const idB = cb.id ?? "";
+      if (idA !== idB) {
+        return idA > idB ? 1 : -1;
+      }
     }
 
-    return (a.name || "").localeCompare(b.name || "");
+    return (ca.name || "").localeCompare(cb.name || "");
   }
 
-  private static getInitiativeForCombatant(combatant: OSECombatant) {
-    if (combatant.isFast) return Number.POSITIVE_INFINITY;
-    // Foundry stores `initiative` as a string (or null when not yet rolled).
-    const init = Number(combatant.initiative);
+  static getInitiativeForCombatant(combatant: OSECombatant): number {
+    const c = combatant as unknown as CombatantLike;
+    if (c.isDefeated) return OSECombatant.INITIATIVE_VALUE_DEFEATED;
+
+    const groupObj = getCombatantGroupObj(c);
+    const groupName = groupObj?.name;
+    if (c.isSlow || groupName === "slow") return OSECombatant.INITIATIVE_VALUE_SLOW;
+    if (c.isFast || groupName === "fast") return OSECombatant.INITIATIVE_VALUE_FAST;
+
+    // Foundry stores `initiative` as a number/string (or null when not yet rolled).
+    const raw = c.initiative ?? groupObj?.initiative;
+    if (raw === null || raw === undefined || raw === "") {
+      return Number.NEGATIVE_INFINITY;
+    }
+    const init = Number(raw);
     return Number.isNaN(init) ? Number.NEGATIVE_INFINITY : init;
   }
 }

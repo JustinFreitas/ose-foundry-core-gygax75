@@ -2,7 +2,7 @@
  * @file Unit tests for Active Effects Tab, Data Preparation, Actions, and Layout.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { prepareActiveEffectCategories, prepareActorContext } from "../../sheet/data-context";
+import OseItem from "../../item/entity";
 import { onDragStartItem } from "../../sheet/drag-drop";
 import OseActorSheet from "../actor-sheet";
 import OseActorSheetCharacter from "../character-sheet";
@@ -17,11 +17,15 @@ describe("Phase 4: Active Effects Tab & Sheet Layout", () => {
     const effect: any = {
       _id: id,
       id,
+      uuid: options.uuid || `Actor.actor-1.ActiveEffect.${id}`,
       name,
       img: options.img || "icons/svg/aura.svg",
       disabled: Boolean(options.disabled),
       isTemporary: Boolean(options.isTemporary),
+      isSuppressed: Boolean(options.isSuppressed),
+      duration: options.duration || {},
       transfer: options.transfer ?? true,
+      parent: options.parent ?? actor,
       sheet: {
         render: vi.fn(),
       },
@@ -36,24 +40,40 @@ describe("Phase 4: Active Effects Tab & Sheet Layout", () => {
         data: { _id: id, name },
       }),
     };
-    effectsMap.set(id, effect);
+    if (effect.parent === actor) {
+      effectsMap.set(id, effect);
+    }
     return effect;
   };
 
   const createMockItemWithEffects = (id: string, name: string, effects: any[] = [], system: any = {}) => {
+    const isIdentified = system.identified !== false;
     const item: any = {
       _id: id,
       id,
+      documentName: "Item",
       name,
+      displayName: isIdentified ? name : "Unknown Item",
+      isIdentified,
       system: {
         ...system,
       },
-      effects,
+      effects: [] as any[],
       sheet: {
         render: vi.fn(),
       },
       prepareDerivedData: vi.fn().mockResolvedValue(undefined),
     };
+    item.effects = effects.map((eff) => ({
+      img: "icons/svg/aura.svg",
+      disabled: false,
+      isTemporary: false,
+      isSuppressed: false,
+      duration: {},
+      uuid: `Actor.actor-1.Item.${id}.ActiveEffect.${eff.id}`,
+      ...eff,
+      parent: item,
+    }));
     itemsMap.set(id, item);
     return item;
   };
@@ -62,6 +82,7 @@ describe("Phase 4: Active Effects Tab & Sheet Layout", () => {
     vi.restoreAllMocks();
     effectsMap = new Map();
     itemsMap = new Map();
+    (globalThis as any).game.user = { isGM: true };
 
     actor = {
       id: "actor-1",
@@ -79,7 +100,15 @@ describe("Phase 4: Active Effects Tab & Sheet Layout", () => {
         get: (id: string) => itemsMap.get(id),
         [Symbol.iterator]: () => itemsMap.values(),
       },
-      createEmbeddedDocuments: vi.fn().mockImplementation(async (type: string, data: any[]) => {
+      *allApplicableEffects() {
+        for (const e of effectsMap.values()) yield e;
+        for (const item of itemsMap.values()) {
+          for (const e of item.effects) {
+            if (e.transfer !== false) yield e;
+          }
+        }
+      },
+      createEmbeddedDocuments: vi.fn().mockImplementation(async (_type: string, data: any[]) => {
         const created = data.map((d, index) => {
           const docId = `created-${index + 1}`;
           return createMockEffect(docId, d.name, d);
@@ -91,99 +120,146 @@ describe("Phase 4: Active Effects Tab & Sheet Layout", () => {
       system: {
         spells: { enabled: true },
         config: { enableInventory: true },
+        classes: [],
+        classXpBonus: vi.fn().mockReturnValue(0),
       },
     };
   });
 
-  describe("prepareActiveEffectCategories", () => {
-    it("groups temporary, passive, and inactive effects correctly", () => {
+  describe("OseActorSheet._prepareContext effectGroups", () => {
+    it("groups temporary, passive, and inactive effects correctly", async () => {
       createMockEffect("eff-1", "Bless", { isTemporary: true, disabled: false });
       createMockEffect("eff-2", "Barkskin", { isTemporary: false, disabled: false });
       createMockEffect("eff-3", "Curse", { isTemporary: true, disabled: true });
       createMockEffect("eff-4", "Sleeping Aura", { isTemporary: false, disabled: true });
 
-      const categories = prepareActiveEffectCategories(actor);
+      const sheet = new OseActorSheet({ document: actor });
+      const context = await sheet._prepareContext({});
+      const effectGroups = (context.effectGroups ?? []) as any[];
+      const groups = Object.fromEntries(effectGroups.map((g: any) => [g.key, g]));
 
-      expect(categories.temporary.effects.map((e: any) => e.name)).toEqual(["Bless"]);
-      expect(categories.passive.effects.map((e: any) => e.name)).toEqual(["Barkskin"]);
-      expect(categories.inactive.effects.map((e: any) => e.name)).toEqual(["Curse", "Sleeping Aura"]);
-      expect(categories.managed).toBeUndefined();
+      expect(groups.temporary.effects.map((e: any) => e.name)).toEqual(["Bless"]);
+      expect(groups.passive.effects.map((e: any) => e.name)).toEqual(["Barkskin"]);
+      expect(groups.inactive.effects.map((e: any) => e.name)).toEqual(["Curse", "Sleeping Aura"]);
+      expect((context as any).effects).toBeUndefined();
     });
 
-    it("aggregates item-granted effects and marks unequipped items as suppressed", () => {
-      const ringEffect = {
-        id: "eff-ring",
-        name: "Ring of Protection +1",
-        img: "icons/equipment/finger/ring-gem-gold-red.webp",
-        transfer: true,
-      };
-      const cloakEffect = {
-        id: "eff-cloak",
-        name: "Cloak of Elvenkind",
-        img: "icons/equipment/back/cloak-hooded-green.webp",
-        transfer: true,
-      };
-      const nonTransferredEffect = {
-        id: "eff-scroll",
-        name: "Scroll Spell Effect",
-        transfer: false,
-      };
+    it("marks unequipped item-granted effects as suppressed and links itemId", async () => {
+      createMockItemWithEffects(
+        "item-ring",
+        "Ring of Protection",
+        [{ id: "eff-ring", name: "Ring of Protection +1", transfer: true }],
+        { equipped: true },
+      );
+      createMockItemWithEffects(
+        "item-cloak",
+        "Cloak of Elvenkind",
+        [{ id: "eff-cloak", name: "Cloak of Elvenkind", transfer: true }],
+        { equipped: false },
+      );
+      createMockItemWithEffects("item-scroll", "Magic Scroll", [
+        { id: "eff-scroll", name: "Scroll Spell Effect", transfer: false },
+      ]);
 
-      // Ring is equipped: suppressed = false
-      createMockItemWithEffects("item-ring", "Ring of Protection", [ringEffect], { equipped: true });
-      // Cloak is unequipped: suppressed = true
-      createMockItemWithEffects("item-cloak", "Cloak of Elvenkind", [cloakEffect], { equipped: false });
-      // Item with non-transferred effect: should NOT appear in managed
-      createMockItemWithEffects("item-scroll", "Magic Scroll", [nonTransferredEffect]);
+      const sheet = new OseActorSheet({ document: actor });
+      const context = await sheet._prepareContext({});
+      const effectGroups = (context.effectGroups ?? []) as any[];
+      const passive = effectGroups.find((g: any) => g.key === "passive")?.effects ?? [];
 
-      const categories = prepareActiveEffectCategories(actor);
+      expect(passive).toHaveLength(2);
 
-      expect(categories.managed).toBeDefined();
-      expect(categories.managed.readonly).toBe(true);
-      expect(categories.managed.label).toBe("OSE.effect.fromItems");
-      expect(categories.managed.effects).toHaveLength(2);
-
-      const ringEntry = categories.managed.effects.find((e: any) => e.id === "eff-ring");
+      const ringEntry = passive.find((e: any) => e.id === "eff-ring");
       expect(ringEntry).toBeDefined();
-      expect(ringEntry.itemId).toBe("item-ring");
-      expect(ringEntry.itemName).toBe("Ring of Protection");
-      expect(ringEntry.suppressed).toBe(false);
+      expect(ringEntry?.itemId).toBe("item-ring");
+      expect(ringEntry?.source).toBe("Ring of Protection");
+      expect(ringEntry?.suppressed).toBe(false);
 
-      const cloakEntry = categories.managed.effects.find((e: any) => e.id === "eff-cloak");
+      const cloakEntry = passive.find((e: any) => e.id === "eff-cloak");
       expect(cloakEntry).toBeDefined();
-      expect(cloakEntry.itemId).toBe("item-cloak");
-      expect(cloakEntry.itemName).toBe("Cloak of Elvenkind");
-      expect(cloakEntry.suppressed).toBe(true);
+      expect(cloakEntry?.itemId).toBe("item-cloak");
+      expect(cloakEntry?.source).toBe("Cloak of Elvenkind");
+      expect(cloakEntry?.suppressed).toBe(true);
     });
 
-    it("handles items without equipped property without suppressing", () => {
-      const stoneEffect = { id: "eff-stone", name: "Ioun Stone", transfer: true };
-      createMockItemWithEffects("item-stone", "Ioun Stone", [stoneEffect], {});
+    it("handles items without equipped property without suppressing", async () => {
+      createMockItemWithEffects(
+        "item-stone",
+        "Ioun Stone",
+        [{ id: "eff-stone", name: "Ioun Stone", transfer: true }],
+        {},
+      );
 
-      const categories = prepareActiveEffectCategories(actor);
-      expect(categories.managed.effects[0].suppressed).toBe(false);
+      const sheet = new OseActorSheet({ document: actor });
+      const context = await sheet._prepareContext({});
+      const effectGroups = (context.effectGroups ?? []) as any[];
+      const passive = effectGroups.find((g: any) => g.key === "passive")?.effects ?? [];
+
+      expect(passive[0]?.suppressed).toBe(false);
     });
 
-    it("handles actor with null or empty collections gracefully", () => {
-      const bareActor = { effects: null, items: null };
-      const categories = prepareActiveEffectCategories(bareActor as any);
-      expect(categories.temporary.effects).toEqual([]);
-      expect(categories.passive.effects).toEqual([]);
-      expect(categories.inactive.effects).toEqual([]);
-      expect(categories.managed).toBeUndefined();
+    it("hides effects granted by unidentified items from non-GM players while showing them to GMs", async () => {
+      createMockItemWithEffects(
+        "item-cursed",
+        "Sword -1, Cursed",
+        [{ id: "eff-curse", name: "Cursed Penalty -1", transfer: true }],
+        { equipped: true, identified: false },
+      );
+
+      const sheet = new OseActorSheet({ document: actor });
+
+      (globalThis as any).game.user = { isGM: false };
+      const playerCtx = await sheet._prepareContext({});
+      const playerGroups = (playerCtx.effectGroups ?? []) as any[];
+      const playerPassive = playerGroups.find((g: any) => g.key === "passive")?.effects ?? [];
+      expect(playerPassive).toHaveLength(0);
+
+      (globalThis as any).game.user = { isGM: true };
+      const gmCtx = await sheet._prepareContext({});
+      const gmGroups = (gmCtx.effectGroups ?? []) as any[];
+      const gmPassive = gmGroups.find((g: any) => g.key === "passive")?.effects ?? [];
+      expect(gmPassive).toHaveLength(1);
+      expect(gmPassive[0]?.name).toBe("Cursed Penalty -1");
     });
-  });
 
-  describe("prepareActorContext", () => {
-    it("includes prepared effects in the sheet data context", async () => {
-      createMockEffect("eff-1", "Haste", { isTemporary: true, disabled: false });
-      const expandedSet = new Set<string>();
+    it("synchronously suppresses getter-only ActiveEffect instances during OseItem.prepareDerivedData without throwing", async () => {
+      class CoreGetterOnlyEffect {
+        id = "eff-getter";
+        get isSuppressed(): boolean {
+          return false;
+        }
+      }
+      const embeddedEffect = new CoreGetterOnlyEffect();
+      const unequippedSword = new OseItem({
+        name: "Magic Sword +1",
+        type: "weapon",
+        system: { equipped: false, description: "<p> gleaming blade </p>" },
+      });
+      (unequippedSword as any).effects = [embeddedEffect];
 
-      const context = await prepareActorContext(actor, expandedSet);
+      await expect(unequippedSword.prepareDerivedData()).resolves.not.toThrow();
+      expect(embeddedEffect.isSuppressed).toBe(true);
+      expect((unequippedSword.system as any).enrichedDescription).toBe("<p> gleaming blade </p>");
 
-      expect(context.effects).toBeDefined();
-      expect(context.effects.temporary.effects).toHaveLength(1);
-      expect(context.effects.temporary.effects[0].name).toBe("Haste");
+      (unequippedSword.system as any).equipped = true;
+      await expect(unequippedSword.prepareDerivedData()).resolves.not.toThrow();
+      expect(embeddedEffect.isSuppressed).toBe(false);
+    });
+
+    it("gates class XP adjustment rows on enableClassItems", async () => {
+      actor.system.classes = [{ uuid: "Item.cls-1", name: "Fighter", img: "fighter.png" }];
+      actor.system.classXpBonus = () => 10;
+
+      const sheet = new OseActorSheet({ document: actor });
+
+      await (globalThis as any).game.settings.set("ose", "enableClassItems", false);
+      const offCtx = await sheet._prepareContext({});
+      const offGroups = (offCtx.effectGroups ?? []) as any[];
+      expect(offGroups.find((g: any) => g.key === "passive")?.effects ?? []).toHaveLength(0);
+
+      await (globalThis as any).game.settings.set("ose", "enableClassItems", true);
+      const onCtx = await sheet._prepareContext({});
+      const onGroups = (onCtx.effectGroups ?? []) as any[];
+      expect(onGroups.find((g: any) => g.key === "passive")?.effects ?? []).toHaveLength(1);
     });
   });
 
@@ -239,7 +315,7 @@ describe("Phase 4: Active Effects Tab & Sheet Layout", () => {
 
       OseActorSheet._onEditEffect.call(mockSheet, {} as any, target as any);
 
-      expect(effect.sheet.render).toHaveBeenCalledWith(true);
+      expect(effect.sheet.render).toHaveBeenCalledWith({ force: true });
     });
 
     it("deletes ActiveEffect", async () => {
@@ -275,7 +351,7 @@ describe("Phase 4: Active Effects Tab & Sheet Layout", () => {
 
       OseActorSheet._onOpenEffectSource.call(mockSheet, {} as any, target as any);
 
-      expect(item.sheet.render).toHaveBeenCalledWith(true);
+      expect(item.sheet.render).toHaveBeenCalledWith({ force: true });
     });
 
     it("creates passive ActiveEffect with disabled: false and empty duration", async () => {
@@ -325,7 +401,7 @@ describe("Phase 4: Active Effects Tab & Sheet Layout", () => {
 
   describe("Active Effect Drag-and-Drop (onDragStartItem)", () => {
     it("handles effect dragging without throwing TypeError and serializes drag data", () => {
-      const effect = createMockEffect("eff-drag", "Invisibility");
+      createMockEffect("eff-drag", "Invisibility");
       const li = {
         dataset: { effectId: "eff-drag" },
       };
@@ -345,7 +421,7 @@ describe("Phase 4: Active Effects Tab & Sheet Layout", () => {
       expect(() => onDragStartItem(sheet, mockEvent)).not.toThrow();
 
       expect(serializedData).not.toBeNull();
-      const parsed = JSON.parse(serializedData!);
+      const parsed = JSON.parse(serializedData ?? "{}");
       expect(parsed.type).toBe("ActiveEffect");
       expect(parsed.actorId).toBe(actor.id);
       expect(parsed.data.name).toBe("Invisibility");
@@ -366,23 +442,24 @@ describe("Phase 4: Active Effects Tab & Sheet Layout", () => {
   });
 
   describe("Sheet Tab Configuration & Visibility", () => {
-    it("includes effects tab in Character sheet primary tabs and scrollable parts", () => {
+    it("includes exactly one effects tab in Character sheet primary tabs and scrollable parts", () => {
       const characterTabs = OseActorSheetCharacter.TABS.primary.tabs;
-      const effectsTab = characterTabs.find((t: any) => t.id === "effects");
+      const effectsTabs = characterTabs.filter((t: any) => t.id === "effects");
 
-      expect(effectsTab).toBeDefined();
-      expect(effectsTab?.label).toBe("OSE.category.effects");
+      expect(effectsTabs).toHaveLength(1);
+      expect(effectsTabs[0]?.label).toBe("OSE.category.effects");
 
       const scrollables = OseActorSheetCharacter.PARTS.sheet.scrollable;
+      expect(scrollables).toContain('.tab[data-tab="abilities"] .resizable');
       expect(scrollables).toContain('.tab[data-tab="effects"] .resizable');
     });
 
-    it("includes effects tab in Monster sheet primary tabs and scrollable parts", () => {
+    it("includes exactly one effects tab in Monster sheet primary tabs and scrollable parts", () => {
       const monsterTabs = OseActorSheetMonster.TABS.primary.tabs;
-      const effectsTab = monsterTabs.find((t: any) => t.id === "effects");
+      const effectsTabs = monsterTabs.filter((t: any) => t.id === "effects");
 
-      expect(effectsTab).toBeDefined();
-      expect(effectsTab?.label).toBe("OSE.category.effects");
+      expect(effectsTabs).toHaveLength(1);
+      expect(effectsTabs[0]?.label).toBe("OSE.category.effects");
 
       const scrollables = OseActorSheetMonster.PARTS.sheet.scrollable;
       expect(scrollables).toContain('.tab[data-tab="effects"] .resizable');

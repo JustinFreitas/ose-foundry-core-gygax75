@@ -1,5 +1,5 @@
-<div class="ose chat-card item-card" data-actor-id="{{data.actor._id}}" data-item-id="{{data.item._id}}"
-    {{#if tokenId}}data-token-id="{{tokenId}}" {{/if}}>
+<div class="ose chat-card item-card" data-actor-id="{{#if data.actor.id}}{{data.actor.id}}{{else}}{{data.actor._id}}{{/if}}" data-item-id="{{#if data.item.id}}{{data.item.id}}{{else}}{{data.item._id}}{{/if}}"
+    {{#if data.roll.ammo}}data-ammo-id="{{#if data.roll.ammo.id}}{{data.roll.ammo.id}}{{else}}{{data.roll.ammo._id}}{{/if}}" {{/if}}{{#if tokenId}}data-token-id="{{tokenId}}" {{/if}}>
     <div class="ose chat-block">
         <div class="flexrow chat-header">
             {{#if data.item.img}}<img class="chat-item-img" src="{{data.item.img}}" alt="" />{{/if}}

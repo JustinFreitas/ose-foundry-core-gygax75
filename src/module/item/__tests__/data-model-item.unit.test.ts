@@ -133,6 +133,16 @@ describe("OseDataModelItem", () => {
       expect(item.isCoinsOrGems).toBe(true);
     });
 
+    it("strips a trailing '(Found)' suffix when matching coins or gems", () => {
+      const gpFound = new OseDataModelItem({ treasure: true }, { parent: { name: "GP (Found)" } });
+      const spFound = new OseDataModelItem({ treasure: true }, { parent: { name: "SP (Found)" } });
+      const coinsFound = new OseDataModelItem({ treasure: true }, { parent: { name: "Gold Coins (found)" } });
+
+      expect(gpFound.isCoinsOrGems).toBe(true);
+      expect(spFound.isCoinsOrGems).toBe(true);
+      expect(coinsFound.isCoinsOrGems).toBe(true);
+    });
+
     it("is false for treasure with an unrelated name", () => {
       const item = new OseDataModelItem({ treasure: true }, { parent: { name: "Ruby Idol" } });
 

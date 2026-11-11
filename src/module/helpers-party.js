@@ -34,14 +34,17 @@ export const addControl = (object) => {
   }
 };
 
-export const update = (actor) => {
-  const partyFlag = actor.getFlag(game.system.id, "party");
+export const update = (actor, data) => {
+  const sysId = game.system.id;
+  const partyFlag = actor.getFlag(sysId, "party");
+  const flagScope = data?.flags?.[sysId] ?? data?.flags?.ose;
+  const flagChanged = flagScope !== undefined && flagScope !== null && ("party" in flagScope || "-=party" in flagScope);
 
-  if (!partyFlag) {
+  if (!partyFlag && !flagChanged) {
     return;
   }
 
-  OsePartySheet.partySheet.render();
+  OsePartySheet.partySheet?.render();
 };
 
 export { resetDutyXP } from "./party/duty-xp";

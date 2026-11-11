@@ -89,11 +89,12 @@ describe("renameColumnKeys", () => {
       ],
     },
   ];
+  const first = before[0] as (typeof before)[number];
   const submit = (cs: string, hs = "hs") => [
     {
-      ...before[0],
+      ...first,
       columns: [{ key: cs }, { key: hs }],
-      rows: before[0].rows.map((r) => ({ ...r })),
+      rows: first.rows.map((r) => ({ ...r })),
     },
   ];
 
@@ -196,8 +197,6 @@ describe("legendSuggestions", () => {
     expect(legendSuggestions(table)).toEqual(["T", "D", "D+", "-", "#"]);
   });
   it("leaves out empty cells and has no # without numbers", () => {
-    expect(legendSuggestions({ key: "k", columns: [{ key: "a", name: "" }], rows: [{ a: "" }, { a: "x" }] })).toEqual([
-      "x",
-    ]);
+    expect(legendSuggestions({ columns: [{ key: "a", name: "" }], rows: [{ a: "" }, { a: "x" }] })).toEqual(["x"]);
   });
 });

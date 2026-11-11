@@ -3,6 +3,7 @@
  */
 import { rollsStartingHp } from "../classes/levels";
 import OSE from "../config";
+import { removeItemFromActor } from "./inventory-actions";
 
 export const onDragStartItem = (sheet, event) => {
   const li = event.currentTarget;
@@ -51,17 +52,15 @@ export const onDragStartItem = (sheet, event) => {
 export const onDropFolder = async (sheet, _event, folder) => {
   if (!folder || folder.type !== "Item") return;
 
-  let itemArray = folder.contents || [];
-  folder.getSubfolders(true).forEach((subfolder) => {
-    itemArray.push(...subfolder.contents);
+  let itemArray = [...(folder.contents || [])];
+  folder.getSubfolders?.(true)?.forEach((subfolder) => {
+    itemArray.push(...(subfolder.contents || []));
   });
 
-  if (itemArray.length > 0 && itemArray[0]?.uuid?.includes("Compendium")) {
-    const items = [];
-    itemArray.forEach(async (item) => {
-      items.push(await fromUuid(item.uuid));
-    });
-    itemArray = items;
+  if (itemArray.length > 0 && itemArray.some((item) => item?.uuid?.includes?.("Compendium") || !item?.system)) {
+    itemArray = (
+      await Promise.all(itemArray.map((item) => (item?.uuid ? fromUuid(item.uuid) : Promise.resolve(item))))
+    ).filter(Boolean);
   }
   return onDropItemCreate(sheet, itemArray);
 };
@@ -143,18 +142,17 @@ export const onDropItem = async (sheet, event, item) => {
 
   const itemData = typeof resolvedItem.toObject === "function" ? resolvedItem.toObject() : resolvedItem;
   const itemId = resolvedItem.id || resolvedItem._id;
-  const isOwned = !!sheet.actor.items.get(itemId);
-  const sourceContainer = resolvedItem.system?.containerId
-    ? sheet.actor.items.get(resolvedItem.system.containerId)
-    : null;
+  const isOwned = Boolean(resolvedItem?.parent ? resolvedItem.parent === sheet.actor : false);
+  const sourceContainer =
+    isOwned && resolvedItem.system?.containerId ? sheet.actor.items.get(resolvedItem.system.containerId) : null;
 
   const pool = event?.target?.closest?.("[data-spell-pool]")?.dataset.spellPool;
   if (isOwned && resolvedItem.type === "spell" && pool && pool !== resolvedItem.system.castAs) {
     return resolvedItem.update({ "system.castAs": pool });
   }
 
-  // Dragging container onto itself
-  if (itemId === targetId || (targetContainer && itemId === targetContainer.id)) return;
+  // Dragging owned item/container onto itself
+  if (isOwned && (itemId === targetId || (targetContainer && itemId === targetContainer.id))) return;
 
   if (!isOwned && resolvedItem.type === "class" && sheet.actor.type === "character")
     return onDropClass(sheet, itemData);
@@ -165,13 +163,21 @@ export const onDropItem = async (sheet, event, item) => {
     return ui.notifications.warn(game.i18n.localize("OSE.warn.noNestedContainers") || "You cannot nest containers.");
   }
 
+  const removeFromSourceActor = async () => {
+    if (resolvedItem.actor && resolvedItem.actor.id !== sheet.actor.id && !event?.ctrlKey) {
+      if (typeof resolvedItem.actor.deleteEmbeddedDocuments === "function") {
+        await removeItemFromActor(resolvedItem.actor, resolvedItem);
+      } else {
+        await resolvedItem.delete?.();
+      }
+    }
+  };
+
   // Branch A: Drop target is a Container (or inside a container)
   if (targetContainer) {
     if (!isOwned) {
       const result = await onContainerItemAdd(sheet, resolvedItem, targetContainer);
-      if (resolvedItem.actor && resolvedItem.actor.id !== sheet.actor.id && !event?.ctrlKey) {
-        await resolvedItem.delete?.();
-      }
+      await removeFromSourceActor();
       return result;
     }
 
@@ -191,10 +197,8 @@ export const onDropItem = async (sheet, event, item) => {
   }
 
   if (!isOwned) {
-    const result = await onDropItemCreate(sheet, [itemData]);
-    if (resolvedItem.actor && resolvedItem.actor.id !== sheet.actor.id && !event?.ctrlKey) {
-      await resolvedItem.delete?.();
-    }
+    const result = await onDropItemCreate(sheet, [resolvedItem]);
+    await removeFromSourceActor();
     return result;
   }
 
@@ -312,14 +316,26 @@ export const onContainerItemRemove = async (sheet, item, container) => {
 };
 
 export const onContainerItemAdd = async (sheet, item, target) => {
-  const alreadyExistsInActor = target.parent?.items?.get
-    ? target.parent.items.get(item.id)
-    : target.parent?.items?.find?.((i) => i.id === item.id);
+  const isAlreadyOnTargetActor =
+    item.parent === sheet.actor &&
+    Boolean(
+      target.parent?.items?.get
+        ? target.parent.items.get(item.id)
+        : target.parent?.items?.find?.((i) => i.id === item.id),
+    );
   let latestItem = item;
-  if (!alreadyExistsInActor) {
-    const newItem = await onDropItemCreate(sheet, [item.toObject ? item.toObject() : item]);
+  const cloneData = (val) => (foundry.utils.deepClone ? foundry.utils.deepClone(val) : structuredClone(val));
+  if (!isAlreadyOnTargetActor) {
+    const itemPayload = typeof item.toObject === "function" ? item.toObject() : cloneData(item);
+    if (item.parent && item.parent !== sheet.actor) {
+      delete itemPayload._id;
+      delete itemPayload.id;
+    }
+    const newItem = await onDropItemCreate(sheet, [itemPayload]);
     latestItem = Array.isArray(newItem) ? newItem[newItem.length - 1] : newItem;
   }
+
+  if (!latestItem) return [];
 
   const alreadyExistsInContainer = target.system.itemIds.includes(latestItem.id);
   if (!alreadyExistsInContainer) {
@@ -331,23 +347,135 @@ export const onContainerItemAdd = async (sheet, item, target) => {
 };
 
 export const onDropItemCreate = async (sheet, droppedItem, targetContainer = false) => {
-  const droppedItemArray = Array.isArray(droppedItem) ? droppedItem : [droppedItem];
-  droppedItemArray.forEach((item) => {
-    if (item.system.containerId && item.system.containerId !== "") item.system.containerId = "";
-    if (item.type === "container" && typeof item.system.itemIds === "string") {
-      const containedItems = JSON.parse(item.system.itemIds);
-      containedItems.forEach((containedItem) => {
-        containedItem.system.containerId = "";
-      });
-      droppedItem.push(...containedItems);
+  const cloneData = (val) => (foundry.utils.deepClone ? foundry.utils.deepClone(val) : structuredClone(val));
+  const rawItems = (Array.isArray(droppedItem) ? droppedItem : [droppedItem]).filter(Boolean);
+  if (rawItems.length === 0) return [];
+
+  const itemsToCreate = [];
+  const pendingContainerChildren = [];
+
+  for (const raw of rawItems) {
+    const isForeignActorItem = Boolean(raw.parent && raw.parent !== sheet.actor);
+    const sourceActor = isForeignActorItem ? raw.actor || raw.parent : null;
+    const data = typeof raw.toObject === "function" ? raw.toObject() : cloneData(raw);
+    if (isForeignActorItem) {
+      delete data._id;
+      delete data.id;
     }
-  });
-  if (!targetContainer) {
-    return sheet.actor.createEmbeddedDocuments("Item", droppedItem);
+    data.system = data.system || {};
+    if (data.system.containerId) data.system.containerId = "";
+
+    if (data.type === "container") {
+      let rawChildEntries = [];
+      if (typeof data.system.itemIds === "string") {
+        try {
+          const parsed = JSON.parse(data.system.itemIds);
+          if (Array.isArray(parsed)) rawChildEntries = parsed;
+        } catch {
+          rawChildEntries = [];
+        }
+      } else if (Array.isArray(data.system.itemIds)) {
+        rawChildEntries = [...data.system.itemIds];
+      }
+
+      data.system.itemIds = [];
+      const childPayloads = [];
+      for (const entry of rawChildEntries) {
+        if (entry && typeof entry === "object" && entry.system) {
+          const childClone = cloneData(entry);
+          delete childClone._id;
+          delete childClone.id;
+          childClone.system.containerId = "";
+          childPayloads.push(childClone);
+        } else if (typeof entry === "string") {
+          const srcChild =
+            sourceActor?.items?.get?.(entry) ??
+            (Array.isArray(sourceActor?.items)
+              ? sourceActor.items.find((i) => i.id === entry || i._id === entry)
+              : null) ??
+            (Array.isArray(raw.system?.contents)
+              ? raw.system.contents.find((i) => i.id === entry || i._id === entry)
+              : null);
+          if (srcChild) {
+            const childClone = typeof srcChild.toObject === "function" ? srcChild.toObject() : cloneData(srcChild);
+            delete childClone._id;
+            delete childClone.id;
+            childClone.system = childClone.system || {};
+            childClone.system.containerId = "";
+            childPayloads.push(childClone);
+          }
+        }
+      }
+
+      const containerIndex = itemsToCreate.length;
+      itemsToCreate.push(data);
+      if (childPayloads.length > 0) {
+        pendingContainerChildren.push({ containerIndex, childPayloads, sourceActor, rawChildEntries });
+      }
+      continue;
+    }
+
+    itemsToCreate.push(data);
   }
-  const { itemIds } = targetContainer.system;
-  itemIds.push(droppedItem.id);
-  const item = sheet.actor.items.get(droppedItem[0].id);
-  await targetContainer.update({ system: { itemIds } });
-  return item.update({ system: { containerId: targetContainer.id } });
+
+  const createdRaw = await sheet.actor.createEmbeddedDocuments("Item", itemsToCreate);
+  const createdItems = Array.isArray(createdRaw) ? [...createdRaw] : [createdRaw].filter(Boolean);
+
+  for (const { containerIndex, childPayloads } of pendingContainerChildren) {
+    const newContainer = createdItems[containerIndex];
+    if (!newContainer) continue;
+    const createdChildrenRaw = await sheet.actor.createEmbeddedDocuments("Item", childPayloads);
+    const createdChildren = Array.isArray(createdChildrenRaw)
+      ? createdChildrenRaw
+      : [createdChildrenRaw].filter(Boolean);
+    const childIds = createdChildren.map((c) => c.id || c._id).filter(Boolean);
+    if (childIds.length > 0) {
+      if (typeof newContainer.update === "function") {
+        await newContainer.update({ "system.itemIds": childIds });
+      } else if (typeof sheet.actor.updateEmbeddedDocuments === "function") {
+        await sheet.actor.updateEmbeddedDocuments("Item", [
+          { _id: newContainer.id || newContainer._id, "system.itemIds": childIds },
+        ]);
+      }
+      for (const child of createdChildren) {
+        if (typeof child.update === "function") {
+          await child.update({ "system.containerId": newContainer.id || newContainer._id, "system.equipped": false });
+        } else if (typeof sheet.actor.updateEmbeddedDocuments === "function") {
+          await sheet.actor.updateEmbeddedDocuments("Item", [
+            {
+              _id: child.id || child._id,
+              "system.containerId": newContainer.id || newContainer._id,
+              "system.equipped": false,
+            },
+          ]);
+        }
+      }
+      createdItems.push(...createdChildren);
+    }
+  }
+
+  if (targetContainer?.id) {
+    const stowable = createdItems.filter((c) => c && c.type !== "container");
+    const newItemIds = [...(targetContainer.system?.itemIds ?? [])];
+    for (const item of stowable) {
+      const id = item.id || item._id;
+      if (id && !newItemIds.includes(id)) newItemIds.push(id);
+    }
+    if (typeof targetContainer.update === "function") {
+      await targetContainer.update({ "system.itemIds": newItemIds });
+    } else if (typeof sheet.actor.updateEmbeddedDocuments === "function") {
+      await sheet.actor.updateEmbeddedDocuments("Item", [{ _id: targetContainer.id, "system.itemIds": newItemIds }]);
+    }
+    for (const item of stowable) {
+      if (typeof item.update === "function") {
+        await item.update({ "system.containerId": targetContainer.id, "system.equipped": false });
+      } else if (typeof sheet.actor.updateEmbeddedDocuments === "function") {
+        await sheet.actor.updateEmbeddedDocuments("Item", [
+          { _id: item.id || item._id, "system.containerId": targetContainer.id, "system.equipped": false },
+        ]);
+      }
+    }
+  }
+
+  return createdItems;
 };

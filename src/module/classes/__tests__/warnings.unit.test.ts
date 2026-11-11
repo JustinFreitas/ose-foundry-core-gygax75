@@ -273,8 +273,8 @@ describe("ability requirement warnings", () => {
   it("warns when two classes share a table column", () => {
     const share = { id: "a", key: "skills.hs", cls: "Assassin", other: "Thief", used: "Assassin" };
     const [w] = computeWarnings(input({ sharedColumns: [share] }));
-    expect(w.key).toBe("sharedTableColumn.skills.hs");
-    expect(w.itemId).toBe("a");
-    expect(w.data).toEqual({ key: "skills.hs", cls: "Assassin", other: "Thief", used: "Assassin" });
+    expect(w?.key).toBe("sharedTableColumn.skills.hs");
+    expect(w?.itemId).toBe("a");
+    expect(w?.data).toEqual({ key: "skills.hs", cls: "Assassin", other: "Thief", used: "Assassin" });
   });
 });

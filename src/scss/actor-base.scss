@@ -262,7 +262,8 @@
     }
     .inventory {
       overflow: auto;
-      &.effects {
+      &.effects,
+      &.effects-list {
         height: 100%;
       }
       .header-spells {
@@ -487,7 +488,8 @@
           flex: 0 0 2.7rem;
         }
       }
-      &.effects {
+      &.effects,
+      &.effects-list {
         .item-controls {
           flex: 0 0 4rem;
         }
@@ -503,7 +505,8 @@
           line-height: 1.9rem;
           color: variables.$colorTan;
         }
-        .effect-control {
+        .effect-control,
+        .item-control {
           .fa-toggle-on {
             color: variables.$colorCrimson;
           }
@@ -511,6 +514,8 @@
             color: variables.$colorInactive;
           }
         }
+        .effect-entry.inactive,
+        .effect-entry.suppressed,
         .item-entry[data-effect-type="inactive"],
         .item-entry[data-effect-suppressed="true"] {
           .item-name,

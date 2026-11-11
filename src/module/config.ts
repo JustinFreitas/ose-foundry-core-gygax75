@@ -164,7 +164,7 @@ export const OSE = {
     white: "OSE.colors.white",
   },
   /** Spell lists a class can cast from, as named on spells. Content modules can add their own. */
-  spellLists: ["Cleric", "Magic-User"],
+  spellLists: ["Cleric", "Druid", "Illusionist", "Magic-User"],
   /** Rules journal pages sheets link to, set by content modules: a page UUID with an optional `#heading` anchor. */
   rulesReferences: {} as Record<string, string>,
   /** The languages a character may know, as display names. */
@@ -293,7 +293,7 @@ export const OSE = {
       return `${CONFIG.OSE.assetsPath}/melee.png`;
     },
     get missile() {
-      return "fa-bow-arrow";
+      return `${CONFIG.OSE.assetsPath}/missile.png`;
     },
     get slow() {
       return `${CONFIG.OSE.assetsPath}/slow.png`;

@@ -32,8 +32,7 @@
     "allowUmdGlobalAccess": true,
     "paths": {
       "@client/*": ["./foundry/client/*"],
-      "@common/*": ["./foundry/common/*"],
-      "@setup/*": ["./foundry/setup/*"]
+      "@common/*": ["./foundry/common/*"]
     }
   },
   "include": ["src/**/*.js", "src/**/*.ts", "src/**/*.d.ts", "test/**/*.ts"]

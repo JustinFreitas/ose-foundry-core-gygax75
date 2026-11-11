@@ -102,7 +102,10 @@ export default class OseDataModelItem extends foundry.abstract.TypeDataModel<any
 
     if (!this.parent?.name) return false;
 
-    const itemName = this.parent.name.toLowerCase();
+    const itemName = this.parent.name
+      .toLowerCase()
+      .replace(/\s*\(found\)$/i, "")
+      .trim();
     if (itemName.endsWith(" coins")) return true;
 
     const coins = [

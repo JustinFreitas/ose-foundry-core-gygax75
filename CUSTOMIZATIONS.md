@@ -1,6 +1,6 @@
 # OSE Gygax '75 System Customizations Registry
 
-This document serves as the authoritative registry of all custom modifications, rule enhancements, and UI tweaks maintained in the `ose-foundry-core-gygax75` fork of the official Old-School Essentials system for Foundry VTT (upstream: [`vance/ose`](https://github.com/vance/ose)).
+This document serves as the authoritative registry of all custom modifications, rule enhancements, and UI tweaks maintained in the `ose-foundry-core-gygax75` fork of the official Old-School Essentials system for Foundry VTT (upstream: [`NecroticGnome/ose-foundry-core`](https://github.com/NecroticGnome/ose-foundry-core)).
 
 Whenever upstream changes are merged or new features are introduced, consult this catalog to verify that active customizations are preserved and that deprecated features are systematically marked obsolete.
 
@@ -21,36 +21,43 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 
 | ID | Status | Category | Name | Primary Touchpoints |
 | :--- | :--- | :--- | :--- | :--- |
-| `GYGAX-001` | `🟢 Active` | Migration & Data | Setting Gate for Class/Race Items | `src/module/settings.ts`, `src/module/migration/index.ts` |
-| `GYGAX-002` | `🟢 Active` | UI & Styling | Gygax '75 High-Res Login Art & Thumbnail | `assets/ose-system.webp`, `thumbnail.webp` |
+| `GYGAX-001` | `🟢 Active` | Migration & Data | Setting Gate for Class/Race Items | `src/module/settings.ts`, `src/module/migration/index.ts`, `src/module/migration/convert-actor.ts` |
+| `GYGAX-002` | `🟢 Active` | UI & Styling | Gygax '75 High-Res Login Art & Thumbnail | `assets/ose-system.webp`, `assets/ose-system-thumbnail.webp` |
 | `GYGAX-003` | `🟢 Active` | UI & Styling | Compact Top-Center Game Pause Indicator | `src/scss/core.scss` |
-| `GYGAX-004` | `🟢 Active` | Combat & Initiative | Fast Combat Tracker & Halfling Initiative | `src/module/combat/combatant.ts`, `combat-tracker.ts` |
-| `GYGAX-005` | `🟢 Active` | Encumbrance | BECMI 2,400 cn Encumbrance Variant | `src/module/actor/data-model-classes/data-model-character-encumbrance.ts` |
-| `GYGAX-006` | `🟢 Active` | Character Creation | Auto Stat Gen & Sub-Par Rerolls | `src/module/character-creation.js`, `character-header.html` |
-| `GYGAX-007` | `🟢 Active` | Economy & Shopping | GP (Bank) Ledger & Shopping Cart Flow | `src/module/character-creation.js`, `character-gp-cost.js` |
-| `GYGAX-008` | `🟢 Active` | Party Management | Party Sheet Rosters, Duty XP & Retention | `src/module/party-sheet.js`, `duty-xp.js`, `party-xp.js` |
-| `GYGAX-009` | `🟢 Active` | Inventory | Container D&D & Nested Container Prevention | `src/module/actor/actor-sheet.js`, `character-sheet.js` |
-| `GYGAX-010` | `🟢 Active` | Rules & Mechanics | DialogV2 Hit Dice Rolling & Name Scaling | `src/module/entity.js`, `src/lang/en.json` |
-| `GYGAX-011` | `🟢 Active` | Tactical Combat | Combat Modifiers & Ammunition Tracking | `src/module/entity.js`, `src/module/settings.ts` |
-| `GYGAX-012` | `🟢 Active` | Tactical Combat | Tactical Combat Hooks (Healing & Speed) | `src/module/tactical-combat-hooks.ts`, `src/ose.js` |
-| `GYGAX-013` | `🟢 Active` | Active Effects | Effects Tab & Link Forwarding | `src/module/actor/actor-sheet.js`, `actor-effects-tab.html` |
-| `GYGAX-014` | `🟢 Active` | UI & Styling | DialogV2 OSE Parchment & Styling Standards | `src/scss/apps.scss` |
+| `GYGAX-004` | `🟢 Active` | Combat & Initiative | Fast/Slow Initiative Groups & Combat Tracker | `src/module/combat/combat.ts`, `src/module/combat/combatant.ts`, `src/module/combat/combat-tracker.ts` |
+| `GYGAX-005` | `🟢 Active` | Encumbrance | BECMI 2,400 cn Encumbrance & Multi-Tier Bar | `src/module/actor/data-model-classes/data-model-character-encumbrance.ts`, `template.json` |
+| `GYGAX-006` | `🟢 Active` | Character Creation | Auto Stat Gen & Sub-Par Rerolls | `src/module/dialog/character-creation.js`, `src/templates/actors/partials/character-header.html` |
+| `GYGAX-007` | `🟢 Active` | Economy & Shopping | GP (Bank) Ledger & Shopping Cart Flow | `src/module/dialog/character-creation.js`, `src/module/dialog/character-gp-cost.js` |
+| `GYGAX-008` | `🟢 Active` | Party Management | Party Sheet Rosters, Duty XP & Retention | `src/module/party/party-sheet.js`, `src/module/party/duty-xp.js`, `src/module/party/party-xp.js`, `src/module/helpers-party.js` |
+| `GYGAX-009` | `🟢 Active` | Inventory | Container D&D & Nested Container Prevention | `src/module/sheet/drag-drop.js`, `src/module/sheet/inventory-actions.js`, `src/module/actor/actor-sheet.js` |
+| `GYGAX-010` | `🟢 Active` | Rules & Mechanics | DialogV2 Hit Dice Rolling & Name-Level Scaling | `src/module/actor/entity.js`, `src/lang/en.json` |
+| `GYGAX-011` | `🟢 Active` | Tactical Combat | Combat Modifiers & Ammunition Tracking | `src/module/actor/entity.js`, `src/module/item/entity.ts`, `src/module/settings.ts` |
+| `GYGAX-012` | `🟢 Active` | Tactical Combat | Tactical Combat Hooks (Healing & Speed) | `src/module/combat/tactical-combat-hooks.ts`, `src/ose.js` |
+| `GYGAX-013` | `🟢 Active` | Active Effects | Effects Tab & Link Forwarding | `src/module/actor/actor-sheet.js`, `src/templates/actors/partials/actor-effects-tab.html` |
+| `GYGAX-014` | `🟢 Active` | UI & Styling | DialogV2 OSE Parchment & Styling Standards | `src/scss/apps.scss`, `src/module/rings.ts`, `src/module/sheet/dialogs.js` |
 | `GYGAX-015` | `🟢 Active` | UI & Styling | Window Content Double Scrollbar Fix | `src/scss/core.scss` |
 | `GYGAX-016` | `🟢 Active` | UI & Styling | Character Sheet Notes Tab Responsive Flex | `src/scss/character.scss` |
 | `GYGAX-017` | `🟢 Active` | UI & Styling | Effects Tab Full-Height Inventory Sizing | `src/scss/actor-base.scss` |
 | `GYGAX-018` | `🟢 Active` | UI & Shopping | Shopping Cart Max Height & Currency Alignment | `src/scss/apps.scss` |
-| `GYGAX-019` | `🟢 Active` | Economy & Math | Bundle Cumulative Cost Math Model | `src/module/item/data-model-item.ts` |
-| `GYGAX-020` | `🟢 Active` | UI & Sheets | Item Sheet (Bundle) Visual Suffix Labels | `src/templates/items/*.html` |
+| `GYGAX-019` | `🟢 Active` | Economy & Math | Bundle Cumulative Cost & Encumbrance Math | `src/module/item/data-model-item.ts`, `src/module/item/data-model-weapon.ts`, `src/module/item/data-model-armor.ts` |
+| `GYGAX-020` | `🟢 Active` | UI & Sheets | Item Sheet (Bundle) Visual Suffix Labels | `src/templates/items/*.html`, `src/lang/*.json` |
 | `GYGAX-021` | `🟢 Active` | Macros & Hotbar | Macro Unlinked Token Resolution & Quoted Escaping | `src/module/helpers-macros.js` |
-| `GYGAX-022` | `🟢 Active` | Core Compliance | Modern User ID Reference in Whispers (`game.user.id`) | `src/module/helpers-dice.js`, `helpers-treasure.js` |
+| `GYGAX-022` | `🟢 Active` | Core Compliance | Modern User ID Reference in Whispers (`game.user.id`) | `src/module/helpers-dice.js`, `src/module/helpers-treasure.js` |
 | `GYGAX-023` | `🟢 Active` | Equipment & Tags | Custom Weapon Qualities: Penetrating & Reach | `src/module/config.ts`, `src/lang/en.json`, `assets/` |
-| `GYGAX-024` | `🟢 Active` | Classes & Rules | Gygax '75 Custom Classes for String Mode | `src/module/classes/gygax75-classes.ts`, `config.ts` |
+| `GYGAX-024` | `🟢 Active` | Classes & Rules | Gygax '75 Custom Classes & Migration Indexer | `src/module/classes/gygax75-classes.ts`, `src/module/classes/classic-to-item.ts`, `src/module/migration/class-index.ts` |
 | `GYGAX-025` | `🟢 Active` | Monster Sheet | Monster Sheet RollTable Drop Hyperlink Labels | `src/module/actor/monster-sheet.js` |
 | `GYGAX-026` | `🟢 Active` | Monster Sheet | Monster Sheet Description Editor 100% Height | `src/scss/monster.scss` |
-| `GYGAX-027` | `🔴 Obsolete` | Legacy Architecture| ApplicationV1 FormApplication Overrides | Various pre-v3 JS files |
-| `GYGAX-028` | `🔴 Obsolete` | Manifests | `template.json` Custom Property Injections | `template.json` (removed upstream) |
+| `GYGAX-027` | `🔴 Obsolete` | Legacy Architecture | ApplicationV1 FormApplication Overrides | Various pre-v3 JS files |
+| `GYGAX-028` | `🔴 Obsolete` | Manifests | Legacy Ad-Hoc `template.json` Field Injections | `template.json` (superseded by `TypeDataModel` schemas) |
 | `GYGAX-029` | `🔴 Obsolete` | UI & Sizing | Hardcoded Sheet Window Pixel Dimensions | Legacy sheet constructors |
-| `GYGAX-030` | `🔴 Obsolete` | Dialog Architecture| Legacy `.wait()` Dialog Pattern | Pre-ApplicationV2 dialog wrappers |
+| `GYGAX-030` | `🔴 Obsolete` | Dialog Architecture | Legacy `.wait()` Dialog Pattern | Pre-ApplicationV2 dialog wrappers |
+| `GYGAX-031` | `🟢 Active` | Combat & Ammunition | Magical Ammo Bonuses & Auto-Range Modifiers | `src/module/item/entity.ts`, `src/module/helpers-dice.js`, `src/module/actor/entity.js` |
+| `GYGAX-032` | `🟢 Active` | Spellcasting | Spell Slot Schema Levels 1–9 | `template.json`, `src/module/actor/data-model-character.js`, `src/module/effects/effect-keys.ts` |
+| `GYGAX-033` | `🟢 Active` | Inventory & Secrets | Unidentified Items & Hidden GM Charges | `src/module/item/data-model-item.ts`, `src/module/item/entity.ts`, `src/module/item/item-sheet.js` |
+| `GYGAX-034` | `🟢 Active` | Combat & Weapons | Conditional "Vs. Creature Group" Weapon Modifiers | `src/module/item/data-model-weapon.ts`, `src/module/actor/entity.js` |
+| `GYGAX-035` | `🟢 Active` | Abilities | Ability-Linked Roll-Under Proficiencies | `src/module/item/data-model-ability.ts`, `src/module/item/entity.ts`, `src/templates/items/ability-sheet.html` |
+| `GYGAX-036` | `🟢 Active` | Monsters & Mounts | Silver/Magic Gating, Damage Mitigation, MR % & Mount Load | `src/module/actor/entity.js`, `src/module/actor/data-model-monster.js`, `src/module/helpers-chat.ts` |
+| `GYGAX-037` | `🟢 Active` | Manifests | Intentional Omission of `relationships.recommends` | `system.json` |
 
 ---
 
@@ -61,18 +68,18 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 #### `GYGAX-001`: Setting Gate for Discrete Class/Race Items
 * **Status**: `🟢 Active`
 * **Category**: Migration & Data
-* **Files**: [`src/module/settings.ts`](src/module/settings.ts), [`src/module/migration/index.ts`](src/module/migration/index.ts), [`src/templates/actors/character-sheet.html`](src/templates/actors/character-sheet.html)
+* **Files**: [`src/module/settings.ts`](src/module/settings.ts), [`src/module/migration/index.ts`](src/module/migration/index.ts), [`src/module/migration/convert-actor.ts`](src/module/migration/convert-actor.ts), [`src/module/actor/data-model-character.js`](src/module/actor/data-model-character.js), [`src/module/actor/entity.js`](src/module/actor/entity.js), [`src/templates/actors/character-sheet.html`](src/templates/actors/character-sheet.html)
 * **Origin**: Commit `59fdbbe` (`v3.1.0-beta.2-gygax75.1`)
-* **Description**: Adds the `enableClassItems` world setting (defaulting to `false`). When disabled, character sheets preserve single-string `system.details.class` and `system.details.title`, hide the upstream migration banner/buttons, and prevent automated data migration from destroying backward compatibility with existing campaign actors and macros.
-* **Upstream Merge Guard**: Ensure `enableClassItems` checks remain intact during upstream migration updates.
+* **Description**: Adds the `enableClassItems` world setting (defaulting to `false`). When disabled, character sheets preserve single-string `system.details.class` and `system.details.title`, hide the upstream migration banner/buttons, guard headless conversion/XP/derivation paths against residual `class`/`race` items, and prevent automated data migration from breaking backward compatibility with existing campaign actors and macros.
+* **Upstream Merge Guard**: Ensure `enableClassItems` checks remain intact across migration entrypoints, `OseDataModelCharacter`, and `OseActor`.
 
 #### `GYGAX-002`: Gygax '75 High-Res Login Art & World Thumbnail
 * **Status**: `🟢 Active`
 * **Category**: UI & Styling
-* **Files**: [`assets/ose-system.webp`](assets/ose-system.webp), [`thumbnail.webp`](thumbnail.webp)
+* **Files**: [`assets/ose-system.webp`](assets/ose-system.webp), [`assets/ose-system-thumbnail.webp`](assets/ose-system-thumbnail.webp)
 * **Origin**: Commit `75f2940` (`v3.1.0-beta.2-gygax75.2`)
 * **Description**: Replaces the default upstream cover with the custom high-resolution Gygax '75 fantasy dungeon crawler splash art and world banner.
-* **Upstream Merge Guard**: Upstream updates regularly overwrite `assets/ose-system.webp` and `thumbnail.webp`; restore custom binary assets after pulls.
+* **Upstream Merge Guard**: Upstream updates regularly overwrite `assets/ose-system.webp` and `assets/ose-system-thumbnail.webp`; restore custom binary assets after pulls.
 
 #### `GYGAX-003`: Compact Top-Center Game Pause Indicator
 * **Status**: `🟢 Active`
@@ -82,26 +89,26 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Description**: Restyles Foundry's default `#pause` overlay to a compact 48px badge positioned at the top-center margin (`top: 20px`, `transform: translate(-50%, 0) scale(0.5)`). Retains Foundry V14 click-through safety (`pointer-events: none`).
 * **Upstream Merge Guard**: Check `src/scss/core.scss` on upstream pulls.
 
-#### `GYGAX-004`: Fast Combat Tracker & Halfling Initiative
+#### `GYGAX-004`: Fast/Slow Initiative Groups & Combat Tracker Enhancements
 * **Status**: `🟢 Active`
 * **Category**: Combat & Initiative
-* **Files**: [`src/module/combat/combatant.ts`](src/module/combat/combatant.ts), [`src/module/combat/combat-tracker.ts`](src/module/combat/combat-tracker.ts), [`src/templates/combat/combat-tracker-combatant.hbs`](src/templates/combat/combat-tracker-combatant.hbs)
+* **Files**: [`src/module/combat/combat.ts`](src/module/combat/combat.ts), [`src/module/combat/combatant.ts`](src/module/combat/combatant.ts), [`src/module/combat/combat-tracker.ts`](src/module/combat/combat-tracker.ts), [`src/module/combat/combat-set-groups.ts`](src/module/combat/combat-set-groups.ts), [`src/templates/sidebar/combat-tracker-combatant.hbs`](src/templates/sidebar/combat-tracker-combatant.hbs)
 * **Origin**: Pre-v3 (`2.3.0-gygax75`), ported to v3.0 ApplicationV2 in `e373913`
-* **Description**: Streamlines OSE group and individual initiative with one-click side rolling, fast combatant cycling, and automated Halfling +1 individual initiative modifiers.
-* **Upstream Merge Guard**: Upstream ApplicationV2 combat tracker rewrites.
+* **Description**: Streamlines OSE group and individual initiative with one-click side rolling, combatant group selector (`OSECombatGroupSelector`), fast combatant cycling, and dedicated `"fast"` (`789` / `fa-bolt-lightning` — e.g. Halflings acting ahead of rolled initiative groups unless using a `Slow` weapon) and `"slow"` (`-789` — two-handed/slow weapons acting last) initiative brackets.
+* **Upstream Merge Guard**: Upstream ApplicationV2 combat tracker and `OSECombat._sortCombatants` updates.
 
-#### `GYGAX-005`: BECMI 2,400 cn Encumbrance Variant
+#### `GYGAX-005`: BECMI 2,400 cn Encumbrance Variant & Multi-Tier Bar
 * **Status**: `🟢 Active`
 * **Category**: Encumbrance
-* **Files**: [`src/module/actor/data-model-classes/data-model-character-encumbrance.ts`](src/module/actor/data-model-classes/data-model-character-encumbrance.ts), [`src/scss/character.scss`](src/scss/character.scss)
+* **Files**: [`src/module/actor/data-model-classes/data-model-character-encumbrance.ts`](src/module/actor/data-model-classes/data-model-character-encumbrance.ts), [`src/module/actor/data-model-classes/data-model-character-move.ts`](src/module/actor/data-model-classes/data-model-character-move.ts), [`src/templates/actors/partials/character-encumbrance.html`](src/templates/actors/partials/character-encumbrance.html), [`src/scss/character.scss`](src/scss/character.scss), [`template.json`](template.json)
 * **Origin**: Pre-v3 (`2.3.0-gygax75`), ported in `e373913`
-* **Description**: Implements the official BECMI/RC maximum load capacity of 2,400 cn alongside standard B/X 1,600 cn thresholds, supporting high-strength pack mules and deep dungeon haulage.
-* **Upstream Merge Guard**: DataModel schema validations for character actors.
+* **Description**: Implements the official BECMI/RC maximum load capacity of 2,400 cn (`400 / 800 / 1,200 / 2,400 cn` breakpoints) alongside standard B/X 1,600 cn thresholds via the `gygax75Encumbrance` setting, complete with multi-tier encumbrance bar colors (`tier-1`..`tier-4`) and `untilNextBreakpoint` / `nextBase` speed tooltips.
+* **Upstream Merge Guard**: DataModel schema validations and `character-encumbrance.html` rounding helpers.
 
 #### `GYGAX-006`: Auto Stat Generation & Sub-Par Rerolls
 * **Status**: `🟢 Active`
 * **Category**: Character Creation
-* **Files**: [`src/module/character-creation.js`](src/module/character-creation.js), [`src/templates/actors/character-header.html`](src/templates/actors/character-header.html)
+* **Files**: [`src/module/dialog/character-creation.js`](src/module/dialog/character-creation.js), [`src/templates/actors/partials/character-header.html`](src/templates/actors/partials/character-header.html)
 * **Origin**: Pre-v3 (`2.3.0-gygax75`), ported in `e373913`
 * **Description**: Provides automated 3d6 in order, 4d6 drop lowest, and standard array generation with automatic detection of "hopeless" / sub-par characters (highest score $\le 8$ or net negative modifiers) offering instant GM-approved rerolls.
 * **Upstream Merge Guard**: Verify header actions on character sheet.
@@ -109,70 +116,70 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 #### `GYGAX-007`: GP (Bank) Ledger & Shopping Cart Flow
 * **Status**: `🟢 Active`
 * **Category**: Economy & Shopping
-* **Files**: [`src/module/character-creation.js`](src/module/character-creation.js), [`src/module/character-gp-cost.js`](src/module/character-gp-cost.js)
+* **Files**: [`src/module/dialog/character-creation.js`](src/module/dialog/character-creation.js), [`src/module/dialog/character-gp-cost.js`](src/module/dialog/character-gp-cost.js), [`src/templates/chat/inventory-list.html`](src/templates/chat/inventory-list.html)
 * **Origin**: Pre-v3 (`2.3.0-gygax75`), ported in `e373913`
-* **Description**: Supports banking and town economy with a discrete GP Bank balance that character creation and general shopping carts can draw from without manual coin deduction.
-* **Upstream Merge Guard**: DialogV2 migration touchpoints.
+* **Description**: Supports banking and town economy with a discrete `"GP (Bank)"` ledger item that character creation and equipment shopping carts draw from first, automatically falling back to physical `"GP"` with exact `"SP"` / `"CP"` change for fractional purchases.
+* **Upstream Merge Guard**: DialogV2 migration touchpoints and non-mutating shopping cart view-models.
 
 #### `GYGAX-008`: Party Sheet Rosters, Duty XP & Retention
 * **Status**: `🟢 Active`
 * **Category**: Party Management
-* **Files**: [`src/module/party-sheet.js`](src/module/party-sheet.js), [`src/module/duty-xp.js`](src/module/duty-xp.js), [`src/module/party-xp.js`](src/module/party-xp.js)
+* **Files**: [`src/module/party/party-sheet.js`](src/module/party/party-sheet.js), [`src/module/party/duty-xp.js`](src/module/party/duty-xp.js), [`src/module/party/party-xp.js`](src/module/party/party-xp.js), [`src/module/helpers-party.js`](src/module/helpers-party.js)
 * **Origin**: Pre-v3 (`2.3.0-gygax75`), ported in `e373913`
-* **Description**: Enhances party oversight with active exploration rosters, retainer share deductions (1/2 XP for retainers), and duty XP bonuses.
-* **Upstream Merge Guard**: Party sheet templates and calculations.
+* **Description**: Enhances party oversight with saved exploration rosters (`savedParties`), `deleteActor` roster cleanup, retainer share deductions (1/2 XP for retainers), and role-based Duty XP bonus toggles.
+* **Upstream Merge Guard**: Party sheet templates and XP bonus Active Effect interactions.
 
 #### `GYGAX-009`: Container D&D & Nested Container Prevention
 * **Status**: `🟢 Active`
 * **Category**: Inventory
-* **Files**: [`src/module/actor/actor-sheet.js`](src/module/actor/actor-sheet.js), [`src/module/actor/character-sheet.js`](src/module/actor/character-sheet.js)
+* **Files**: [`src/module/sheet/drag-drop.js`](src/module/sheet/drag-drop.js), [`src/module/sheet/inventory-actions.js`](src/module/sheet/inventory-actions.js), [`src/module/actor/actor-sheet.js`](src/module/actor/actor-sheet.js), [`src/module/actor/character-sheet.js`](src/module/actor/character-sheet.js)
 * **Origin**: Pre-v3 (`2.3.0-gygax75`), ported in `e373913`
-* **Description**: Drag-and-drop item management for backpacks, sacks, and chests with recursive capacity math and strict protection against nesting containers inside containers.
-* **Upstream Merge Guard**: Actor sheet item drag-and-drop handlers.
+* **Description**: Drag-and-drop item management for backpacks, sacks, and chests with container capacity math, cross-actor drop cleanup, and strict protection against nesting containers inside containers.
+* **Upstream Merge Guard**: Actor sheet item drag-and-drop handlers (`src/module/sheet/drag-drop.js`).
 
 #### `GYGAX-010`: DialogV2 Hit Dice Rolling & Name-Level Scaling
 * **Status**: `🟢 Active`
 * **Category**: Rules & Mechanics
-* **Files**: [`src/module/entity.js`](src/module/entity.js), [`src/lang/en.json`](src/lang/en.json)
+* **Files**: [`src/module/actor/entity.js`](src/module/actor/entity.js), [`src/lang/en.json`](src/lang/en.json)
 * **Origin**: Pre-v3 (`2.3.0-gygax75`), ported in `e373913`
-* **Description**: Interactive level-up DialogV2 prompt implementing CON modifiers, minimum 1 HP gain, and name-level flat HP increments (+1 or +2 HP past level 9).
-* **Upstream Merge Guard**: DialogV2 classes `["ose", "dialog"]` and `position` dimensions.
+* **Description**: Interactive `DialogV2` Hit Dice rolling prompt (`OseActor.rollHitDice`) supporting either single-level rolling (`+1 HD`, CON modifier, flat HD bonus preservation, minimum `1` HP gain, and name-level flat HP increments past level 9) or full multi-HD rerolling across all character levels, plus minimum `1` HP clamping on monster `rollHP()`.
+* **Upstream Merge Guard**: `DialogV2` classes `["ose", "dialog"]`, explicit `position` dimensions, and Promise return contract.
 
 #### `GYGAX-011`: Tactical Combat Modifiers & Ammunition Tracking
 * **Status**: `🟢 Active`
 * **Category**: Tactical Combat
-* **Files**: [`src/module/entity.js`](src/module/entity.js), [`src/module/settings.ts`](src/module/settings.ts), [`src/templates/dialogs/roll-dialog.html`](src/templates/dialogs/roll-dialog.html)
+* **Files**: [`src/module/actor/entity.js`](src/module/actor/entity.js), [`src/module/item/entity.ts`](src/module/item/entity.ts), [`src/module/settings.ts`](src/module/settings.ts), [`src/templates/chat/roll-dialog.html`](src/templates/chat/roll-dialog.html)
 * **Origin**: Pre-v3 (`2.3.0-gygax75`), ported in `e373913`
-* **Description**: Situational combat modifiers (cover, rear attack, prone) and automatic consumption of linked missile ammunition on attack rolls.
-* **Upstream Merge Guard**: Attack roll execution methods in `entity.js`.
+* **Description**: Interactive roll dialog situational modifiers and configurable missile/thrown weapon ammunition tracking (`automateAmmo`: `"disabled"`, `"warn"`, `"enforce"`) in `OseItem._handleAmmoConsumption`, automatically deducting linked quiver ammunition or thrown weapon quantities on attack confirmation.
+* **Upstream Merge Guard**: Attack roll execution methods in `src/module/actor/entity.js` and `src/module/item/entity.ts`.
 
 #### `GYGAX-012`: Tactical Combat Hooks (Healing & Speed)
 * **Status**: `🟢 Active`
 * **Category**: Tactical Combat
-* **Files**: [`src/module/tactical-combat-hooks.ts`](src/module/tactical-combat-hooks.ts), [`src/ose.js`](src/ose.js)
+* **Files**: [`src/module/combat/tactical-combat-hooks.ts`](src/module/combat/tactical-combat-hooks.ts), [`src/ose.js`](src/ose.js)
 * **Origin**: Pre-v3 (`2.3.0-gygax75`), ported in `e373913`
-* **Description**: Event listeners tracking unconsciousness, natural healing limits, and tactical movement rate penalties during round execution.
-* **Upstream Merge Guard**: System initialization hooks in `ose.js`.
+* **Description**: Registers Foundry hooks (`preUpdateActor` and `preCreateChatMessage`) that post a chat warning when healing an actor afflicted by active Poison or Disease effects (excluding level-up max-HP increases) and append an `"⚡ Extra Attack"` speed banner on attack roll cards for actors with active Haste / Potion of Speed effects.
+* **Upstream Merge Guard**: System initialization hooks in `src/ose.js`.
 
 #### `GYGAX-013`: Active Effects Tab & Link Forwarding
 * **Status**: `🟢 Active`
 * **Category**: Active Effects
-* **Files**: [`src/module/actor/actor-sheet.js`](src/module/actor/actor-sheet.js), [`src/templates/actors/actor-effects-tab.html`](src/templates/actors/actor-effects-tab.html)
+* **Files**: [`src/module/actor/actor-sheet.js`](src/module/actor/actor-sheet.js), [`src/templates/actors/partials/actor-effects-tab.html`](src/templates/actors/partials/actor-effects-tab.html)
 * **Origin**: Pre-v3 (`2.3.0-gygax75`), ported in `e373913`
-* **Description**: Embedded Active Effects management tab on character and monster sheets with link forwarding to originating spells, items, or conditions.
-* **Upstream Merge Guard**: Actor sheet template tab registration.
+* **Description**: Embedded Active Effects management tab on character and monster sheets with link forwarding to originating spells, items, or conditions and suppression of Active Effects on unequipped gear.
+* **Upstream Merge Guard**: Actor sheet template tab registration (`character-sheet.js` and `monster-sheet.js`).
 
 #### `GYGAX-014`: DialogV2 Styling Standards (Parchment & Denim)
 * **Status**: `🟢 Active`
 * **Category**: UI & Styling
-* **Files**: [`src/scss/apps.scss`](src/scss/apps.scss)
+* **Files**: [`src/scss/apps.scss`](src/scss/apps.scss), [`src/module/rings.ts`](src/module/rings.ts), [`src/module/sheet/dialogs.js`](src/module/sheet/dialogs.js), [`src/module/sheet/inventory-actions.js`](src/module/sheet/inventory-actions.js), [`src/module/dialog/entity-tweaks.js`](src/module/dialog/entity-tweaks.js)
 * **Origin**: Standardized in `b898fa8`, ported in `e373913`
-* **Description**: Custom parchment backgrounds, dark borders, and legible typography applied to all `DialogV2` windows using classes `["ose", "dialog"]`.
-* **Upstream Merge Guard**: Upstream SCSS overrides.
+* **Description**: Custom parchment backgrounds, dark borders, and legible typography applied to all `DialogV2` windows using classes `["ose", "dialog"]`, explicit `position` dimensions, and `rejectClose: false` confirmation prompts.
+* **Upstream Merge Guard**: Upstream `DialogV2` additions and SCSS overrides.
 
 ---
 
-### 🟢 Active Customizations (Restored in v3.1.0-beta.2-gygax75.4)
+### 🟢 Active Customizations (Restored & Expanded in v3.1–v3.2)
 
 #### `GYGAX-015`: Window Content Double Scrollbar Fix
 * **Status**: `🟢 Active` (Restored in `v3.1.0-beta.2-gygax75.4`)
@@ -180,7 +187,6 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Files**: [`src/scss/core.scss`](src/scss/core.scss)
 * **Origin**: Commit `915db54`
 * **Description**: Adds `.ose .window-content { overflow: hidden; }`. In Foundry V14 ApplicationV2 sheets, inner tabs handle their own scrolling; omitting `overflow: hidden` on `.window-content` produces annoying dual scrollbars.
-* **Recommendation**: **Restore**. Zero risk, immediate UX fix.
 
 #### `GYGAX-016`: Character Sheet Notes Tab Responsive Flex
 * **Status**: `🟢 Active` (Restored in `v3.1.0-beta.2-gygax75.4`)
@@ -188,30 +194,27 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Files**: [`src/scss/character.scss`](src/scss/character.scss)
 * **Origin**: Commit `02911faddebb`
 * **Description**: Replaces upstream's rigid `min-height: 500px; overflow-y: visible;` with a responsive flex container (`height: 100%; flex: 1 1 0; min-height: 0;`), allowing the character notes editor to scale seamlessly when the window is resized.
-* **Recommendation**: **Restore**. Eliminates sheet layout clipping on smaller viewports.
 
 #### `GYGAX-017`: Effects Tab Full-Height Inventory Sizing
 * **Status**: `🟢 Active` (Restored in `v3.1.0-beta.2-gygax75.4`)
 * **Category**: UI & Styling
 * **Files**: [`src/scss/actor-base.scss`](src/scss/actor-base.scss)
 * **Origin**: Commit `02911faddebb`
-* **Description**: Adds `&.effects { height: 100%; }` to `.inventory` in `actor-base.scss`. Ensures the active effects list expands to fill the entire sheet body height rather than collapsing to minimal content height.
-* **Recommendation**: **Restore**. Directly enhances `GYGAX-013`.
+* **Description**: Adds `&.effects, &.effects-list { height: 100%; }` to `.inventory` in `actor-base.scss`. Ensures the active effects list expands to fill the entire sheet body height rather than collapsing to minimal content height.
 
 #### `GYGAX-018`: Shopping Cart Max Height & Currency Alignment
 * **Status**: `🟢 Active` (Restored in `v3.1.0-beta.2-gygax75.4`)
 * **Category**: UI & Shopping
 * **Files**: [`src/scss/apps.scss`](src/scss/apps.scss)
 * **Origin**: Commits `33de686`, `2b45489`
-* **Description**: Enforces `max-height: 450px; overflow-y: auto;` on `.ose.dialog.gp-cost .item-list` and sets right-aligned numeric alignment for currency columns, preventing long equipment lists from expanding off-screen.
-* **Recommendation**: **Restore**. Prevents shopping dialog overflow during character generation.
+* **Description**: Enforces `max-height: 450px; overflow-y: auto;` on `.ose.gp-cost .item-list` and sets right-aligned numeric alignment for currency columns, preventing long equipment lists from expanding off-screen.
 
 #### `GYGAX-019`: Bundle Cumulative Cost & Encumbrance Math Model
-* **Status**: `🟢 Active` (Enhanced in `v3.1.0-beta.2-gygax75.6`)
+* **Status**: `🟢 Active` (Enhanced in `v3.1.0-beta.2-gygax75.6` & `v3.2.0-gygax75`)
 * **Category**: Economy & Math
-* **Files**: [`src/module/item/data-model-item.ts`](src/module/item/data-model-item.ts), [`src/module/actor/data-model-classes/data-model-character-encumbrance-complete.ts`](src/module/actor/data-model-classes/data-model-character-encumbrance-complete.ts), [`src/module/actor/data-model-classes/data-model-character-encumbrance-detailed.ts`](src/module/actor/data-model-classes/data-model-character-encumbrance-detailed.ts), [`src/module/actor/data-model-classes/data-model-character-encumbrance-item-based.ts`](src/module/actor/data-model-classes/data-model-character-encumbrance-item-based.ts)
+* **Files**: [`src/module/item/data-model-item.ts`](src/module/item/data-model-item.ts), [`src/module/item/data-model-weapon.ts`](src/module/item/data-model-weapon.ts), [`src/module/item/data-model-armor.ts`](src/module/item/data-model-armor.ts), [`src/module/item/data-model-container.ts`](src/module/item/data-model-container.ts), [`src/module/actor/data-model-classes/data-model-character-encumbrance-basic.ts`](src/module/actor/data-model-classes/data-model-character-encumbrance-basic.ts), [`src/module/actor/data-model-classes/data-model-character-encumbrance-complete.ts`](src/module/actor/data-model-classes/data-model-character-encumbrance-complete.ts), [`src/module/actor/data-model-classes/data-model-character-encumbrance-detailed.ts`](src/module/actor/data-model-classes/data-model-character-encumbrance-detailed.ts), [`src/module/actor/data-model-classes/data-model-character-encumbrance-item-based.ts`](src/module/actor/data-model-classes/data-model-character-encumbrance-item-based.ts)
 * **Origin**: Commit `68f245d1`, expanded in `3.1.0-beta.2-gygax75.6`
-* **Description**: Calculates item value and weight proportionally as `(value / quantity.max) * quantity.value` when `quantity.max > 0`. Connected to actor encumbrance reducers across Complete, Detailed, and Item-Based encumbrance variants so partial bundles (such as 15 remaining arrows in a 20-arrow quiver) calculate exact fractional weight and slot load rather than multiplying total bundle weight by unit count.
+* **Description**: Calculates item value, weight, and slots proportionally as `(value / quantity.max) * quantity.value` when `quantity.max > 0` across items, weapons, armor, and containers. Connected to actor encumbrance reducers across Basic, Complete, Detailed, and Item-Based encumbrance variants so partial bundles (such as 15 remaining arrows in a 20-arrow quiver) calculate exact fractional weight and slot load.
 
 #### `GYGAX-020`: Item Sheet Localized (Bundle) Visual Suffix Labels
 * **Status**: `🟢 Active` (Localized in `v3.1.0-beta.2-gygax75.6`)
@@ -225,8 +228,7 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Category**: Macros & Hotbar
 * **Files**: [`src/module/helpers-macros.js`](src/module/helpers-macros.js)
 * **Origin**: Commit `a27707b1`
-* **Description**: Replaces deprecated `game.actors.tokens[speaker.token]` (broken in V12+) with `scene.tokens.get(speaker.token)?.actor` for synthetic tokens, and wraps macro command generation in `JSON.stringify()` to prevent syntax errors when rolling items with apostrophes (e.g. *Ogre's Club*).
-* **Recommendation**: **Restore**. Crucial hotbar bug fix for V14.
+* **Description**: Replaces deprecated `game.actors.tokens[speaker.token]` (broken in V12+) with `scene.tokens.get(speaker.token)?.actor` for synthetic tokens, resolves V14 `{ uuid }` hotbar drop payloads via `fromUuid()`, and wraps macro command generation in `JSON.stringify()` to prevent syntax errors when rolling items with apostrophes (e.g. *Ogre's Club*).
 
 #### `GYGAX-022`: Modern User ID Reference in Whispers (`game.user.id`)
 * **Status**: `🟢 Active` (Restored in `v3.1.0-beta.2-gygax75.4`)
@@ -234,22 +236,20 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Files**: [`src/module/helpers-dice.js`](src/module/helpers-dice.js), [`src/module/helpers-treasure.js`](src/module/helpers-treasure.js)
 * **Origin**: Commit `a27707b1`
 * **Description**: Updates legacy `game.user._id` references to modern standard `game.user.id`, eliminating Foundry V14 deprecation warnings.
-* **Recommendation**: **Restore**. Clean standards compliance.
 
 #### `GYGAX-023`: Custom Weapon Qualities: Penetrating & Reach
 * **Status**: `🟢 Active` (Restored in `v3.1.0-beta.2-gygax75.4`)
 * **Category**: Equipment & Tags
-* **Files**: [`src/module/config.ts`](src/module/config.ts), [`src/lang/en.json`](src/lang/en.json), `assets/penetrating.png`, `assets/reach.png`
+* **Files**: [`src/module/config.ts`](src/module/config.ts), [`src/lang/en.json`](src/lang/en.json), [`assets/penetrating.png`](assets/penetrating.png), [`assets/reach.png`](assets/reach.png)
 * **Origin**: Commits `b898fa8`, `76764c06`
 * **Description**: Restores weapon tags `penetrating` (heavy crossbows, armor piercing) and `reach` (polearms, spears) with their custom icons and localization keys.
-* **Recommendation**: **Restore**. Needed for Gygax '75 tactical weapon balance.
 
-#### `GYGAX-024`: Gygax '75 Custom Classes for String Mode & Migration Indexer
-* **Status**: `🟢 Active` (Enhanced in `v3.1.0-beta.2-gygax75.6`)
+#### `GYGAX-024`: Gygax '75 Custom Classes & Migration Indexer
+* **Status**: `🟢 Active` (Enhanced in `v3.1.0-beta.2-gygax75.6` & `v3.2.0-gygax75`)
 * **Category**: Classes & Rules
-* **Files**: [`src/module/classes/gygax75-classes.ts`](src/module/classes/gygax75-classes.ts), [`src/module/config.ts`](src/module/config.ts), [`src/module/migration/class-index.ts`](src/module/migration/class-index.ts)
+* **Files**: [`src/module/classes/gygax75-classes.ts`](src/module/classes/gygax75-classes.ts), [`src/module/classes/classic-to-item.ts`](src/module/classes/classic-to-item.ts), [`src/module/config.ts`](src/module/config.ts), [`src/module/migration/class-index.ts`](src/module/migration/class-index.ts)
 * **Origin**: Commit `b898fa8`, expanded in `3.1.0-beta.2-gygax75.6`
-* **Description**: Registers class definitions (Barbarian, Druid, Gnome, Half-Orc, Knight, Warden, Wood Elf) in `CONFIG.OSE.classes` so character level progression (HD, THAC0, Saves) resolves automatically when `enableClassItems: false`. Also updates `class-index.ts` to index all class groups so that class migration indexer recognizes both `classic` and `gygax75` classes.
+* **Description**: Defines the canonical Gygax '75 Basic Rulebook classes (`Barbarian`, `Druid`, `Gnome`, `Half-Orc`, `Knight`, `Warden`, `Wood Elf`) in `CONFIG.OSE.classes.gygax75` with complete XP, HD, THAC0, saving throw, spell slot, prime requisite, `demihuman`, and `spellList` (`"Druid"`, `"Illusionist"`) tables. `buildClassIndex()` and `classicClassToItemData()` index both `classic` and `gygax75` class definitions for seamless Class Item conversion when `enableClassItems` is enabled (while preserving free-text class strings when `enableClassItems: false`).
 
 #### `GYGAX-025`: Monster Sheet RollTable Drop Hyperlink Labels
 * **Status**: `🟢 Active` (Restored in `v3.1.0-beta.2-gygax75.4`)
@@ -257,7 +257,6 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Files**: [`src/module/actor/monster-sheet.js`](src/module/actor/monster-sheet.js)
 * **Origin**: Commit `6437567`
 * **Description**: Resolves `fromUuid()` when dropping a world RollTable onto a monster sheet to generate `@UUID[...]{Table Name}` instead of raw, unlabelled `@UUID[...]`.
-* **Recommendation**: **Restore**. Consistent with Foundry adventure ingestion hyperlinking rules.
 
 #### `GYGAX-026`: Monster Sheet Description Editor 100% Height
 * **Status**: `🟢 Active` (Restored in `v3.1.0-beta.2-gygax75.4`)
@@ -265,13 +264,12 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Files**: [`src/scss/monster.scss`](src/scss/monster.scss)
 * **Origin**: Commit `40ab62c`
 * **Description**: Changes `.sheet-body .editor` from fixed `height: 300px;` to `height: 100%;`, allowing monster ecology and tactical text to expand responsively with window resizing.
-* **Recommendation**: **Restore**. Clean UI enhancement.
 
 #### `GYGAX-031`: Magical Ammunition Bonus Application & Auto-Range Band Modifiers
 * **Status**: `🟢 Active`
 * **Category**: Combat & Ammunition
 * **Files**: [`src/module/item/entity.ts`](src/module/item/entity.ts), [`src/module/helpers-dice.js`](src/module/helpers-dice.js), [`src/module/actor/entity.js`](src/module/actor/entity.js)
-* **Description**: Extracts magical ammunition bonuses (`+1`, `+2`, `-1`, or `system.bonus`) in `OseItem.extractAmmoBonus()` and injects them into attack and damage rolls via `options.onConfirm(form, rollData)` in `OseDice.Roll`. Also adds `OseActor.computeRangeModifier()` and automatic canvas token distance measurement to apply B/X missile range modifiers (`+1` Short, `0` Medium, `-1` Long, and out-of-range warning).
+* **Description**: Extracts magical ammunition bonuses (`+1`, `+2`, `-1`, or `system.bonus`) in `OseItem.extractAmmoBonus()` and injects them into attack and damage rolls via `options.onConfirm(form, rollData)` in `OseDice.Roll` when ammunition is available. Also adds `OseActor.computeRangeModifier()` and automatic canvas token distance measurement to apply B/X missile range modifiers (`+1` Short, `0` Medium, `-1` Long, and out-of-range warning).
 
 #### `GYGAX-032`: Spell Slot Schema Levels 1–9
 * **Status**: `🟢 Active`
@@ -283,13 +281,13 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Status**: `🟢 Active`
 * **Category**: Inventory & Exploration
 * **Files**: [`src/module/item/data-model-item.ts`](src/module/item/data-model-item.ts), [`src/module/item/data-model-weapon.ts`](src/module/item/data-model-weapon.ts), [`src/module/item/data-model-armor.ts`](src/module/item/data-model-armor.ts), [`src/module/item/entity.ts`](src/module/item/entity.ts), [`src/module/item/item-sheet.js`](src/module/item/item-sheet.js), [`src/templates/actors/partials/character-inventory-tab.html`](src/templates/actors/partials/character-inventory-tab.html)
-* **Description**: Adds `identified`, `unidentifiedName`, `unidentifiedDescription`, and `hideCounter` fields to items, weapons, and armor. Non-GM players see the masked name/description and have charge counters hidden on wands/staves when `hideCounter` is enabled, while GMs retain full visibility.
+* **Description**: Adds `identified`, `unidentifiedName`, `unidentifiedDescription`, and `hideCounter` fields to items, weapons, and armor. Non-GM players see the masked name/description, have secret stats/tags/costs concealed on item sheets and chat cards, and have charge counters hidden on wands/staves when `hideCounter` is enabled, while GMs retain full visibility.
 
 #### `GYGAX-034`: Conditional "Vs. Creature Group" Weapon Modifiers
 * **Status**: `🟢 Active`
 * **Category**: Combat & Magic Weapons
 * **Files**: [`src/module/item/data-model-weapon.ts`](src/module/item/data-model-weapon.ts), [`src/module/actor/entity.js`](src/module/actor/entity.js)
-* **Description**: Parses conditional weapon bonuses from manual tags (`+3 vs. undead`, `+2 vs dragons`, `+3 vs regenerating`) or `system.vsGroup` and automatically substitutes the higher conditional bonus on attack and damage rolls when targeting a matching creature group.
+* **Description**: Parses conditional weapon bonuses from manual tags (`+3 vs. undead`, `+2 vs dragons`, `+3 vs regenerating`) or `system.vsGroup` and automatically substitutes the higher conditional bonus on attack and damage rolls when targeting a matching creature group (evaluated with HTML-stripped word-boundary matching).
 
 #### `GYGAX-035`: Ability-Linked Roll-Under Proficiencies (`1d20 <= Ability Score ± Mod`)
 * **Status**: `🟢 Active`
@@ -300,8 +298,16 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 #### `GYGAX-036`: Silver/Magic Weapon Gating, Damage Mitigation, MR %, & Mount Encumbrance
 * **Status**: `🟢 Active`
 * **Category**: Monsters & Retainers/Mounts
-* **Files**: [`src/module/actor/entity.js`](src/module/actor/entity.js), [`src/module/actor/data-model-monster.js`](src/module/actor/data-model-monster.js)
-* **Description**: Adds `OseActor.evaluateWeaponDamage()` and `applyDamage()` options for silver/magic weapon immunity gating, `immuneTo`, and `halfDamageFrom` resistances; adds `OseActor.rollMagicResistance()` (`1d100 <= mr%`); and enables carried weight + half-speed/overloaded movement breakpoints on Monster actors when `encumbrance.max > 0` for mounts and pack animals.
+* **Files**: [`src/module/actor/entity.js`](src/module/actor/entity.js), [`src/module/actor/data-model-monster.js`](src/module/actor/data-model-monster.js), [`src/module/helpers-chat.ts`](src/module/helpers-chat.ts), [`src/templates/chat/roll-attack.html`](src/templates/chat/roll-attack.html), [`src/templates/actors/dialogs/tweaks-dialog.html`](src/templates/actors/dialogs/tweaks-dialog.html)
+* **Description**: Adds `OseActor.evaluateWeaponDamage()` and `applyDamage()` options (wired directly into chat card damage buttons in `helpers-chat.ts`) for silver/magic weapon immunity gating, `immuneTo`, and `halfDamageFrom` resistances; adds `OseActor.rollMagicResistance()` (`1d100 <= mr%`); exposes monster immunity/resistance/encumbrance fields in Tweaks; and enables carried weight + half-speed/overloaded movement breakpoints on Monster actors when `encumbrance.max > 0` for mounts and pack animals.
+
+#### `GYGAX-037`: Intentional Omission of `relationships.recommends` Module Prompts
+* **Status**: `🟢 Active`
+* **Category**: Manifests
+* **Files**: [`system.json`](system.json)
+* **Origin**: Commit `706d976` (`Remove the recommended modules section from the manifest to avoid the installation dialogs on update`)
+* **Description**: Intentionally maintains `"relationships": {}` in `system.json`, omitting upstream's `relationships.recommends` entries (`ose-advancedfantasytome` and `classicfantasycompendium`) so Foundry VTT does not pop up recommended-module installation prompts every time a new `ose-foundry-core-gygax75` release is installed or updated.
+* **Upstream Merge Guard**: Keep `"relationships": {}` in `system.json` when merging upstream manifest updates.
 
 ---
 
@@ -314,12 +320,12 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Origin**: Commits prior to v3.0
 * **Reason for Retirement**: Upstream fully migrated dialogs and sheets to Foundry V12/V14 ApplicationV2 (`HandlebarsApplicationMixin(ApplicationV2)`). Retaining legacy FormApplication overrides causes crashes and deprecation errors.
 
-#### `GYGAX-028`: `template.json` Custom Property Injections
+#### `GYGAX-028`: Legacy Ad-Hoc `template.json` Property Injections
 * **Status**: `🔴 Obsolete`
 * **Category**: Manifests
-* **Files**: `template.json`
+* **Files**: [`template.json`](template.json)
 * **Origin**: Pre-v3 data model hacks
-* **Reason for Retirement**: Dropped by upstream in commit `b114266`. Foundry V13/V14 uses TypeDataModels declared in `system.json` under `documentTypes`. All custom system fields are now formally modeled in TypeScript DataModel classes.
+* **Reason for Retirement**: In v3+, Foundry V13/V14 `TypeDataModel` classes (`OseDataModel*`) registered in `system.json` under `documentTypes` serve as the authoritative runtime schema, superseding pre-v3 ad-hoc property injections in `template.json`. Note that [`template.json`](template.json) itself is still retained in the repository and packaged in release archives for baseline Foundry template compatibility (aligned with `GYGAX-005` `encumbrance.max: 2400` and `GYGAX-032` spell slots `0–9`).
 
 #### `GYGAX-029`: Hardcoded Sheet Window Pixel Dimensions
 * **Status**: `🔴 Obsolete`
@@ -334,7 +340,6 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Files**: Historical dialog wrappers
 * **Origin**: Foundry V11/V12
 * **Reason for Retirement**: Deprecated in Foundry V14 in favor of event-driven `DialogV2` constructor pattern with explicit `position` and `classes: ["ose", "dialog"]`.
-
 
 ---
 
@@ -384,4 +389,13 @@ Whenever upstream changes are merged or new features are introduced, consult thi
   - Updated devDependencies (`rollup` `4.68.0`, `sass` `1.108.1`, `vitest` `5.1.0`, `@rollup/plugin-typescript` `12.3.1`, `rollup-plugin-dts` `6.5.1`, `tslib` `2.9.1`, `yargs` `17.7.3`, `@types/livereload` `0.9.5`) and ran `npm audit fix`, remediating 20 transitive advisories (including `handlebars`, `rollup`, `vite`, `@vitest/mocker`, `ws`, `engine.io`, `socket.io-parser`, `picomatch`, `minimatch`, `brace-expansion`, `shell-quote`, `immutable`, `prosemirror-view`, `qs`, `source-map-js`, and `deepmerge`).
 * **Verification**: 100% test coverage passing (603 / 603 vitest tests across 47 test suites, Biome lint/formatting clean, Rollup/SASS and TypeScript declaration builds clean).
 
+---
 
+## Release Log: `3.2.0-gygax75.2`
+* **Comprehensive Swarm Audit & Remediation (`GYGAX-001`–`GYGAX-037`)**:
+  - **Economy & Shopping Cart (`GYGAX-007`, `GYGAX-018`, `GYGAX-019`)**: Replaced in-place `item.system.cost` mutations with non-mutating cart view-models (`OseCharacterGpCost`), included unpaid items stowed inside paid containers, omitted currency/treasure items from purchase receipts, forced `system.treasure = true` on world `"GP (Bank)"` copies, preserved `null` weapon quantities in `_preCreate`/`_preUpdate`, and added exact `"SP"` / `"CP"` coin change when purchasing fractional-cost gear with physical `"GP"`.
+  - **Classes, Migration & `enableClassItems` Gate (`GYGAX-001`, `GYGAX-024`)**: Aligned all 7 Gygax '75 classes (`Barbarian`, `Druid`, `Gnome`, `Half-Orc`, `Knight`, `Warden`, `Wood Elf`) to canonical `gygax75_rules.md` progression tables, added `"Druid"` & `"Illusionist"` spell lists, fixed `CONFIG.OSE.tag_images.missile`, replaced `DialogV2.wait` with V14 `DialogV2`, and enforced `enableClassItems` guards across character derivation, actor methods, and headless migration paths.
+  - **Combat, Initiative & `GYGAX-036` Chat Damage (`GYGAX-004`, `GYGAX-010`–`GYGAX-012`, `GYGAX-031`, `GYGAX-034`, `GYGAX-036`)**: Wired chat card damage buttons (`helpers-chat.ts`) to resolve attacker token/actor, weapon, and ammo into `targetActor.applyDamage(..., { weapon, ammo })`; hardened combat tracker initiative sorting for unrolled/defeated/fast/slow combatants without `NaN`; refined creature-group word-boundary matching (`matchesCreatureGroup`); prevented empty-quiver magic ammo bonuses and saving-throw `"⚡ Extra Attack"` false positives; and added melee/missile damage bonus Active Effect keys (`system.damage.mod.melee`, `system.damage.mod.missile`).
+  - **Encumbrance, Unidentified Items, Containers & Active Effects (`GYGAX-005`, `GYGAX-009`, `GYGAX-013`, `GYGAX-033`)**: Preserved Active Effect movement deltas under `movementAuto` (`encounter = Math.floor(base / 3)`), counted legacy/mount armor with `quantity.value === 0` (e.g. Horse Barding `600 cn`) as `1`, shadowed prototype getter-only `ActiveEffect#isSuppressed` safely via `Object.defineProperty`, masked unidentified item details/effects/counters for non-GM players, deduplicated actor sheet `effects` tabs, and fixed cross-actor container drag-and-drop child cloning.
+  - **Tooling, Manifests & CI Hardening (`GYGAX-014`, `GYGAX-037`)**: Normalized repository text files to LF (`.gitattributes`), added strict `tsconfig.ci.json` (`npm run typecheck:ci`) to `lint.yml`, upgraded GitHub Actions workflows to `checkout@v6` / `setup-node@v6` (Node 24) with guarded upstream types-drift checks and `node -e` release manifest injection, standardized all `DialogV2` prompts, and documented `GYGAX-037`.
+* **Verification**: 100% test coverage passing (652 / 652 vitest tests across 47 test suites, 0 Biome 2.4.4 lint/format warnings or errors, `npm run typecheck:ci` exit 0, and Rollup/SASS + TypeScript declaration builds clean).

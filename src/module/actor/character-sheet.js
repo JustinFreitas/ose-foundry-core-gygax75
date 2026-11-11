@@ -56,7 +56,6 @@ export default class OseActorSheetCharacter extends OseActorSheet {
         { id: "abilities", label: "OSE.category.abilities" },
         { id: "spells", label: "OSE.category.spells" },
         { id: "inventory", label: "OSE.category.inventory" },
-        { id: "effects", label: "OSE.category.effects" },
         { id: "notes", label: "OSE.category.notes" },
         { id: "effects", label: "OSE.category.effects" },
       ],
@@ -94,7 +93,7 @@ export default class OseActorSheetCharacter extends OseActorSheet {
 
     // Sort by sort order (see ActorSheet)
     // biome-ignore lint/suspicious/useIterableCallbackReturn: .sort() is called for side effects on each array, return value unused
-    [...Object.values(data.owned), ...Object.values(data?.spells?.spellList || {}), data.abilities].forEach((o) =>
+    [...Object.values(data.owned), ...Object.values(data.spells || {}), data.abilities].forEach((o) =>
       o.sort((a, b) => (a.sort || 0) - (b.sort || 0)),
     );
   }
@@ -185,6 +184,8 @@ export default class OseActorSheetCharacter extends OseActorSheet {
         const worldGpBank = game.items.find((i) => i.name === "GP (Bank)" && i.type === "item");
         if (worldGpBank) {
           const itemData = worldGpBank.toObject();
+          itemData.system = itemData.system || {};
+          itemData.system.treasure = true;
           itemData.system.quantity = itemData.system.quantity || {};
           itemData.system.quantity.value = gold;
           await this.actor.createEmbeddedDocuments("Item", [itemData]);
@@ -314,7 +315,14 @@ export default class OseActorSheetCharacter extends OseActorSheet {
     );
     // Create Dialog window
     return new Promise((resolve) => {
-      new foundry.applications.api.DialogV2({
+      let settled = false;
+      const finish = (value) => {
+        if (!settled) {
+          settled = true;
+          resolve(value);
+        }
+      };
+      const dialog = new foundry.applications.api.DialogV2({
         classes: ["ose", "dialog"],
         window: { title: game.i18n.localize("OSE.dialog.addLanguage") || "" },
         content: dlg,
@@ -326,33 +334,34 @@ export default class OseActorSheetCharacter extends OseActorSheet {
             icon: "fas fa-check",
             default: true,
             callback: (_event, button, _html) => {
-              resolve(new foundry.applications.ux.FormDataExtended(button.form).object);
+              finish(new foundry.applications.ux.FormDataExtended(button.form).object);
             },
           },
           {
             action: "cancel",
             icon: "fas fa-times",
             label: game.i18n.localize("OSE.Cancel"),
-            callback: () => {},
+            callback: () => {
+              finish(null);
+            },
           },
         ],
-      }).render({ force: true });
+      });
+      dialog.addEventListener?.("close", () => finish(null), { once: true });
+      dialog.render({ force: true });
     });
   }
 
   _pushLang(table) {
     const data = this.actor.system;
-    let update = data[table]; // V10 compatibility
-    this._chooseLang().then((dialogInput) => {
+    const current = Array.isArray(data[table]?.value) ? [...data[table].value] : [];
+    return this._chooseLang().then((dialogInput) => {
+      if (!dialogInput) return null;
       const name = CONFIG.OSE.languages[dialogInput.choice];
-      if (update.value) {
-        update.value.push(name);
-      } else {
-        update = { value: [name] };
-      }
-
-      const newData = {};
-      newData[table] = update;
+      if (!name) return null;
+      const newData = {
+        [table]: { value: [...current, name] },
+      };
       return this.actor.update({ system: newData });
     });
   }
@@ -377,31 +386,66 @@ export default class OseActorSheetCharacter extends OseActorSheet {
   }
 
   /**
-   * Prepare shopping cart data by filtering out items that have already been paid for
+   * Prepare shopping cart data as plain view-model objects (never mutating live OseItem documents),
+   * including unpaid items stowed inside already-paid containers and excluding treasure items.
    */
   async _prepareShoppingCartData() {
+    const cloneData = (val) => (foundry.utils.deepClone ? foundry.utils.deepClone(val) : structuredClone(val));
     const data = await this._prepareContext({});
-
-    // Filter out items that have been marked as paid
-    const filterUnpaidItems = (items) => {
-      return items.filter((item) => !item.flags?.ose?.paid);
+    const toCartItem = (item) => {
+      const sys = item.system ?? {};
+      const isIdentified = item.isIdentified ?? sys.identified !== false;
+      const displayName = item.displayName ?? (!game.user?.isGM && !isIdentified ? "Unidentified Item" : item.name);
+      return {
+        id: item.id,
+        name: displayName,
+        displayName,
+        img: item.img,
+        type: item.type,
+        isIdentified,
+        _unitCost: Number(sys.cost) || 0,
+        flags: cloneData(item.flags ?? {}),
+        enrichedDescription: sys.enrichedDescription ?? sys.description ?? "",
+        system: {
+          cost: Number(sys.cost) || 0,
+          treasure: Boolean(sys.treasure),
+          containerId: sys.containerId ?? "",
+          quantity: {
+            value: item.type === "armor" ? sys.quantity?.value || 1 : (sys.quantity?.value ?? 1),
+            max: Number(sys.quantity?.max) || 0,
+          },
+          autoTags: game.user?.isGM || isIdentified ? cloneData(sys.autoTags ?? []) : [],
+        },
+      };
     };
 
-    // Create a filtered copy of the data with only unpaid items
-    const cartData = foundry.utils.deepClone(data);
-    if (cartData.owned) {
-      cartData.owned.items = filterUnpaidItems(cartData.owned.items || []);
-      cartData.owned.weapons = filterUnpaidItems(cartData.owned.weapons || []);
-      cartData.owned.armors = filterUnpaidItems(cartData.owned.armors || []);
-      cartData.owned.containers = filterUnpaidItems(cartData.owned.containers || []);
+    const isUnpaidNonTreasure = (item) =>
+      Boolean(item) &&
+      OseCharacterGpCost.physicalItemTypes.has(item.type) &&
+      !item.system?.treasure &&
+      !item.flags?.ose?.paid;
+
+    const containers = [];
+    for (const bag of data.owned?.containers || []) {
+      const unpaidChildren = (bag.system?.contents ?? []).filter(isUnpaidNonTreasure).map(toCartItem);
+      const bagPaid = Boolean(bag.flags?.ose?.paid);
+      if (!bagPaid || unpaidChildren.length > 0) {
+        const bagVm = toCartItem(bag);
+        bagVm.system.contents = unpaidChildren;
+        containers.push(bagVm);
+      }
     }
 
-    // Also filter the flat items array if it exists
-    if (cartData.items) {
-      cartData.items = filterUnpaidItems(cartData.items);
-    }
-
-    return cartData;
+    return {
+      name: this.actor.name,
+      owned: {
+        items: (data.owned?.items || []).filter(isUnpaidNonTreasure).map(toCartItem),
+        weapons: (data.owned?.weapons || []).filter(isUnpaidNonTreasure).map(toCartItem),
+        armors: (data.owned?.armors || []).filter(isUnpaidNonTreasure).map(toCartItem),
+        containers,
+      },
+      items: [...this.actor.items].filter(isUnpaidNonTreasure).map(toCartItem),
+    };
   }
 
   static async _onShowGpCost() {
@@ -491,6 +535,9 @@ export default class OseActorSheetCharacter extends OseActorSheet {
     }));
   }
 
+  /**
+   * @this {OseActorSheetCharacter}
+   */
   static _onToggleClassTables(_event, target) {
     const { classId } = target.dataset;
     if (!this.#collapsedClasses.delete(classId)) this.#collapsedClasses.add(classId);

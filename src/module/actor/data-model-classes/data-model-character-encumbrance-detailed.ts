@@ -3,8 +3,6 @@
  */
 import OseDataModelCharacterEncumbrance, { type CharacterEncumbrance } from "./data-model-character-encumbrance";
 
-// import { OSE } from '../../config';
-
 /**
  * @todo Add template path for encumbrance bar
  * @todo Add template path for inventory item row
@@ -36,7 +34,7 @@ export default class OseDataModelCharacterEncumbranceDetailed
 
   #hasAdventuringGear;
 
-  constructor(max = OseDataModelCharacterEncumbrance.baseEncumbranceCap, items: Item[] = []) {
+  constructor(max: number | null = null, items: Item[] = []) {
     super(OseDataModelCharacterEncumbranceDetailed.type, max);
     this.#hasAdventuringGear = items.some((i: Item) => i.type === "item" && !i.system.treasure);
     this.#weight =
@@ -49,8 +47,13 @@ export default class OseDataModelCharacterEncumbranceDetailed
 
         let value = acc;
 
-        if (type === "item" && treasure)
-          value += (item.system as any).cumulativeWeight ?? (quantity?.value ?? 0) * (weight ?? 0);
+        if (type === "item" && treasure) {
+          value +=
+            (item.system as { cumulativeWeight?: number }).cumulativeWeight ??
+            (quantity?.max && quantity.max > 0
+              ? ((weight ?? 0) / quantity.max) * (quantity?.value ?? 0)
+              : (quantity?.value ?? 0) * (weight ?? 0));
+        }
         if (["weapon", "armor", "container"].includes(type)) value += weight ?? 0;
 
         return value;
@@ -58,7 +61,6 @@ export default class OseDataModelCharacterEncumbranceDetailed
   }
 
   static defineSchema() {
-    // @ts-expect-error League v13 client/data/fields shadows common (only declares ShaderField)
     const { ArrayField, BooleanField, NumberField, SchemaField, StringField } = foundry.data.fields;
 
     return new SchemaField({
@@ -72,7 +74,8 @@ export default class OseDataModelCharacterEncumbranceDetailed
       value: new NumberField({ integer: false }),
       max: new NumberField({
         integer: false,
-        initial: OseDataModelCharacterEncumbrance.baseEncumbranceCap,
+        nullable: true,
+        initial: null,
       }),
       atFirstBreakpoint: new BooleanField({ initial: false }),
       atSecondBreakpoint: new BooleanField({ initial: false }),
@@ -82,7 +85,6 @@ export default class OseDataModelCharacterEncumbranceDetailed
     });
   }
 
-  // eslint-disable-next-line class-methods-use-this
   get steps() {
     return Object.values(OseDataModelCharacterEncumbrance.encumbranceSteps);
   }

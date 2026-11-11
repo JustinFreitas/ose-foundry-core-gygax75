@@ -2,6 +2,9 @@
  * @file A class to handle the nested AC/AAC props on OseDataModelCharacter.
  */
 
+/** Armor/shield item system data indexed by the active AC property (c or ac). */
+type AcSystem = Record<string, { value: number } | undefined>;
+
 /**
  * A character's armour class, broken into its component parts. Which numbering
  * convention `base` follows depends on whether ascending or descending AC is in
@@ -60,7 +63,11 @@ export default class OseDataModelCharacterAC implements CharacterAC {
   }
 
   #getShieldBonus(): number {
-    return this.#armor.find(({ system: { type } }: Item) => type === "shield")?.system[this.#acProp].value || 0;
+    return (
+      (this.#armor.find(({ system: { type } }: Item) => type === "shield")?.system as AcSystem | undefined)?.[
+        this.#acProp
+      ]?.value || 0
+    );
   }
 
   /**
@@ -98,7 +105,9 @@ export default class OseDataModelCharacterAC implements CharacterAC {
    * @returns {number | null} - The AC value from worn armor
    */
   get #armored(): number | null {
-    const armor = this.#armor.find(({ system: { type } }: Item) => type !== "shield")?.system[this.#acProp].value;
+    const armor = (
+      this.#armor.find(({ system: { type } }: Item) => type !== "shield")?.system as AcSystem | undefined
+    )?.[this.#acProp]?.value;
     // Null if any falsy value but 0
     if (!armor && armor !== 0) return null;
 

@@ -1,0 +1,23 @@
+{
+  // CI typecheck gate covering clean TypeScript modules and Vitest unit/spec suites.
+  // Excludes legacy Quench browser suites (`src/**/__tests__/*.test.ts` and `src/e2e/**`).
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": [
+    "src/global.d.ts",
+    "src/types/**/*.ts",
+    "src/module/*.ts",
+    "src/module/actor/*.ts",
+    "src/module/actor/data-model-classes/*.ts",
+    "src/module/classes/*.ts",
+    "src/module/combat/*.ts",
+    "src/module/effects/*.ts",
+    "src/module/item/*.ts",
+    "src/module/migration/*.ts",
+    "src/**/*.unit.test.ts",
+    "src/**/*.spec.ts",
+    "test/foundry-stub.ts"
+  ]
+}

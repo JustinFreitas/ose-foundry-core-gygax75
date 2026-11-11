@@ -10,12 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Setup Node.js version 22
-        uses: actions/setup-node@v4
+      - name: Setup Node.js version 24
+        uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
@@ -27,10 +27,12 @@ jobs:
       - name: Check types package version
         run: |
           npm run build:types
-          v=$(node -p "require('./packages/types/package.json').version")
-          dir=$(mktemp -d)
-          if npm pack "@ose-foundry-core/types@$v" --pack-destination "$dir" >/dev/null 2>&1; then
-            tar -xzf "$dir"/*.tgz -C "$dir"
-            cmp -s "$dir/package/index.d.ts" packages/types/index.d.ts ||
-              echo "::warning file=packages/types/package.json::Types changed since $v was published. Bump the version in packages/types/package.json."
+          if [ "$GITHUB_REPOSITORY" = "NecroticGnome/ose-foundry-core" ]; then
+            v=$(node -p "require('./packages/types/package.json').version")
+            dir=$(mktemp -d)
+            if npm pack "@ose-foundry-core/types@$v" --pack-destination "$dir" >/dev/null 2>&1; then
+              tar -xzf "$dir"/*.tgz -C "$dir"
+              cmp -s "$dir/package/index.d.ts" packages/types/index.d.ts ||
+                echo "::warning file=packages/types/package.json::Types changed since $v was published. Bump the version in packages/types/package.json."
+            fi
           fi

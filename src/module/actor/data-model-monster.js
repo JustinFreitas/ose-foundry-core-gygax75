@@ -12,7 +12,7 @@ const getItemsOfActorOfType = (actor, filterType, filterFn = null) =>
 /**
  * Compute carried weight for a monster / mount / pack animal when `encumbrance.max > 0`.
  */
-const computeMonsterCarriedWeight = (items = []) => {
+export const computeMonsterCarriedWeight = (items = []) => {
   let total = 0;
   for (const item of items) {
     if (
@@ -25,6 +25,16 @@ const computeMonsterCarriedWeight = (items = []) => {
       continue;
     }
     if (item.type === "container") {
+      total += Number(item.system.weight) || 0;
+      continue;
+    }
+    // Armor (e.g. Horse Barding) has no quantity input on its sheet and historically stored
+    // quantity.value === 0 or null; treat 0/null/undefined armor quantity as 1.
+    if (item.type === "armor" && (item.system.quantity?.value === 0 || item.system.quantity?.value == null)) {
+      total += Number(item.system.weight) || 0;
+      continue;
+    }
+    if (item.type === "weapon" && item.system.quantity?.value == null) {
       total += Number(item.system.weight) || 0;
       continue;
     }
@@ -75,7 +85,9 @@ export default class OseDataModelMonster extends foundry.abstract.TypeDataModel 
         effectiveBase,
       );
     } else {
-      this.encumbrance = new OseDataModelCharacterEncumbranceDisabled();
+      const disabled = new OseDataModelCharacterEncumbranceDisabled();
+      disabled.max = 0;
+      this.encumbrance = disabled;
       this.config.movementAuto = false;
       this.movement = new OseDataModelCharacterMove(this.encumbrance, false, rawBaseMove);
     }

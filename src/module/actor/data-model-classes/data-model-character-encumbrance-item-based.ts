@@ -3,6 +3,25 @@
  */
 import OseDataModelCharacterEncumbrance, { type CharacterEncumbrance } from "./data-model-character-encumbrance";
 
+const rawItemSlots = (item: Item): number => {
+  if (item.type === "container") {
+    return item.system.itemslots ?? 1;
+  }
+  const slots = item.system.itemslots ?? 0;
+  if (item.type === "weapon" || item.type === "armor") {
+    const max = item.system.quantity?.max ?? 0;
+    if (max > 0) return (slots / max) * (item.system.quantity?.value ?? 0);
+    return slots;
+  }
+  if (item.type === "item") {
+    const qty = item.system.quantity?.value ?? 0;
+    const max = item.system.quantity?.max ?? 0;
+    if (max > 0) return (slots / max) * qty;
+    return slots * qty;
+  }
+  return 0;
+};
+
 /**
  * @todo Add template path for encumbrance bar
  * @todo Add template path for inventory item row
@@ -96,9 +115,8 @@ export default class OseDataModelCharacterEncumbranceItemBased
     return { equipped, packed };
   }
 
-  // eslint-disable-next-line sonarjs/cognitive-complexity, @typescript-eslint/no-unused-vars
   constructor(
-    max = 16,
+    max: number | null = 16,
     items: Item[] = [],
     options: { scores?: { str?: { mod?: number } }; packedMax?: number | null } = {},
   ) {
@@ -119,15 +137,8 @@ export default class OseDataModelCharacterEncumbranceItemBased
             // Coins and gems are handled below
             return acc;
           }
-          if ((item.type === "item" || item.type === "container") && !item.system.equipped) {
-            return (
-              acc +
-              ((item.system as any).cumulativeItemslots ??
-                Math.ceil((item.system.quantity?.value ?? 0) * item.system.itemslots))
-            );
-          }
-          if (["weapon", "armor"].includes(item.type) && !item.system.equipped) {
-            return acc + item.system.itemslots;
+          if (["item", "weapon", "armor", "container"].includes(item.type) && !item.system.equipped) {
+            return acc + rawItemSlots(item);
           }
 
           return acc;
@@ -145,16 +156,9 @@ export default class OseDataModelCharacterEncumbranceItemBased
       );
     this.#equippedWeight = Math.ceil(
       items.reduce((acc, item: Item) => {
-        const {
-          type,
-          system: { itemslots, equipped },
-        } = item;
-        if (type === "item" && equipped)
-          return (
-            acc +
-            ((item.system as any).cumulativeItemslots ?? Math.ceil((item.system.quantity?.value ?? 0) * itemslots))
-          );
-        if (["weapon", "armor"].includes(type) && equipped) return acc + itemslots;
+        if (["item", "weapon", "armor", "container"].includes(item.type) && item.system.equipped) {
+          return acc + rawItemSlots(item);
+        }
         return acc;
       }, 0),
     );
@@ -175,7 +179,6 @@ export default class OseDataModelCharacterEncumbranceItemBased
   }
 
   static defineSchema() {
-    // @ts-expect-error League v13 client/data/fields shadows common (only declares ShaderField)
     const { ArrayField, BooleanField, NumberField, SchemaField, StringField } = foundry.data.fields;
 
     return new SchemaField({
@@ -238,9 +241,18 @@ export default class OseDataModelCharacterEncumbranceItemBased
   }
 
   get nextBreakpointValue() {
+    const C = OseDataModelCharacterEncumbranceItemBased;
     const steps = this.usingEquippedEncumbrance
-      ? Object.values(OseDataModelCharacterEncumbranceItemBased.equippedStepCounts)
-      : Object.values(OseDataModelCharacterEncumbranceItemBased.packedStepCounts);
+      ? [
+          ...Object.values(C.equippedStepCounts).map((n) => Math.floor((n * this.#equippedMax) / C.baseEncumbranceCap)),
+          this.#equippedMax,
+        ]
+      : [
+          ...Object.values(C.packedStepCounts).map((n) =>
+            Math.floor((n * this.#packedMax) / C.alternateBaseEncumbranceCap),
+          ),
+          this.#packedMax,
+        ];
 
     const activeWeight = this.usingEquippedEncumbrance ? this.#equippedWeight : this.#packedWeight - this.#weightMod;
 
@@ -264,12 +276,10 @@ export default class OseDataModelCharacterEncumbranceItemBased
     return this.#equippedWeight > this.#equippedMax || this.#packedWeight > this.#packedMax + this.#weightMod;
   }
 
-  // eslint-disable-next-line class-methods-use-this
   get equippedSteps() {
     return Object.values(OseDataModelCharacterEncumbranceItemBased.equippedEncumbranceSteps);
   }
 
-  // eslint-disable-next-line class-methods-use-this
   get packedSteps() {
     return Object.values(OseDataModelCharacterEncumbranceItemBased.packedEncumbranceSteps);
   }
@@ -298,7 +308,6 @@ export default class OseDataModelCharacterEncumbranceItemBased
     return `${this.#packedWeight}/${this.#packedMax + this.#weightMod}`;
   }
 
-  // eslint-disable-next-line class-methods-use-this
   get alternateMax() {
     return OseDataModelCharacterEncumbranceItemBased.alternateBaseEncumbranceCap;
   }

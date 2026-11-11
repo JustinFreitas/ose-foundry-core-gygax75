@@ -34,7 +34,7 @@
       style="background: #a94442; color: white; margin-left: 4px;"
       title="{{localize 'OSE.dialog.party.resetDutyTitle'}}"
     >
-      <i class="fas fa-rotate-left"></i> Reset Duty
+      <i class="fas fa-rotate-left"></i> {{localize 'OSE.dialog.party.resetDutyShort'}}
     </button>
     {{/if}}
     {{/if}}
@@ -54,9 +54,11 @@
             <button type="button" data-action="openActorSheet">
               <i class="fas fa-user"></i>
             </button>
+            {{#if @root.user.isGM}}
             <button type="button" data-action="removeActor">
               <i class="fas fa-trash"></i>
             </button>
+            {{/if}}
           </div>
         </div>
         <div class="fields">
@@ -110,7 +112,7 @@
             {{#if (eq e.type 'character')}}
             <div class="field-short flex2">
               <i class="fas fa-weight-hanging" title="{{localize 'OSE.Encumbrance'}}"></i>
-              {{roundWeight e.system.encumbrance.value}}k
+              {{#if (eq @root.settings.encumbrance 'itembased')}}{{round e.system.encumbrance.value}}/{{e.system.encumbrance.max}}{{else}}{{roundWeight e.system.encumbrance.value}}k{{/if}}
             </div>
             {{/if}}
           </div>
@@ -119,7 +121,7 @@
               {{#each e.system.saves as |s i|}}
               <span title="{{lookup @root.config.saves_long i}}">{{lookup @root.config.saves_short i}} {{s.value}}</span>
               {{/each}}
-              {{#if (eq e.type 'character')}}<span><i class="fas fa-magic" title="{{localize 'OSE.saves.magic.long'}}"></i>{{mod e.system.scores.wis.mod}}</span>{{/if}}
+              {{#if (eq e.type 'character')}}<span><i class="fas fa-magic" title="{{localize 'OSE.saves.magic.long'}}"></i>{{mod (add e.system.scores.wis.mod e.system.details.magic.bonus)}}</span>{{/if}}
             </div>
           </div>
         </div>

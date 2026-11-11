@@ -46,7 +46,7 @@ export default class OseDataModelArmor extends foundry.abstract.TypeDataModel<an
       cost: new NumberField({ min: 0, initial: 0 }),
       containerId: new StringField(),
       quantity: new SchemaField({
-        value: new NumberField({ min: 0, initial: 0 }),
+        value: new NumberField({ min: 0, initial: 1 }),
         max: new NumberField({ min: 0, initial: 0 }),
       }),
       weight: new NumberField({ min: 0, initial: 0 }),
@@ -55,6 +55,33 @@ export default class OseDataModelArmor extends foundry.abstract.TypeDataModel<an
       unidentifiedName: new StringField({ initial: "" }),
       unidentifiedDescription: new StringField({ initial: "" }),
     };
+  }
+
+  get cumulativeWeight(): number {
+    const qty = this.quantity?.value || 1;
+    const weight = this.weight ?? 0;
+    if (this.quantity?.max && this.quantity.max > 0) {
+      return (weight / this.quantity.max) * qty;
+    }
+    return weight * qty;
+  }
+
+  get cumulativeCost(): number {
+    const qty = this.quantity?.value || 1;
+    const cost = this.cost ?? 0;
+    if (this.quantity?.max && this.quantity.max > 0) {
+      return (cost / this.quantity.max) * qty;
+    }
+    return cost * qty;
+  }
+
+  get cumulativeItemslots(): number {
+    const qty = this.quantity?.value || 1;
+    const itemslots = this.itemslots ?? 0;
+    if (this.quantity?.max && this.quantity.max > 0) {
+      return Math.ceil((itemslots / this.quantity.max) * qty);
+    }
+    return Math.ceil(itemslots * qty);
   }
 
   get manualTags(): ItemTag[] | null {

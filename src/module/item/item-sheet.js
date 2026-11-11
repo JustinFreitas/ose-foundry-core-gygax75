@@ -166,6 +166,20 @@ export default class OseItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
     return this.#primeReqCustom;
   }
 
+  get title() {
+    if (!game.user?.isGM && !(this.item.isIdentified ?? this.item.system?.identified !== false)) {
+      return this.item.displayName;
+    }
+    return super.title;
+  }
+
+  get isEditable() {
+    const identifiedOrGM = Boolean(
+      game.user?.isGM || (this.item.isIdentified ?? this.item.system?.identified !== false),
+    );
+    return super.isEditable && identifiedOrGM;
+  }
+
   get editing() {
     this.#editing ??= !this.item.system?.key;
     return this.isEditable && this.#editing;
@@ -187,22 +201,52 @@ export default class OseItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
     const item = this.item;
+    const isGM = Boolean(game.user?.isGM);
+    const isIdentified = item.isIdentified ?? item.system?.identified !== false;
+    const isUnidentifiedForPlayer = !isGM && !isIdentified;
+    const isCounterVisible = item.isCounterVisible ?? Boolean(isGM || !item.system?.hideCounter);
+
+    let displaySystem = item.system;
+    if (displaySystem && (isUnidentifiedForPlayer || !isCounterVisible)) {
+      displaySystem = Object.assign(Object.create(Object.getPrototypeOf(item.system)), item.system);
+      if (isUnidentifiedForPlayer) {
+        displaySystem.tags = [];
+        displaySystem.cost = null;
+        displaySystem.bonus = null;
+        if (displaySystem.ac) displaySystem.ac = { ...displaySystem.ac, value: "?" };
+        if (displaySystem.aac) displaySystem.aac = { ...displaySystem.aac, value: "?" };
+      }
+      if (!isCounterVisible && displaySystem.quantity) {
+        displaySystem.quantity = { value: null, max: null };
+      }
+      if (!isCounterVisible && displaySystem.counter) {
+        displaySystem.counter = { value: null, max: null };
+      }
+    }
+
+    const descriptionSource = isUnidentifiedForPlayer
+      ? (item.displayDescription ?? item.system?.unidentifiedDescription ?? "")
+      : (item.system?.description ?? "");
+
     return Object.assign(context, {
       cssClass: this.options.classes.join(" "),
-      name: item.name,
+      name: isUnidentifiedForPlayer ? item.displayName : item.name,
       img: item.img,
       type: item.type,
-      system: item.system,
+      system: displaySystem,
       owner: item.isOwner,
-      isGM: game.user?.isGM,
+      editable: this.isEditable,
+      isGM,
+      isUnidentifiedForPlayer,
+      isCounterVisible,
       config: {
         ...CONFIG.OSE,
         encumbrance: game.settings.get(game.system.id, "encumbranceOption"),
       },
       enriched: {
-        description: await TextEditor.enrichHTML(item.system?.description ?? "", {
+        description: await TextEditor.enrichHTML(descriptionSource, {
           relativeTo: item,
-          secrets: game.user.isGM,
+          secrets: isGM,
         }),
       },
       ...(["class", "race"].includes(item.type) ? await this.#prepareClassContext() : {}),
@@ -756,12 +800,13 @@ export default class OseItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
   static async _onOpenRules(_event, target) {
     const [uuid, anchor] = (CONFIG.OSE.rulesReferences?.[target.dataset.rule] ?? "").split("#");
     const doc = await fromUuid(uuid);
-    if (doc?.documentName === "JournalEntryPage") return doc.parent.sheet.render(true, { pageId: doc.id, anchor });
-    return doc?.sheet?.render(true);
+    if (doc?.documentName === "JournalEntryPage")
+      return doc.parent.sheet.render({ force: true, pageId: doc.id, anchor });
+    return doc?.sheet?.render({ force: true });
   }
 
   static async _onOpenUuid(_event, target) {
     const doc = await fromUuid(target.dataset.uuid);
-    doc?.sheet?.render(true);
+    doc?.sheet?.render({ force: true });
   }
 }

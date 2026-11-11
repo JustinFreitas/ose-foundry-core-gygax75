@@ -3,8 +3,6 @@
  */
 import OseDataModelCharacterEncumbrance, { type CharacterEncumbrance } from "./data-model-character-encumbrance";
 
-// import { OSE } from '../../config';
-
 /**
  * A set of options for configuring the
  * Basic encumbrance scheme
@@ -56,20 +54,24 @@ export default class OseDataModelCharacterEncumbranceBasic
 
   #heaviestArmor;
 
-  constructor(
-    max = OseDataModelCharacterEncumbrance.baseEncumbranceCap,
-    items: Item[] = [],
-    options: Options = {} as Options,
-  ) {
+  constructor(max: number | null = null, items: Item[] = [], options: Options = {} as Options) {
     super(OseDataModelCharacterEncumbranceBasic.type, max);
     this.#treasureEncumbrance =
       options?.significantTreasure || OseDataModelCharacterEncumbranceBasic.significantTreasure;
 
-    this.#weight = items.reduce(
-      (acc: number, { type, system: { treasure, quantity, weight } }: Item) =>
-        type !== "item" || !treasure ? acc : acc + (quantity.value ?? 0) * (weight ?? 0),
-      0,
-    );
+    this.#weight = items.reduce((acc: number, item: Item) => {
+      const {
+        type,
+        system: { treasure, quantity, weight },
+      } = item;
+      if (type !== "item" || !treasure) return acc;
+      const itemWeight =
+        (item.system as { cumulativeWeight?: number }).cumulativeWeight ??
+        (quantity?.max && quantity.max > 0
+          ? ((weight ?? 0) / quantity.max) * (quantity?.value ?? 0)
+          : (quantity?.value ?? 0) * (weight ?? 0));
+      return acc + itemWeight;
+    }, 0);
 
     this.#heaviestArmor = items.reduce((heaviest, { type, system: { type: armorType, equipped } }) => {
       if (type !== "armor" || !equipped) return heaviest;
@@ -81,7 +83,6 @@ export default class OseDataModelCharacterEncumbranceBasic
   }
 
   static defineSchema() {
-    // @ts-expect-error League v13 client/data/fields shadows common (only declares ShaderField)
     const { ArrayField, BooleanField, NumberField, SchemaField, StringField } = foundry.data.fields;
 
     return new SchemaField({
@@ -97,7 +98,8 @@ export default class OseDataModelCharacterEncumbranceBasic
       value: new NumberField({ integer: false }),
       max: new NumberField({
         integer: false,
-        initial: OseDataModelCharacterEncumbrance.baseEncumbranceCap,
+        nullable: true,
+        initial: null,
       }),
       atFirstBreakpoint: new BooleanField({ initial: false }),
       atSecondBreakpoint: new BooleanField({ initial: false }),

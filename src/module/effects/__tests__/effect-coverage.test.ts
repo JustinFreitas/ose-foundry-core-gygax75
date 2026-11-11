@@ -11,7 +11,6 @@ import { effectKeys } from "../effect-keys";
 export const key = "ose.effects.coverage";
 export const options = { displayName: "OSE: Effects: Coverage" };
 
-// biome-ignore lint/suspicious/noExplicitAny: Foundry documents
 type Any = any;
 
 const scores = (n: number) =>

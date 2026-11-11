@@ -16,10 +16,10 @@ export const augmentTable = (table, html) => {
     treasureTableToggle.classList.add("active");
   }
 
-  const head = html.querySelector(".sheet-header");
-  head.append(treasureTableToggle);
+  const head = html?.querySelector?.(".sheet-header");
+  head?.append(treasureTableToggle);
 
-  html.querySelector(".toggle-treasure").addEventListener("click", () => {
+  html?.querySelector?.(".toggle-treasure")?.addEventListener("click", () => {
     const isTreasure = Boolean(table.document.getFlag(game.system.id, "treasure"));
     table.document.setFlag(game.system.id, "treasure", !isTreasure);
   });
@@ -30,24 +30,24 @@ export const augmentTable = (table, html) => {
   }
 
   // Hide irrelevant standard fields
-  const rangeFields = html.querySelectorAll(".range");
+  const rangeFields = html?.querySelectorAll?.(".range") ?? [];
   rangeFields.forEach((el) => {
     el.style.display = "none";
   });
-  const normalizeResults = html.querySelector("button[data-action=normalizeResults]");
+  const normalizeResults = html?.querySelector?.("button[data-action=normalizeResults]");
   if (normalizeResults) {
     normalizeResults.remove();
   }
 
-  const chanceHeader = html.querySelector("thead .weight");
+  const chanceHeader = html?.querySelector?.("thead .weight");
   if (chanceHeader) chanceHeader.textContent = "Chance (%)";
 
-  const chanceColumn = html.querySelectorAll(".weight");
+  const chanceColumn = html?.querySelectorAll?.(".weight") ?? [];
   chanceColumn.forEach((col) => {
     col.style.flex = "0 0 75px";
   });
 
-  const formula = html.querySelector("input[name=formula]");
+  const formula = html?.querySelector?.("input[name=formula]");
   if (formula) {
     formula.value = "1d100";
     formula.disabled = true;
@@ -59,8 +59,8 @@ export const augmentTable = (table, html) => {
   rollButton.type = "button";
   rollButton.innerHTML = `<i class="fas fa-gem"></i> ${game.i18n.localize("OSE.table.treasure.roll")}`;
 
-  const footerRoll = html.querySelector(".form-footer [data-action='drawResult']");
-  footerRoll.replaceWith(rollButton);
+  const footerRoll = html?.querySelector?.(".form-footer [data-action='drawResult']");
+  footerRoll?.replaceWith(rollButton);
 
   rollButton.addEventListener("click", (ev) => {
     rollTreasure(table.document, { event: ev });
@@ -71,33 +71,46 @@ export const augmentTable = (table, html) => {
  *
  * @param table
  * @param data
+ * @param {Set<string>} [visited]
  */
-async function drawTreasure(table, data) {
+async function drawTreasure(table, data, visited = new Set()) {
+  data.treasure = {};
+  if (!table) return data;
+
+  const tableKey = table.uuid || table.id;
+  if (tableKey) {
+    if (visited.has(tableKey)) return data;
+    visited.add(tableKey);
+  }
+
   const percent = async (chance) => {
     const roll = new Roll("1d100");
     await roll.evaluate();
     return roll.total <= chance;
   };
-  data.treasure = {};
-  if (table.getFlag(game.system.id, "treasure")) {
-    for (const r of table.results) {
+
+  if (table.getFlag?.(game.system.id, "treasure")) {
+    for (const r of table.results ?? []) {
       if (await percent(r.weight)) {
         const text = await r.getHTML();
         data.treasure[r.id] = {
           img: r.img,
           text: await foundry.applications.ux.TextEditor.implementation.enrichHTML(text),
         };
-        const parsedUuid = foundry.utils.parseUuid(r.documentUuid);
+        const parsedUuid = r.documentUuid ? foundry.utils.parseUuid(r.documentUuid) : null;
         const documentCollection = parsedUuid?.collection?.metadata?.id ?? parsedUuid?.documentType ?? "";
-        if (r.type === CONST.TABLE_RESULT_TYPES.DOCUMENT && documentCollection === "RollTable") {
+        if (r.type === CONST.TABLE_RESULT_TYPES.DOCUMENT && documentCollection === "RollTable" && r.documentUuid) {
           const embeddedTable = await fromUuid(r.documentUuid);
-          await drawTreasure(embeddedTable, data.treasure[r.id]);
+          const embeddedKey = embeddedTable?.uuid || embeddedTable?.id || r.documentUuid;
+          if (embeddedTable && !visited.has(embeddedKey)) {
+            await drawTreasure(embeddedTable, data.treasure[r.id], new Set(visited));
+          }
         }
       }
     }
   } else {
     const { results } = await table.roll();
-    for (const s of results) {
+    for (const s of results ?? []) {
       data.treasure[s.id] = { img: s.img, text: await s.getHTML() };
     }
   }
@@ -110,6 +123,7 @@ async function drawTreasure(table, data) {
  * @param options
  */
 export async function rollTreasure(table, options = {}) {
+  if (!table) return;
   // currentTarget is cleared once the click finishes dispatching.
   const button = options.event?.currentTarget;
   // Draw treasure
@@ -121,7 +135,7 @@ export async function rollTreasure(table, options = {}) {
 
   // Animation
   if (button) {
-    const results = button.closest(".roll-table-sheet")?.querySelectorAll("[data-result-id]") ?? [];
+    const results = button.closest?.(".roll-table-sheet")?.querySelectorAll("[data-result-id]") ?? [];
     results.forEach((item) => {
       item.classList.remove("active");
       if (data.treasure[item.dataset.resultId]) {
@@ -147,7 +161,7 @@ export async function rollTreasure(table, options = {}) {
   if (rollMode === "selfroll") chatData.whisper = [game.user.id];
   if (rollMode === "blindroll") chatData.blind = true;
 
-  ChatMessage.create(chatData);
+  return ChatMessage.create(chatData);
 }
 
 export const functionsForTesting = {

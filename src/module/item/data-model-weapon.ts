@@ -70,6 +70,37 @@ export default class OseDataModelWeapon extends foundry.abstract.TypeDataModel<a
   }
 
   /**
+   * Total carried weight across the weapon stack/bundle.
+   * Defaults `null` quantity to `1` for single weapons while respecting `0` for depleted thrown stacks.
+   */
+  get cumulativeWeight(): number {
+    const qty = this.quantity?.value ?? 1;
+    const weight = this.weight ?? 0;
+    if (this.quantity?.max && this.quantity.max > 0) {
+      return (weight / this.quantity.max) * qty;
+    }
+    return weight * qty;
+  }
+
+  get cumulativeCost(): number {
+    const qty = this.quantity?.value ?? 1;
+    const cost = this.cost ?? 0;
+    if (this.quantity?.max && this.quantity.max > 0) {
+      return (cost / this.quantity.max) * qty;
+    }
+    return cost * qty;
+  }
+
+  get cumulativeItemslots(): number {
+    const qty = this.quantity?.value ?? 1;
+    const itemslots = this.itemslots ?? 0;
+    if (this.quantity?.max && this.quantity.max > 0) {
+      return Math.ceil((itemslots / this.quantity.max) * qty);
+    }
+    return Math.ceil(itemslots * qty);
+  }
+
+  /**
    * Returns a normalized map of conditional creature-group bonuses from both
    * `this.vsGroup` and manual tags formatted like `"+3 vs. undead"` or `"+2 vs dragons"`.
    */

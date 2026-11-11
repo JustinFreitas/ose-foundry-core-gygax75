@@ -85,10 +85,50 @@
     <input type="checkbox" name="system.config.enableInventory" id="enableInventory" {{checked system.config.enableInventory}}
       data-dtype="Boolean" {{#unless user.isGM}}disabled{{/unless}} />
   </div>
+  <div class="form-group">
+    <label for="monster-encumbrance">{{localize "OSE.Tweaks.MaxLoad"}}</label>
+    <input type="text" name="system.encumbrance.max" id="monster-encumbrance" value="{{@root.system.encumbrance.max}}"
+      data-dtype="Number" {{#unless user.isGM}}disabled{{/unless}} />
+  </div>
+  <div class="form-group">
+    <label for="monster-movementAuto">{{localize "OSE.Setting.MovementAuto"}}</label>
+    <input type="checkbox" name="system.config.movementAuto" id="monster-movementAuto" {{checked system.config.movementAuto}}
+      data-dtype="Boolean" {{#unless user.isGM}}disabled{{/unless}} />
+  </div>
+  <div class="form-group">
+    <label for="magicResistance">{{localize "OSE.details.magicResistance"}}</label>
+    <input type="text" name="system.details.magicResistance" id="magicResistance" value="{{@root.system.details.magicResistance}}"
+      data-dtype="Number" placeholder="0" {{#unless user.isGM}}disabled{{/unless}} />
+  </div>
+  <div class="form-group">
+    <label for="requiresMagic">{{localize "OSE.Tweaks.RequiresMagic"}}</label>
+    <input type="checkbox" name="system.details.requiresMagic" id="requiresMagic" {{checked @root.system.details.requiresMagic}}
+      data-dtype="Boolean" {{#unless user.isGM}}disabled{{/unless}} />
+  </div>
+  <div class="form-group">
+    <label for="requiresMagicBonus">{{localize "OSE.Tweaks.RequiresMagicBonus"}}</label>
+    <input type="text" name="system.details.requiresMagicBonus" id="requiresMagicBonus" value="{{@root.system.details.requiresMagicBonus}}"
+      data-dtype="Number" placeholder="0" {{#unless user.isGM}}disabled{{/unless}} />
+  </div>
+  <div class="form-group">
+    <label for="requiresSilver">{{localize "OSE.Tweaks.RequiresSilver"}}</label>
+    <input type="checkbox" name="system.details.requiresSilver" id="requiresSilver" {{checked @root.system.details.requiresSilver}}
+      data-dtype="Boolean" {{#unless user.isGM}}disabled{{/unless}} />
+  </div>
+  <div class="form-group">
+    <label for="immuneTo">{{localize "OSE.Tweaks.ImmuneTo"}}</label>
+    <input type="text" name="system.details.immuneTo" id="immuneTo" value="{{@root.system.details.immuneTo}}"
+      data-dtype="String" {{#unless user.isGM}}disabled{{/unless}} />
+  </div>
+  <div class="form-group">
+    <label for="halfDamageFrom">{{localize "OSE.Tweaks.HalfDamageFrom"}}</label>
+    <input type="text" name="system.details.halfDamageFrom" id="halfDamageFrom" value="{{@root.system.details.halfDamageFrom}}"
+      data-dtype="String" {{#unless user.isGM}}disabled{{/unless}} />
+  </div>
   {{/if}}
   <footer class="sheet-footer">
     <button type="submit">
-      <i class="fas fa-save"></i>{{localize "Save Changes"}}
+      <i class="fas fa-save"></i>{{localize "OSE.SaveChanges"}}
     </button>
   </footer>
 </div>

@@ -64,11 +64,12 @@ export default ({ describe, it, expect, assert, after }: QuenchMethods) => {
       const sheet = new OsePartySheet();
       const data = await sheet._prepareContext();
       const keys = Object.keys(data);
-      expect(keys.length).equal(4);
+      expect(keys.length).equal(5);
       expect(keys).contain("partyActors");
       expect(keys).contain("config");
       expect(keys).contain("user");
       expect(keys).contain("settings");
+      expect(keys).contain("hasDutyXP");
     });
   });
 

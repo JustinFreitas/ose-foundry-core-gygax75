@@ -12,10 +12,10 @@ export interface CharacterMove {
   /** Base (exploration) movement rate, in feet per turn. Defaults to 120. */
   base: number;
 
-  /** Encounter (combat) movement rate, in feet per round — derived as `base / 3`. */
+  /** Encounter (combat) movement rate, in feet per round — derived as `Math.floor(base / 3)`. */
   readonly encounter: number;
 
-  /** Overland (travel) movement rate, in miles per day — derived as `base / 5`. */
+  /** Overland (travel) movement rate, in miles per day — derived as `Math.floor(base / 5)`. */
   readonly overland: number;
 }
 
@@ -44,7 +44,7 @@ export default class OseDataModelCharacterMove implements CharacterMove {
    *
    * @param {OseDataModelCharacterEncumbrance} encumbrance - An object representing the character's encumbrance values
    * @param {boolean} shouldCalculateMovement - Should the class autocalculate movement?
-   * @param {number} base - The base move rate for the actor
+   * @param {number} base - The base move rate for the actor (including any Active Effect modifications)
    */
   constructor(
     encumbrance: OseDataModelCharacterEncumbrance = new OseDataModelCharacterEncumbrance(),
@@ -63,25 +63,31 @@ export default class OseDataModelCharacterMove implements CharacterMove {
     this.#atThirdBreakpoint = encumbrance.atThirdBreakpoint;
   }
 
+  #effectDelta() {
+    return (Number(this.#moveBase) || 0) - OseDataModelCharacterMove.baseMoveRate;
+  }
+
   #derivedSpeed() {
     if (this.#overEncumbranceLimit) return 0;
-    if (this.#atThirdBreakpoint) return 30;
-    if (this.#atSecondBreakpoint) return 60;
-    return this.#atFirstBreakpoint ? 90 : 120;
+    let tierSpeed = OseDataModelCharacterMove.baseMoveRate;
+    if (this.#atThirdBreakpoint) tierSpeed = 30;
+    else if (this.#atSecondBreakpoint) tierSpeed = 60;
+    else if (this.#atFirstBreakpoint) tierSpeed = 90;
+    return Math.max(0, tierSpeed + this.#effectDelta());
   }
 
   #nextDerivedSpeed() {
-    if (this.#overEncumbranceLimit) return 0;
-    if (this.#atThirdBreakpoint) return 0;
-    if (this.#atSecondBreakpoint) return 30;
-    if (this.#atFirstBreakpoint) return 60;
-    return 90;
+    if (this.#overEncumbranceLimit || this.#atThirdBreakpoint) return 0;
+    let nextTier = 90;
+    if (this.#atSecondBreakpoint) nextTier = 30;
+    else if (this.#atFirstBreakpoint) nextTier = 60;
+    return Math.max(0, nextTier + this.#effectDelta());
   }
 
   get base() {
     // Manual entry for movement
     if (!this.#autocalculate || this.#encumbranceVariant === "disabled") return Math.round(this.#moveBase);
-    // Automatic calculation for movement
+    // Automatic calculation for movement (preserving Active Effect deltas on base)
     return Math.round(this.#derivedSpeed());
   }
 
@@ -96,14 +102,14 @@ export default class OseDataModelCharacterMove implements CharacterMove {
 
   get nextEncounter() {
     const next = this.nextBase;
-    return next !== null ? Math.round(next / 3) : null;
+    return next !== null ? Math.floor(next / 3) : null;
   }
 
   get encounter() {
-    return Math.round(this.base / 3);
+    return Math.floor(this.base / 3);
   }
 
   get overland() {
-    return Math.round(this.base / 5);
+    return Math.floor(this.base / 5);
   }
 }

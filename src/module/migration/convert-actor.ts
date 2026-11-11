@@ -21,8 +21,18 @@ export interface ReportEntry {
 // Tags everything the migration adds.
 const migrationFlags = () => ({ [game.system.id]: { migration: true } });
 
+const isClassItemsEnabled = () => Boolean(game.settings?.get?.(game.system?.id ?? "ose", "enableClassItems"));
+
 // biome-ignore lint/suspicious/noExplicitAny: accepts world, token and compendium actors alike
 export const convertActor = async (actor: any, index: IndexEntry[]): Promise<ReportEntry> => {
+  if (!isClassItemsEnabled()) {
+    return {
+      actorUuid: actor.uuid,
+      actorName: actor.name,
+      text: String(actor._source?.system?.details?.class ?? "").trim(),
+      status: "none",
+    };
+  }
   // An old Bonus Experience is the prime requisite, stored or already moved to its Tweaks effect.
   const system = actor._source.system;
   const bonus = tweakValues(actor).xp ?? 0;
@@ -61,8 +71,9 @@ export const convertActor = async (actor: any, index: IndexEntry[]): Promise<Rep
   };
 };
 
+// biome-ignore lint/suspicious/noExplicitAny: accepts world, token and compendium actors alike
 export const convertSingleActor = async (actor: any) => {
-  if (!game.settings.get(game.system.id, "enableClassItems")) {
+  if (!isClassItemsEnabled()) {
     ui.notifications?.warn(game.i18n.localize("OSE.Setting.EnableClassItemsHint"));
     return { actorUuid: actor.uuid, actorName: actor.name, text: "", status: "none" as const };
   }
@@ -85,10 +96,11 @@ export const convertSingleActor = async (actor: any) => {
   if (item && actor.postClassChanges) {
     const i18n = game.i18n;
     const lines = [message];
-    if (entry.bonusKept != null) lines.push(i18n.format("OSE.migration.card.Bonus", { bonus: entry.bonusKept }));
+    if (entry.bonusKept != null)
+      lines.push(i18n.format("OSE.migration.card.Bonus", { bonus: String(entry.bonusKept) }));
     if (entry.note) lines.push(i18n.localize(`OSE.migration.card.${entry.note}`));
     await actor.postClassChanges(item, before, null, {
-      title: i18n.format("OSE.migration.card.Title", { cls: item.name, level: item.system?.level ?? 1 }),
+      title: i18n.format("OSE.migration.card.Title", { cls: item.name, level: String(item.system?.level ?? 1) }),
       lines,
       kept: adjustmentRows(entry.changes ?? []),
     });

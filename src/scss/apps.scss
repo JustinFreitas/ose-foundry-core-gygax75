@@ -352,13 +352,17 @@
   }
 }
 
+.ose.gp-cost,
 .ose.dialog.gp-cost {
-  .item-list {
-    margin: 0;
-    padding: 0;
+  .inventory {
     max-height: 450px;
     overflow-y: auto;
     overflow-x: hidden;
+  }
+
+  .item-list {
+    margin: 0;
+    padding: 0;
 
     .item-entry {
       list-style: none;
@@ -535,6 +539,13 @@
       max-width: 25%;
       line-height: 15px;
       margin: 0 1px;
+    }
+
+    #reset-duty-xp {
+      max-width: none;
+      white-space: nowrap;
+      flex: 0 0 auto;
+      padding: 0 6px;
     }
   }
 

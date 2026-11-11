@@ -1,7 +1,7 @@
 /**
  * @file An application for managing the current party.
  */
-import { resetDutyXP } from "./duty-xp";
+import { hasActiveDutyXP, resetDutyXP } from "./duty-xp";
 import OseParty from "./party";
 import OsePartyXP from "./party-xp";
 
@@ -99,13 +99,14 @@ export default class OsePartySheet extends HandlebarsApplicationMixin(Applicatio
 
   async _prepareContext() {
     const partyActors = OseParty.currentParty;
-    const hasDutyXP = partyActors.some((a) => Boolean(a.flags?.dutyXP));
+    const hasDutyXP = partyActors.some((a) => hasActiveDutyXP(a));
     return {
       partyActors,
       config: CONFIG.OSE,
       user: game.user,
       settings: {
         ascending: game.settings.get(game.system.id, "ascendingAC"),
+        encumbrance: game.settings.get(game.system.id, "encumbranceOption"),
       },
       hasDutyXP,
     };
@@ -202,6 +203,7 @@ export default class OsePartySheet extends HandlebarsApplicationMixin(Applicatio
   }
 
   async _handleRemoveActor(target) {
+    if (!game.user?.isGM) return;
     const actor = this._getActorFromEvent(target);
     if (!actor) return;
     await this._removeActorFromParty(actor);
@@ -209,9 +211,12 @@ export default class OsePartySheet extends HandlebarsApplicationMixin(Applicatio
   }
 
   async _handleResetDutyXP() {
-    const partyActorsWithDuty = OseParty.currentParty.filter((a) => Boolean(a.flags?.dutyXP));
+    if (!game.user?.isGM) return;
+    const partyActorsWithDuty = OseParty.currentParty.filter((a) => hasActiveDutyXP(a));
     if (partyActorsWithDuty.length === 0) {
-      ui.notifications.info("No characters in party currently have active Duty XP.");
+      ui.notifications.info(
+        game.i18n.localize("OSE.dialog.party.noDutyActive") || "No characters in party currently have active Duty XP.",
+      );
       return;
     }
     const confirmed = await foundry.applications.api.DialogV2.confirm({
@@ -220,7 +225,8 @@ export default class OsePartySheet extends HandlebarsApplicationMixin(Applicatio
       window: {
         title: game.i18n.localize("OSE.dialog.party.resetDutyTitle") || "Reset Duty XP Bonuses",
       },
-      content: `<p>Reset Duty XP (+5%) bonuses for <strong>${partyActorsWithDuty.length} character(s)</strong> back to their original values?</p>`,
+      content: `<p>${game.i18n.format("OSE.dialog.party.confirmResetDuty", { count: partyActorsWithDuty.length })}</p>`,
+      rejectClose: false,
     });
     if (confirmed) {
       await resetDutyXP(partyActorsWithDuty);
@@ -312,6 +318,7 @@ export default class OsePartySheet extends HandlebarsApplicationMixin(Applicatio
                 content: `<p>${game.i18n.format("OSE.dialog.party.confirmOverwrite", {
                   name: foundry.utils.escapeHTML(name),
                 })}</p>`,
+                rejectClose: false,
               });
               if (!confirmed) return false;
             }
@@ -342,7 +349,8 @@ export default class OsePartySheet extends HandlebarsApplicationMixin(Applicatio
                   const name = formData.partyToLoad;
                   if (!name) return false;
 
-                  const partyActorIds = savedParties[name];
+                  const latestSavedParties = game.settings.get(game.system.id, "savedParties") || {};
+                  const partyActorIds = latestSavedParties[name];
                   if (!partyActorIds) return false;
 
                   const changes = game.actors.reduce((acc, actor) => {
@@ -382,6 +390,7 @@ export default class OsePartySheet extends HandlebarsApplicationMixin(Applicatio
                     content: `<p>${game.i18n.format("OSE.dialog.party.confirmDelete", {
                       name: foundry.utils.escapeHTML(name),
                     })}</p>`,
+                    rejectClose: false,
                   });
                   if (!confirmed) return false;
 
@@ -416,6 +425,7 @@ export default class OsePartySheet extends HandlebarsApplicationMixin(Applicatio
               content: `<p>${game.i18n.format("OSE.dialog.party.confirmClear", {
                 count: OseParty.currentParty.length,
               })}</p>`,
+              rejectClose: false,
             });
             if (!confirmed) return false;
 
@@ -430,7 +440,7 @@ export default class OsePartySheet extends HandlebarsApplicationMixin(Applicatio
           icon: "fas fa-times",
         },
       ],
-    }).render(true);
+    }).render({ force: true });
   }
 
   static async #onSubmitForm() {}

@@ -8,8 +8,8 @@ import type { ApplyDamageOption, EncumbranceOption } from "./config";
  */
 const registerSettings = () => {
   game.settings.register(game.system.id, "initiative", {
-    name: game.i18n.localize("OSE.Setting.Initiative"),
-    hint: game.i18n.localize("OSE.Setting.InitiativeHint"),
+    name: "OSE.Setting.Initiative",
+    hint: "OSE.Setting.InitiativeHint",
     default: "group",
     scope: "world",
     type: String,
@@ -22,8 +22,8 @@ const registerSettings = () => {
   });
 
   game.settings.register(game.system.id, "rerollInitiative", {
-    name: game.i18n.localize("OSE.Setting.RerollInitiative"),
-    hint: game.i18n.localize("OSE.Setting.RerollInitiativeHint"),
+    name: "OSE.Setting.RerollInitiative",
+    hint: "OSE.Setting.RerollInitiativeHint",
     default: "reset",
     scope: "world",
     type: String,
@@ -36,8 +36,8 @@ const registerSettings = () => {
   });
 
   game.settings.register(game.system.id, "ascendingAC", {
-    name: game.i18n.localize("OSE.Setting.AscendingAC"),
-    hint: game.i18n.localize("OSE.Setting.AscendingACHint"),
+    name: "OSE.Setting.AscendingAC",
+    hint: "OSE.Setting.AscendingACHint",
     default: false,
     scope: "world",
     type: Boolean,
@@ -45,8 +45,8 @@ const registerSettings = () => {
   });
 
   game.settings.register(game.system.id, "morale", {
-    name: game.i18n.localize("OSE.Setting.Morale"),
-    hint: game.i18n.localize("OSE.Setting.MoraleHint"),
+    name: "OSE.Setting.Morale",
+    hint: "OSE.Setting.MoraleHint",
     default: false,
     scope: "world",
     type: Boolean,
@@ -54,22 +54,21 @@ const registerSettings = () => {
   });
 
   game.settings.register(game.system.id, "encumbranceOption", {
-    name: game.i18n.localize("OSE.Setting.Encumbrance"),
-    hint: game.i18n.localize("OSE.Setting.EncumbranceHint"),
+    name: "OSE.Setting.Encumbrance",
+    hint: "OSE.Setting.EncumbranceHint",
     default: "detailed",
     scope: "world",
     type: String,
     config: true,
     requiresReload: true,
-    choices: Object.values(CONFIG.OSE.encumbranceOptions).reduce((obj, enc) => {
-      obj[enc.type] = enc.localizedLabel;
-      return obj;
-    }, {}) as SettingConfig<EncumbranceOption>["choices"],
+    choices: Object.fromEntries(
+      Object.values(CONFIG.OSE.encumbranceOptions).map((enc) => [enc.type, enc.localizedLabel]),
+    ) as Record<EncumbranceOption, string>,
   });
 
   game.settings.register(game.system.id, "encumbranceItemStrengthMod", {
-    name: game.i18n.localize("OSE.Setting.EncumbranceItemStrengthMod"),
-    hint: game.i18n.localize("OSE.Setting.EncumbranceItemStrengthModHint"),
+    name: "OSE.Setting.EncumbranceItemStrengthMod",
+    hint: "OSE.Setting.EncumbranceItemStrengthModHint",
     default: false,
     scope: "world",
     type: Boolean,
@@ -77,8 +76,8 @@ const registerSettings = () => {
   });
 
   game.settings.register(game.system.id, "gygax75Encumbrance", {
-    name: game.i18n.localize("OSE.Setting.Gygax75Encumbrance"),
-    hint: game.i18n.localize("OSE.Setting.Gygax75EncumbranceHint"),
+    name: "OSE.Setting.Gygax75Encumbrance",
+    hint: "OSE.Setting.Gygax75EncumbranceHint",
     default: true,
     scope: "world",
     type: Boolean,
@@ -87,8 +86,8 @@ const registerSettings = () => {
   });
 
   game.settings.register(game.system.id, "significantTreasure", {
-    name: game.i18n.localize("OSE.Setting.SignificantTreasure"),
-    hint: game.i18n.localize("OSE.Setting.SignificantTreasureHint"),
+    name: "OSE.Setting.SignificantTreasure",
+    hint: "OSE.Setting.SignificantTreasureHint",
     default: 800,
     scope: "world",
     type: Number,
@@ -96,54 +95,60 @@ const registerSettings = () => {
   });
 
   game.settings.register(game.system.id, "languages", {
-    name: game.i18n.localize("OSE.Setting.Languages"),
-    hint: game.i18n.localize("OSE.Setting.LanguagesHint"),
+    name: "OSE.Setting.Languages",
+    hint: "OSE.Setting.LanguagesHint",
     default: "",
     scope: "world",
     type: String,
     config: true,
   });
+
   game.settings.register(game.system.id, "applyDamageOption", {
-    name: game.i18n.localize("OSE.Setting.applyDamageOption"),
-    hint: game.i18n.localize("OSE.Setting.applyDamageOptionHint"),
+    name: "OSE.Setting.applyDamageOption",
+    hint: "OSE.Setting.applyDamageOptionHint",
     default: "selected",
     scope: "world",
     type: String,
     config: true,
     choices: {
-      selected: game.i18n.localize("OSE.Setting.damageSelected"),
-      targeted: game.i18n.localize("OSE.Setting.damageTarget"),
-      originalTarget: game.i18n.localize("OSE.Setting.damageOriginalTarget"),
+      selected: "OSE.Setting.damageSelected",
+      targeted: "OSE.Setting.damageTarget",
+      originalTarget: "OSE.Setting.damageOriginalTarget",
     },
   });
+
   game.settings.register(game.system.id, "invertedCtrlBehavior", {
-    name: game.i18n.localize("OSE.Setting.InvertedCtrlBehavior"),
-    hint: game.i18n.localize("OSE.Setting.InvertedCtrlBehaviorHint"),
+    name: "OSE.Setting.InvertedCtrlBehavior",
+    hint: "OSE.Setting.InvertedCtrlBehaviorHint",
     default: false,
     scope: "world",
     type: Boolean,
     config: true,
   });
+
   game.settings.register(game.system.id, "ignoreAttackBonusOnDamageRoll", {
-    name: game.i18n.localize("OSE.Setting.ignoreAttackBonusOnDamageRoll"),
-    hint: game.i18n.localize("OSE.Setting.ignoreAttackBonusOnDamageRollHint"),
+    name: "OSE.Setting.ignoreAttackBonusOnDamageRoll",
+    hint: "OSE.Setting.ignoreAttackBonusOnDamageRollHint",
     default: false,
     scope: "world",
     type: Boolean,
     config: true,
     requiresReload: true,
   });
+
   game.settings.register(game.system.id, "hasPromptedDefaultOSETokenRing", {
     default: false,
     scope: "world",
     type: Boolean,
   });
+
   game.settings.register(game.system.id, "savedParties", {
     scope: "world",
     config: false,
     type: Object,
     default: {},
   });
+
   game.settings.register(game.system.id, "automateAmmo", {
     name: "OSE.Setting.AutomateAmmo",
     hint: "OSE.Setting.AutomateAmmoHint",
@@ -157,46 +162,52 @@ const registerSettings = () => {
     },
     default: "warn",
   });
+
   game.settings.register(game.system.id, "enableClassItems", {
-    name: game.i18n.localize("OSE.Setting.EnableClassItems"),
-    hint: game.i18n.localize("OSE.Setting.EnableClassItemsHint"),
+    name: "OSE.Setting.EnableClassItems",
+    hint: "OSE.Setting.EnableClassItemsHint",
     default: false,
     scope: "world",
     type: Boolean,
     config: true,
     requiresReload: true,
   });
+
   game.settings.register(game.system.id, "multipleClasses", {
-    name: game.i18n.localize("OSE.Setting.MultipleClasses"),
-    hint: game.i18n.localize("OSE.Setting.MultipleClassesHint"),
+    name: "OSE.Setting.MultipleClasses",
+    hint: "OSE.Setting.MultipleClassesHint",
     default: false,
     scope: "world",
     type: Boolean,
     config: true,
     requiresReload: true,
   });
+
   game.settings.register(game.system.id, "promptAddClassAbilities", {
-    name: game.i18n.localize("OSE.Setting.PromptAddClassAbilities"),
-    hint: game.i18n.localize("OSE.Setting.PromptAddClassAbilitiesHint"),
+    name: "OSE.Setting.PromptAddClassAbilities",
+    hint: "OSE.Setting.PromptAddClassAbilitiesHint",
     default: true,
     scope: "world",
     type: Boolean,
     config: true,
   });
+
   game.settings.register(game.system.id, "effectsTab", {
-    name: game.i18n.localize("OSE.Setting.EffectsTab"),
-    hint: game.i18n.localize("OSE.Setting.EffectsTabHint"),
+    name: "OSE.Setting.EffectsTab",
+    hint: "OSE.Setting.EffectsTabHint",
     default: true,
     scope: "world",
     type: Boolean,
     config: true,
   });
+
   game.settings.register(game.system.id, "tweaksMigrated", {
     default: false,
     scope: "world",
     type: Boolean,
     config: false,
   });
+
   game.settings.register(game.system.id, "systemMigrationVersion", {
     default: "",
     scope: "world",
@@ -214,13 +225,16 @@ declare global {
       "ose.ascendingAC": boolean;
       "ose.morale": boolean;
       "ose.encumbranceOption": EncumbranceOption;
+      "ose.encumbranceItemStrengthMod": boolean;
       "ose.gygax75Encumbrance": boolean;
       "ose.savedParties": Record<string, string[]>;
       "ose.automateAmmo": "disabled" | "warn" | "enforce";
       "ose.significantTreasure": number;
       "ose.languages": string;
       "ose.applyDamageOption": ApplyDamageOption;
+      "ose.invertedCtrlBehavior": boolean;
       "ose.ignoreAttackBonusOnDamageRoll": boolean;
+      "ose.hasPromptedDefaultOSETokenRing": boolean;
       "ose.multipleClasses": boolean;
       "ose.promptAddClassAbilities": boolean;
       "ose.effectsTab": boolean;
@@ -229,6 +243,10 @@ declare global {
       "ose.systemMigrationVersion": string;
     }
   }
+}
+
+declare module "@league-of-foundry-developers/foundry-vtt-types/configuration" {
+  interface SettingConfig extends ClientSettings.Values {}
 }
 
 export default registerSettings;

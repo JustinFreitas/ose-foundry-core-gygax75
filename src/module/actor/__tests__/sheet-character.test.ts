@@ -236,7 +236,7 @@ export default ({ describe, it, expect, after, afterEach }: QuenchMethods) => {
       ]);
       expect(actor?.system.details.title).equal("Warrior / Seer");
 
-      await actor?.sheet?.render(true);
+      await actor?.sheet?.render({ force: true });
       await waitUntil(() => actor?.sheet?.element?.querySelector('[name="system.details.alignment"]'));
       await actor?.sheet?.submit();
       expect(actor?._source.system.details.title).equal("");
@@ -255,7 +255,7 @@ export default ({ describe, it, expect, after, afterEach }: QuenchMethods) => {
           system: { roll: "1d6", rollType: "below", rollTarget: 3, exploration: "ld" },
         },
       ]);
-      await actor?.sheet?.render(true);
+      await actor?.sheet?.render({ force: true });
       await waitUntil(() => actor?.sheet?.element?.querySelector('[name="system.exploration.ld"]'));
       const input = actor?.sheet?.element?.querySelector('[name="system.exploration.ld"]') as HTMLInputElement;
       expect(input.value).equal("3");
@@ -283,7 +283,7 @@ export default ({ describe, it, expect, after, afterEach }: QuenchMethods) => {
       await actor?.createEmbeddedDocuments("ActiveEffect", [
         { name: "Keen Ears", changes: [{ key: "system.tables.skills.hn.current", mode: 2, value: "1" }] },
       ]);
-      await actor?.sheet?.render(true);
+      await actor?.sheet?.render({ force: true });
       await waitUntil(() => actor?.sheet?.element?.querySelector(".class-table-cell"));
       const cell = actor?.sheet?.element?.querySelector(".class-table-cell") as HTMLElement;
       expect(cell.querySelector(".cell-value")?.textContent).equal("1-3");
@@ -305,7 +305,7 @@ export default ({ describe, it, expect, after, afterEach }: QuenchMethods) => {
       expect(actor.system.warnings.length).greaterThan(0);
       const sheet = actor.sheet as unknown as OseActorSheetCharacter & { _showWarnings: boolean };
       sheet._showWarnings = true;
-      await sheet.render(true);
+      await sheet.render({ force: true });
       await waitUntil(() => !!sheet.element?.querySelector(".sheet-body"));
       const body = (sheet.element.querySelector(".sheet-body") as HTMLElement).getBoundingClientRect();
       const content = (sheet.element.querySelector(".window-content") as HTMLElement).getBoundingClientRect();

@@ -29,7 +29,7 @@ describe("groupEffects", () => {
 
   it("sorts by name within a group", () => {
     const [, passive] = groupEffects([row({ name: "Zeal" }), row({ name: "Aura" })]);
-    expect(passive.effects.map((e) => e.name)).toEqual(["Aura", "Zeal"]);
+    expect(passive?.effects.map((e) => e.name)).toEqual(["Aura", "Zeal"]);
   });
 });
 

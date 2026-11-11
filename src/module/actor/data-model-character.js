@@ -9,6 +9,7 @@ import { totalRaceSaveBonus } from "../classes/race-saves";
 import { buildSpellPools } from "../classes/spells";
 import { computeWarnings, contextKey } from "../classes/warnings";
 import OseDataModelCharacterAC from "./data-model-classes/data-model-character-ac";
+import OseDataModelCharacterEncumbrance from "./data-model-classes/data-model-character-encumbrance";
 import OseDataModelCharacterMove from "./data-model-classes/data-model-character-move";
 import OseDataModelCharacterScores from "./data-model-classes/data-model-character-scores";
 import OseDataModelCharacterSpells from "./data-model-classes/data-model-character-spells";
@@ -18,13 +19,29 @@ const getItemsOfActorOfType = (actor, filterType, filterFn = null) =>
   actor.items.filter(({ type }) => type === filterType).filter(filterFn || (() => true));
 
 export default class OseDataModelCharacter extends foundry.abstract.TypeDataModel {
+  get #classItemsEnabled() {
+    return Boolean(game.settings?.get?.(game.system?.id ?? "ose", "enableClassItems"));
+  }
+
   prepareBaseData() {
-    // Resolve an unset packed cap so effects modify the real value.
+    // Resolve unset or default encumbrance caps dynamically so toggling gygax75Encumbrance
+    // switches between 2,400 cn and 1,600 cn while still allowing Active Effects to modify max.
+    const encumbranceCls = CONFIG.OSE.encumbrance;
+    const defaultCap = encumbranceCls.baseEncumbranceCap;
+    const oppositeCap = OseDataModelCharacterEncumbrance.isGygax75 ? 1600 : 2400;
+    if (this.encumbrance.max == null || (encumbranceCls.type !== "itembased" && this.encumbrance.max === oppositeCap)) {
+      this.encumbrance.max = defaultCap;
+    }
     if ("packedMax" in this.encumbrance) {
-      this.encumbrance.packedMax ??= CONFIG.OSE.encumbrance.caps?.(this.encumbrance.max).packed;
+      this.encumbrance.packedMax ??= encumbranceCls.caps?.(this.encumbrance.max).packed;
+    }
+    // Reset base movement before Active Effects when movementAuto is enabled so Haste/Speed
+    // deltas apply cleanly on top of the standard 120' base rate regardless of stale _source values.
+    if (this.config?.movementAuto && encumbranceCls.type !== "disabled") {
+      this.movement = { ...this.movement, base: OseDataModelCharacterMove.baseMoveRate };
     }
     this.derivedFromClasses = false;
-    if (!game.settings?.get?.(game.system?.id ?? "ose", "enableClassItems")) {
+    if (!this.#classItemsEnabled) {
       return;
     }
     const { classes } = this;
@@ -57,9 +74,10 @@ export default class OseDataModelCharacter extends foundry.abstract.TypeDataMode
 
   // Class tables and the exploration skills abilities raise. Runs before Active Effects.
   prepareTables() {
-    const { tables, from, shared } = deriveTables(
-      this.classes.map((c) => ({ id: c.id, name: c.name, level: c.system.level, tables: c.system.tables ?? [] })),
-    );
+    const classRows = this.#classItemsEnabled
+      ? this.classes.map((c) => ({ id: c.id, name: c.name, level: c.system.level, tables: c.system.tables ?? [] }))
+      : [];
+    const { tables, from, shared } = deriveTables(classRows);
     this.tables = tables;
     this.tablesFrom = from;
     this.tablesBase = Object.fromEntries(
@@ -131,6 +149,7 @@ export default class OseDataModelCharacter extends foundry.abstract.TypeDataMode
 
   // Race ability modifiers stay within 3-18.
   #clampRaceModifiers() {
+    if (!this.#classItemsEnabled) return;
     const scope = game.system.id;
     const effect = this.parent.appliedEffects?.find((e) => e.getFlag(scope, "raceModifiers"));
     for (const { key, type, value } of effect ? readChanges(effect) : []) {
@@ -152,6 +171,7 @@ export default class OseDataModelCharacter extends foundry.abstract.TypeDataMode
   #prepareSpellPools() {
     this.spellPools = [];
     this.unallocatedSpells = [];
+    if (!this.#classItemsEnabled) return;
     const { classes } = this;
     if (!classes.length) return;
     const spells = this.spellList;
@@ -199,6 +219,7 @@ export default class OseDataModelCharacter extends foundry.abstract.TypeDataMode
   #prepareWarnings() {
     this.warnings = [];
     this.warningContext = "";
+    if (!this.#classItemsEnabled) return;
     const { classes } = this;
     const race = this.race;
     if (!classes.length && !race) return;
@@ -321,7 +342,7 @@ export default class OseDataModelCharacter extends foundry.abstract.TypeDataMode
       };
     }
 
-    return super.migrateData(source);
+    return super.migrateData ? super.migrateData(source) : source;
   }
 
   /**
@@ -382,7 +403,24 @@ export default class OseDataModelCharacter extends foundry.abstract.TypeDataMode
   }
 
   get carriedTreasure() {
-    const total = this.treasures.reduce((acc, { system: { quantity, cost } }) => acc + quantity.value * cost, 0);
+    if (!this.parent?.items) return 0;
+    const carriedContainerIds = new Set(this.containers.map((c) => c.id).filter(Boolean));
+    const allTreasures = getItemsOfActorOfType(
+      this.parent,
+      "item",
+      ({ system: { treasure, containerId } }) =>
+        Boolean(treasure) && (!containerId || carriedContainerIds.has(containerId)),
+    );
+    const total = allTreasures.reduce((acc, item) => {
+      const { quantity, cost, cumulativeCost } = item.system;
+      const itemCost =
+        typeof cumulativeCost === "number"
+          ? cumulativeCost
+          : quantity?.max && quantity.max > 0
+            ? ((cost ?? 0) / quantity.max) * (quantity?.value ?? 0)
+            : (quantity?.value ?? 0) * (cost ?? 0);
+      return acc + itemCost;
+    }, 0);
     return Math.round(total * 100) / 100;
   }
 
@@ -409,12 +447,12 @@ export default class OseDataModelCharacter extends foundry.abstract.TypeDataMode
   }
 
   get classes() {
-    if (!this.parent?.items) return [];
+    if (!this.#classItemsEnabled || !this.parent?.items) return [];
     return getItemsOfActorOfType(this.parent, "class").sort((a, b) => (a.sort || 0) - (b.sort || 0));
   }
 
   get race() {
-    if (!this.parent?.items) return null;
+    if (!this.#classItemsEnabled || !this.parent?.items) return null;
     return getItemsOfActorOfType(this.parent, "race")[0] ?? null;
   }
 

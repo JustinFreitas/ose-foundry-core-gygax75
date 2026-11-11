@@ -218,6 +218,7 @@
                 <div class="attribute-value">
                     <input name="system.saves.death.value" type="text" value="{{system.saves.death.value}}" placeholder="0"
                         data-dtype="Number" {{#if derivedFromClasses}}disabled data-tooltip="{{breakdown.saves.death}}"{{/if}} />
+                </div>
             </li>
             <li class="attribute saving-throw" data-save="wand">
                 <h4 class="attribute-name box-title">
@@ -226,6 +227,7 @@
                 <div class="attribute-value">
                     <input name="system.saves.wand.value" type="text" value="{{system.saves.wand.value}}" placeholder="0"
                         data-dtype="Number" {{#if derivedFromClasses}}disabled data-tooltip="{{breakdown.saves.wand}}"{{/if}} />
+                </div>
             </li>
             <li class="attribute saving-throw" data-save="paralysis">
                 <h4 class="attribute-name box-title">
@@ -234,6 +236,7 @@
                 <div class="attribute-value">
                     <input name="system.saves.paralysis.value" type="text" value="{{system.saves.paralysis.value}}"
                         placeholder="0" data-dtype="Number" {{#if derivedFromClasses}}disabled data-tooltip="{{breakdown.saves.paralysis}}"{{/if}} />
+                </div>
             </li>
             <li class="attribute saving-throw" data-save="breath">
                 <h4 class="attribute-name box-title">
@@ -242,6 +245,7 @@
                 <div class="attribute-value">
                     <input name="system.saves.breath.value" type="text" value="{{system.saves.breath.value}}"
                         placeholder="0" data-dtype="Number" {{#if derivedFromClasses}}disabled data-tooltip="{{breakdown.saves.breath}}"{{/if}} />
+                </div>
             </li>
             <li class="attribute saving-throw" data-save="spell">
                 <h4 class="attribute-name box-title">
@@ -249,7 +253,8 @@
                 </h4>
                 <div class="attribute-value">
                     <input name="system.saves.spell.value" type="text" value="{{system.saves.spell.value}}"
-                        placeholder="0" {{#if derivedFromClasses}}disabled data-tooltip="{{breakdown.saves.spell}}"{{/if}} />
+                        placeholder="0" data-dtype="Number" {{#if derivedFromClasses}}disabled data-tooltip="{{breakdown.saves.spell}}"{{/if}} />
+                </div>
             </li>
             <li class="attribute saving-throw">
                 <h4 class="attribute-name box-title" data-tooltip="OSE.saves.magic.long">

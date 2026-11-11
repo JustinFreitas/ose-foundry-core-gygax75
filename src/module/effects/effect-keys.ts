@@ -17,6 +17,8 @@ const shared = (): EffectKey[] => [
   { key: "system.thac0.bba", label: "OSE.AB" },
   { key: "system.thac0.mod.melee", label: "OSE.MeleeBonus" },
   { key: "system.thac0.mod.missile", label: "OSE.MissileBonus" },
+  { key: "system.damage.mod.melee", label: "OSE.effects.keys.meleeDamage" },
+  { key: "system.damage.mod.missile", label: "OSE.effects.keys.missileDamage" },
   ...Object.entries(OSE.saves_long).map(([s, label]) => ({ key: `system.saves.${s}.value`, label })),
   { key: "system.initiative.mod", label: "OSE.InitiativeBonus" },
   { key: "system.movement.base", label: "OSE.movement.base" },
@@ -35,6 +37,7 @@ export const effectKeys = (type: "character" | "monster"): EffectKey[] =>
         { key: "system.aac.value", label: "OSE.effects.keys.aac" },
         { key: "system.details.morale", label: "OSE.details.morale" },
         { key: "system.details.xp", label: "OSE.details.experience.award" },
+        { key: "system.encumbrance.max", label: "OSE.effects.keys.encumbranceMax" },
       ]
     : [
         ...Object.entries(OSE.scores).map(([s, label]) => ({ key: `system.scores.${s}.value`, label })),

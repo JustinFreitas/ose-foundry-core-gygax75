@@ -1,4 +1,8 @@
-import { describe, expect, it, type vi } from "vitest";
+import { describe, expect, it } from "vitest";
+import { findActorsToMigrate, promptClassMigration, runClassMigration } from "../../migration";
+import { convertActor, convertSingleActor } from "../../migration/convert-actor";
+import OseDataModelCharacter from "../data-model-character";
+import OseDataModelMonster, { computeMonsterCarriedWeight } from "../data-model-monster";
 import OseDataModelCharacterEncumbrance from "./data-model-character-encumbrance";
 import OseDataModelCharacterEncumbranceBasic from "./data-model-character-encumbrance-basic";
 import OseDataModelCharacterEncumbranceComplete from "./data-model-character-encumbrance-complete";
@@ -88,6 +92,31 @@ describe("Offline Encumbrance Model Tests", () => {
 
       const enc = new OseDataModelCharacterEncumbranceBasic(1600, items as unknown as Item[]);
       expect(enc.value).toBe(20); // 10 * 2 = 20
+    });
+
+    it("uses cumulativeWeight and bundle scaling for partial treasure bundles in basic encumbrance", () => {
+      const items = [
+        {
+          type: "item",
+          system: {
+            treasure: true,
+            quantity: { value: 10, max: 20 },
+            weight: 100,
+            cumulativeWeight: 50,
+          },
+        },
+        {
+          type: "item",
+          system: {
+            treasure: true,
+            quantity: { value: 5, max: 10 },
+            weight: 40,
+          },
+        },
+      ];
+
+      const enc = new OseDataModelCharacterEncumbranceBasic(null, items as unknown as Item[]);
+      expect(enc.value).toBe(70); // 50 + (40 / 10) * 5 = 70
     });
 
     it("evaluates armor and treasure thresholds for basic encumbrance", () => {
@@ -289,6 +318,94 @@ describe("Offline Encumbrance Model Tests", () => {
       // equipped weight: ceil(0.25) = 1
       expect(enc.equippedValue).toBe(1);
     });
+
+    it("sums fractional bundle slots before Math.ceil and counts empty containers as 1 slot", () => {
+      const items = [
+        {
+          type: "item",
+          system: {
+            equipped: false,
+            quantity: { value: 10, max: 20 },
+            itemslots: 1,
+            cumulativeItemslots: 0.5,
+          },
+        },
+        {
+          type: "item",
+          system: {
+            equipped: false,
+            quantity: { value: 10, max: 20 },
+            itemslots: 1,
+            cumulativeItemslots: 0.5,
+          },
+        },
+        {
+          type: "container",
+          system: {
+            equipped: false,
+            quantity: { value: 0 },
+            itemslots: 1,
+          },
+        },
+        {
+          type: "container",
+          system: {
+            equipped: true,
+            quantity: { value: 0 },
+            itemslots: 1,
+          },
+        },
+      ];
+
+      const enc = new OseDataModelCharacterEncumbranceItemBased(16, items as unknown as Item[]);
+      // packed: ceil(0.5 + 0.5 + 1) = 2 (not 1 + 1 + 0 = 2 by accident; verify without container too)
+      expect(enc.packedValue).toBe(2);
+      expect(enc.equippedValue).toBe(1);
+
+      const twoHalfBundlesOnly = new OseDataModelCharacterEncumbranceItemBased(
+        16,
+        items.slice(0, 2) as unknown as Item[],
+      );
+      expect(twoHalfBundlesOnly.packedValue).toBe(1);
+    });
+
+    it("derives nextBreakpointValue from custom equipped/packed caps including the overload threshold", () => {
+      const makeSlots = (equippedSlots: number, packedSlots: number) => [
+        ...(equippedSlots > 0
+          ? [{ type: "item", system: { equipped: true, quantity: { value: equippedSlots }, itemslots: 1 } }]
+          : []),
+        ...(packedSlots > 0
+          ? [{ type: "item", system: { equipped: false, quantity: { value: packedSlots }, itemslots: 1 } }]
+          : []),
+      ];
+
+      // Default caps: equippedMax = 9, packedMax = 16
+      const encTier4 = new OseDataModelCharacterEncumbranceItemBased(16, makeSlots(0, 15) as unknown as Item[]);
+      expect(encTier4.atThirdBreakpoint).toBe(true);
+      expect(encTier4.encumbered).toBe(false);
+      expect(encTier4.nextBreakpointValue).toBe(16); // overload cap included!
+
+      const encOver = new OseDataModelCharacterEncumbranceItemBased(16, makeSlots(0, 17) as unknown as Item[]);
+      expect(encOver.encumbered).toBe(true);
+      expect(encOver.nextBreakpointValue).toBeNull();
+
+      // Custom caps: equippedMax = 12 (thresholds 4, 6, 9, 12), packedMax = 20 (thresholds 12, 15, 17, 20)
+      const encCustom = new OseDataModelCharacterEncumbranceItemBased(12, makeSlots(8, 10) as unknown as Item[], {
+        packedMax: 20,
+      });
+      // equippedWeight = 8 (tier 2, <= 9): next equipped breakpoint is 9 (1 slot remaining)
+      expect(encCustom.usingEquippedEncumbrance).toBe(true);
+      expect(encCustom.nextBreakpointValue).toBe(9);
+      expect(encCustom.untilNextBreakpoint).toBe(1);
+
+      const encCustomTier4 = new OseDataModelCharacterEncumbranceItemBased(12, makeSlots(10, 10) as unknown as Item[], {
+        packedMax: 20,
+      });
+      expect(encCustomTier4.atThirdBreakpoint).toBe(true);
+      expect(encCustomTier4.encumbered).toBe(false);
+      expect(encCustomTier4.nextBreakpointValue).toBe(12); // custom overload cap
+      expect(encCustomTier4.untilNextBreakpoint).toBe(2);
+    });
   });
 
   describe("Configurable Gygax '75 Encumbrance Rules (BECMI 2,400 cn vs B/X 1,600 cn)", () => {
@@ -329,14 +446,10 @@ describe("Offline Encumbrance Model Tests", () => {
       expect(enc.nextBreakpointValue).toBe(null);
     });
 
-    it("restores official B/X defaults when gygax75Encumbrance is disabled", () => {
-      const originalGet = game.settings.get;
+    it("restores official B/X defaults when gygax75Encumbrance is disabled", async () => {
       try {
         OseDataModelCharacterEncumbrance.isGygax75 = null;
-        (game.settings.get as ReturnType<typeof vi.fn>).mockImplementation((_scope, key) => {
-          if (key === "gygax75Encumbrance") return false;
-          return undefined;
-        });
+        await game.settings.set("ose", "gygax75Encumbrance", false);
 
         expect(OseDataModelCharacterEncumbrance.isGygax75).toBe(false);
         expect(OseDataModelCharacterEncumbrance.baseEncumbranceCap).toBe(1600);
@@ -356,22 +469,218 @@ describe("Offline Encumbrance Model Tests", () => {
         enc.testValue = 1601;
         expect(enc.encumbered).toBe(true);
       } finally {
-        game.settings.get = originalGet;
+        await game.settings.set("ose", "gygax75Encumbrance", true);
         OseDataModelCharacterEncumbrance.isGygax75 = null;
       }
     });
 
     it("safely falls back to Gygax '75 (2400 cn) if game.settings is uninitialized", () => {
-      const originalSettings = game.settings;
+      const mutableGame = game as unknown as { settings: unknown };
+      const originalSettings = mutableGame.settings;
       try {
         OseDataModelCharacterEncumbrance.isGygax75 = null;
-        // @ts-expect-error test uninitialized settings
-        game.settings = undefined;
+        mutableGame.settings = undefined;
         expect(OseDataModelCharacterEncumbrance.baseEncumbranceCap).toBe(2400);
         expect(OseDataModelCharacterEncumbrance.isGygax75).toBe(true);
       } finally {
-        game.settings = originalSettings;
+        mutableGame.settings = originalSettings;
         OseDataModelCharacterEncumbrance.isGygax75 = null;
+      }
+    });
+
+    it("dynamically resolves unset max between 2,400 cn and 1,600 cn when gygax75Encumbrance toggles", async () => {
+      OseDataModelCharacterEncumbrance.isGygax75 = null;
+      await game.settings.set("ose", "gygax75Encumbrance", true);
+      const enc = new OseDataModelCharacterEncumbranceDetailed(null, []);
+      expect(enc.max).toBe(2400);
+
+      OseDataModelCharacterEncumbrance.isGygax75 = null;
+      await game.settings.set("ose", "gygax75Encumbrance", false);
+      expect(enc.max).toBe(1600);
+      OseDataModelCharacterEncumbrance.isGygax75 = null;
+    });
+  });
+
+  describe("Monster & Mount Encumbrance (Horse Barding & Disabled Max)", () => {
+    it("counts armor with quantity 0 or null (e.g. Horse Barding 600 cn) as quantity 1", () => {
+      const mountItems = [
+        { type: "armor", system: { weight: 600, quantity: { value: 0 } } },
+        { type: "armor", system: { weight: 150, quantity: { value: null } } },
+        { type: "weapon", system: { weight: 50, quantity: { value: null } } },
+        { type: "item", system: { weight: 100, quantity: { value: 2 } } },
+      ];
+      expect(computeMonsterCarriedWeight(mountItems)).toBe(1000);
+
+      const parentMount = {
+        items: [{ type: "armor", system: { weight: 600, quantity: { value: 0 } } }],
+        _source: { system: {} },
+      };
+      const mountModel = new OseDataModelMonster(
+        { encumbrance: { max: 4000 }, movement: { base: 240 }, config: { movementAuto: true } },
+        { parent: parentMount },
+      );
+      mountModel.prepareDerivedData();
+      expect(mountModel.encumbrance.value).toBe(600);
+      expect(mountModel.encumbrance.max).toBe(4000);
+      expect(mountModel.movement.base).toBe(240);
+
+      const unencumberedMonster = new OseDataModelMonster(
+        { encumbrance: { max: 0 }, movement: { base: 120 }, config: {} },
+        { parent: { items: [], _source: { system: {} } } },
+      );
+      unencumberedMonster.prepareDerivedData();
+      expect(unencumberedMonster.encumbrance.enabled).toBe(false);
+      expect(unencumberedMonster.encumbrance.max).toBe(0);
+    });
+  });
+
+  describe("Character Data Model Treasure & enableClassItems Gate", () => {
+    it("includes container-stowed treasure and cumulativeCost in carriedTreasure", () => {
+      const parentActor = {
+        items: [
+          { id: "sack1", type: "container", system: { containerId: "" } },
+          {
+            id: "gp-loose",
+            type: "item",
+            system: { treasure: true, containerId: "", quantity: { value: 50 }, cost: 1, cumulativeCost: 50 },
+          },
+          {
+            id: "gems-stowed",
+            type: "item",
+            system: { treasure: true, containerId: "sack1", quantity: { value: 2 }, cost: 100, cumulativeCost: 200 },
+          },
+          {
+            id: "bundle-treasure",
+            type: "item",
+            system: { treasure: true, containerId: "sack1", quantity: { value: 5, max: 10 }, cost: 20 },
+          },
+          {
+            id: "orphaned-treasure",
+            type: "item",
+            system: { treasure: true, containerId: "dropped-chest", quantity: { value: 1 }, cost: 500 },
+          },
+        ],
+        _source: { system: {} },
+      };
+
+      const charModel = new OseDataModelCharacter({}, { parent: parentActor });
+      // 50 (loose) + 200 (in sack1) + 10 (5/10 bundle in sack1) = 260 GP; orphaned chest excluded
+      expect(charModel.carriedTreasure).toBe(260);
+    });
+
+    it("gates residual class/race items and migration helpers when enableClassItems is false", async () => {
+      const residualClass = {
+        id: "cls1",
+        name: "Fighter",
+        type: "class",
+        system: {
+          key: "fighter",
+          level: 3,
+          hasTable: true,
+          levels: [
+            {
+              xp: 0,
+              hd: "1d8",
+              hdcon: true,
+              thac0: 19,
+              bba: 0,
+              saves: { death: 12, wand: 13, paralysis: 14, breath: 15, spell: 16 },
+              spellSlots: {},
+            },
+          ],
+          tables: [{ key: "skills", label: "Skills", columns: [{ key: "ms", name: "MS" }], rows: [{ ms: 2 }] }],
+        },
+      };
+      const residualRace = {
+        id: "race1",
+        name: "Elf",
+        type: "race",
+        system: { key: "elf", saveBonuses: [], requirements: {}, classAccess: () => null },
+      };
+      const parentActor = {
+        type: "character",
+        items: [residualClass, residualRace],
+        appliedEffects: [],
+        _source: { system: { scores: {}, ac: { mod: 0 }, aac: { mod: 0 } } },
+      };
+
+      // Default stub has ose.enableClassItems = false
+      const charModel = new OseDataModelCharacter(
+        {
+          details: { class: "Fighter", level: 1, xp: { value: 0, next: 2000 } },
+          scores: {
+            str: { value: 10 },
+            int: { value: 10 },
+            wis: { value: 10 },
+            dex: { value: 10 },
+            con: { value: 10 },
+            cha: { value: 10 },
+          },
+          saves: {
+            death: { value: 14 },
+            wand: { value: 15 },
+            paralysis: { value: 16 },
+            breath: { value: 17 },
+            spell: { value: 17 },
+          },
+          thac0: { value: 19, bba: 0 },
+          hp: { hd: "1d6", value: 4, max: 4 },
+          spells: { enabled: false },
+          config: { movementAuto: true },
+        },
+        { parent: parentActor },
+      );
+
+      expect(charModel.classes).toEqual([]);
+      expect(charModel.race).toBeNull();
+      charModel.prepareBaseData();
+      expect(charModel.derivedFromClasses).toBe(false);
+      expect(charModel.details.level).toBe(1);
+      charModel.prepareTables();
+      expect(charModel.tables).toEqual({});
+
+      await expect(findActorsToMigrate()).resolves.toEqual([]);
+      expect((await convertActor(parentActor as unknown as Actor, [])).status).toBe("none");
+      expect((await convertSingleActor(parentActor as unknown as Actor)).status).toBe("none");
+      await expect(runClassMigration([])).resolves.toEqual([]);
+      await expect(promptClassMigration()).resolves.toBeUndefined();
+    });
+
+    it("prompts class migration via V14 DialogV2 constructor with ose/dialog classes and position when enabled", async () => {
+      await game.settings.set("ose", "enableClassItems", true);
+      (game.user as unknown as Record<string, unknown>).isActiveGM = true;
+      const pendingActor = {
+        type: "character",
+        getFlag: () => false,
+        _source: { system: { details: { class: "Fighter" } } },
+      };
+      (game as unknown as { actors: unknown[] }).actors = [pendingActor];
+
+      let capturedOptions: Record<string, unknown> | null = null;
+      const OriginalDialogV2 = foundry.applications.api.DialogV2;
+      try {
+        foundry.applications.api.DialogV2 = class extends OriginalDialogV2 {
+          constructor(options: Record<string, unknown>) {
+            super(options);
+            capturedOptions = options;
+          }
+          override async render() {
+            const laterBtn = (this.options.buttons as unknown as Array<{ action: string; callback: () => void }>).find(
+              (b) => b.action === "later",
+            );
+            laterBtn?.callback();
+            return this;
+          }
+        } as unknown as typeof foundry.applications.api.DialogV2;
+
+        await promptClassMigration();
+        expect(capturedOptions).toMatchObject({
+          classes: ["ose", "dialog"],
+          position: { width: 420, height: "auto" },
+        });
+      } finally {
+        foundry.applications.api.DialogV2 = OriginalDialogV2;
+        (game as unknown as { actors: unknown[] }).actors = [];
       }
     });
   });

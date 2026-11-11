@@ -8,6 +8,8 @@ export const CLASS_ITEMS_MIGRATION = "classItems-1";
 
 const STATUS_ORDER = ["error", "review", "custom", "matched", "none"] as const;
 
+const isClassItemsEnabled = () => Boolean(game.settings?.get?.(game.system?.id ?? "ose", "enableClassItems"));
+
 // biome-ignore lint/suspicious/noExplicitAny: world, token and compendium actors
 const isPending = (actor: any) =>
   actor?.type === "character" &&
@@ -16,6 +18,7 @@ const isPending = (actor: any) =>
 
 // biome-ignore lint/suspicious/noExplicitAny: world, token and compendium actors
 export const findActorsToMigrate = async (): Promise<any[]> => {
+  if (!isClassItemsEnabled()) return [];
   // biome-ignore lint/suspicious/noExplicitAny: mixed world, token and compendium actors
   const actors: any[] = [...(game.actors?.filter(isPending) ?? [])];
   for (const scene of game.scenes ?? []) {
@@ -46,6 +49,7 @@ export const findActorsToMigrate = async (): Promise<any[]> => {
 
 // biome-ignore lint/suspicious/noExplicitAny: world, token and compendium actors
 export const runClassMigration = async (actors: any[]): Promise<ReportEntry[]> => {
+  if (!isClassItemsEnabled()) return [];
   const note = ui.notifications?.info(game.i18n.localize("OSE.migration.Running"), { permanent: true });
   const index = await buildClassIndex();
   const entries: ReportEntry[] = [];
@@ -88,24 +92,49 @@ export const postReport = async (entries: ReportEntry[]) => {
   });
 };
 
-const prompt = (count: number) =>
-  foundry.applications.api.DialogV2.wait({
-    classes: ["ose", "dialog"],
-    window: { title: game.i18n.localize("OSE.migration.Title") },
-    content: game.i18n.format("OSE.migration.Prompt", { count: String(count) }),
-    position: { width: 440, height: "auto" },
-    buttons: [
-      { action: "backup", label: game.i18n.localize("OSE.migration.BackupFirst"), icon: "fas fa-floppy-disk" },
-      { action: "migrate", label: game.i18n.localize("OSE.migration.MigrateNow"), icon: "fas fa-check", default: true },
-      { action: "later", label: game.i18n.localize("OSE.migration.Later"), icon: "fas fa-clock" },
-    ],
-    rejectClose: false,
+const prompt = (count: number): Promise<string | null> =>
+  new Promise((resolve) => {
+    let settled = false;
+    const finish = (choice: string | null) => {
+      if (settled) return;
+      settled = true;
+      resolve(choice);
+    };
+    const dialog = new foundry.applications.api.DialogV2({
+      classes: ["ose", "dialog"],
+      window: { title: game.i18n.localize("OSE.migration.Title") },
+      content: game.i18n.format("OSE.migration.Prompt", { count: String(count) }),
+      position: { width: 420, height: "auto" },
+      buttons: [
+        {
+          action: "backup",
+          label: game.i18n.localize("OSE.migration.BackupFirst"),
+          icon: "fas fa-floppy-disk",
+          callback: () => finish("backup"),
+        },
+        {
+          action: "migrate",
+          label: game.i18n.localize("OSE.migration.MigrateNow"),
+          icon: "fas fa-check",
+          default: true,
+          callback: () => finish("migrate"),
+        },
+        {
+          action: "later",
+          label: game.i18n.localize("OSE.migration.Later"),
+          icon: "fas fa-clock",
+          callback: () => finish("later"),
+        },
+      ],
+    });
+    dialog.addEventListener("close", () => finish(null));
+    void dialog.render({ force: true });
   });
 
 // Runs on ready for the active GM.
 export const promptClassMigration = async () => {
   if (!game.user?.isActiveGM) return;
-  if (!game.settings.get(game.system.id, "enableClassItems")) return;
+  if (!isClassItemsEnabled()) return;
   if (game.settings.get(game.system.id, "systemMigrationVersion") === CLASS_ITEMS_MIGRATION) return;
   const actors = await findActorsToMigrate();
   if (!actors.length) {

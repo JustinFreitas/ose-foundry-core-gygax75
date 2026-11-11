@@ -99,22 +99,21 @@ export default class OseItem extends Item {
   // biome-ignore lint/suspicious/noExplicitAny: foundry Document lifecycle signatures
   async _preCreate(data: any, options: any, user: any) {
     const qtyValue = foundry.utils.getProperty(data, "system.quantity.value");
-    if (qtyValue !== undefined) {
+    if (typeof qtyValue === "number" && Number.isFinite(qtyValue)) {
       const name = data.name ?? this.name;
       if (name !== "GP (Bank)") {
-        this.updateSource({ "system.quantity.value": Math.floor(qtyValue) });
+        this.updateSource({ "system.quantity.value": Math.floor(qtyValue) } as never);
       } else {
-        this.updateSource({ "system.quantity.value": Math.round(qtyValue * 100) / 100 });
+        this.updateSource({ "system.quantity.value": Math.round(qtyValue * 100) / 100 } as never);
       }
     }
-    // @ts-expect-error
     return super._preCreate(data, options, user);
   }
 
   // biome-ignore lint/suspicious/noExplicitAny: foundry Document lifecycle signatures
   async _preUpdate(changed: any, options: any, user: any) {
     const qtyValue = foundry.utils.getProperty(changed, "system.quantity.value");
-    if (qtyValue !== undefined) {
+    if (typeof qtyValue === "number" && Number.isFinite(qtyValue)) {
       const name = changed.name ?? this.name;
       if (name !== "GP (Bank)") {
         foundry.utils.setProperty(changed, "system.quantity.value", Math.floor(qtyValue));
@@ -122,7 +121,6 @@ export default class OseItem extends Item {
         foundry.utils.setProperty(changed, "system.quantity.value", Math.round(qtyValue * 100) / 100);
       }
     }
-    // @ts-expect-error
     return super._preUpdate(changed, options, user);
   }
 
@@ -153,16 +151,47 @@ export default class OseItem extends Item {
     return Boolean(game.user?.isGM || !(this.system as AnyItemSystem)?.hideCounter);
   }
 
+  #cloneDerivedSystem(): AnyItemSystem {
+    const sys = this.system as AnyItemSystem;
+    if (sys && typeof sys === "object") {
+      return Object.assign(Object.create(Object.getPrototypeOf(sys)), sys);
+    }
+    return sys;
+  }
+
+  #visibleAutoTags(): unknown[] {
+    const allTags = (this.system as AnyItemSystem)?.autoTags ?? [];
+    if (game.user?.isGM || this.isIdentified) return allTags;
+    const manualValues = new Set(((this.system as AnyItemSystem)?.manualTags ?? []).map((t: ItemTag) => t.value));
+    // biome-ignore lint/suspicious/noExplicitAny: DisplayTag filtering
+    return allTags.filter((t: any) => !manualValues.has(t?.value) && !manualValues.has(t?.label));
+  }
+
   prepareData() {
     super.prepareData();
   }
 
   async prepareDerivedData(): Promise<void> {
+    const sys = this.system as AnyItemSystem | undefined;
+    if (sys && Object.hasOwn(sys, "equipped") && this.effects) {
+      const unequipped = !sys.equipped;
+      for (const effect of this.effects as unknown as Iterable<object>) {
+        Object.defineProperty(effect, "isSuppressed", {
+          value: unequipped,
+          configurable: true,
+          writable: true,
+        });
+      }
+    }
     // Rich text description (respects unidentified state for non-GM players)
-    (this.system as AnyItemSystem).enrichedDescription =
-      await foundry.applications.ux.TextEditor.implementation.enrichHTML(this.displayDescription, {
-        secrets: game.user?.isGM,
-      });
+    if (sys) {
+      sys.enrichedDescription = await foundry.applications.ux.TextEditor.implementation.enrichHTML(
+        this.displayDescription,
+        {
+          secrets: game.user?.isGM,
+        },
+      );
+    }
   }
 
   static chatListeners(html: HTMLElement) {
@@ -185,13 +214,13 @@ export default class OseItem extends Item {
   async getChatData(_htmlOptions?: unknown) {
     const itemType = this.type;
 
-    const itemData = this.system as AnyItemSystem;
+    const itemData = this.#cloneDerivedSystem();
 
     // Item properties
     const props = [];
 
-    if (itemType === "weapon") {
-      for (const t of itemData.tags) {
+    if (itemType === "weapon" && (game.user?.isGM || this.isIdentified)) {
+      for (const t of itemData.tags ?? []) {
         props.push(t.value);
       }
     }
@@ -212,22 +241,64 @@ export default class OseItem extends Item {
     const isNPC = (actor.type as string) !== "character";
     const itemData = this.system;
 
-    let type = isNPC ? "attack" : "melee";
-    const rollData = {
-      item: { ...(this._source as Record<string, unknown>), name: this.displayName },
+    const buildRollData = (target: unknown = null) => ({
+      item: {
+        ...(this._source as Record<string, unknown>),
+        _id: this.id ?? (this._source as { _id?: string })?._id,
+        id: this.id,
+        system: this.#cloneDerivedSystem(),
+        name: this.displayName,
+      },
       actor: this.actor as OwningActor,
       roll: {
         save: itemData.save,
-        target: null,
+        target,
       },
+    });
+
+    const dispatchAttack = async (attackType: string) => {
+      const targets = game.user?.targets ? [...game.user.targets.values()] : [];
+      const actorWithRollAttack = actor as unknown as {
+        rollAttack?: (data: Record<string, unknown>, opts: Record<string, unknown>) => Promise<unknown> | unknown;
+      };
+      if (targets.length > 1 && typeof actorWithRollAttack.rollAttack === "function") {
+        let dispatchedAny = false;
+        for (const t of targets) {
+          const targetOptions: Record<string, unknown> = { ...options };
+          if (attackType === "missile" && !isNPC) {
+            if (!(await this._handleAmmoConsumption(targetOptions))) {
+              break;
+            }
+          }
+          dispatchedAny = true;
+          await actorWithRollAttack.rollAttack(buildRollData(t), {
+            ...targetOptions,
+            type: attackType,
+          });
+        }
+        return dispatchedAny;
+      }
+
+      const callOptions: Record<string, unknown> = { ...options };
+      if (attackType === "missile" && !isNPC) {
+        if (!(await this._handleAmmoConsumption(callOptions))) {
+          return false;
+        }
+      }
+      // Copy callOptions keys back onto options so callers observing options in single-target calls still see them
+      Object.assign(options, callOptions);
+      actor.targetAttack(buildRollData(null), attackType, callOptions);
+      return true;
     };
+
+    const type = isNPC ? "attack" : itemData.missile && !itemData.melee ? "missile" : "melee";
 
     if (itemData.missile && itemData.melee && !isNPC) {
       // Dialog
       new foundry.applications.api.DialogV2({
         classes: ["ose", "dialog"],
         position: { width: 400, height: "auto" },
-        window: { title: "Choose Attack Range" },
+        window: { title: game.i18n?.localize?.("OSE.dialog.chooseAttackRange") || "Choose Attack Range" },
         content: "",
         buttons: [
           {
@@ -236,7 +307,7 @@ export default class OseItem extends Item {
             label: game.i18n.localize("OSE.Melee"),
             default: true,
             callback: () => {
-              actor.targetAttack(rollData, "melee", options);
+              dispatchAttack("melee");
             },
           },
           {
@@ -244,26 +315,23 @@ export default class OseItem extends Item {
             icon: "fas fa-bullseye",
             label: game.i18n.localize("OSE.Missile"),
             callback: async () => {
-              if (await this._handleAmmoConsumption(options)) {
-                actor.targetAttack(rollData, "missile", options);
-              }
+              await dispatchAttack("missile");
             },
           },
         ],
       }).render({ force: true });
       return true;
     }
-    if (itemData.missile && !isNPC) {
-      type = "missile";
-      if (!(await this._handleAmmoConsumption(options))) {
-        return false;
-      }
-    }
-    actor.targetAttack(rollData, type, options);
-    return true;
+
+    return dispatchAttack(type);
   }
 
   async _handleAmmoConsumption(options: Record<string, unknown>): Promise<boolean> {
+    delete options.ammoOptions;
+    delete options.selectedAmmo;
+    delete options.selectedAmmoBonus;
+    delete options.onConfirm;
+
     const mode = (game.settings.get(game.system.id, "automateAmmo") as string) || "warn";
     if (mode === "disabled") return true;
 
@@ -290,16 +358,16 @@ export default class OseItem extends Item {
     if (isThrown) {
       const currentQty = (this.system as AnyItemSystem).quantity?.value ?? 0;
       if (currentQty <= 0 && mode === "enforce") {
-        ui.notifications.error(game.i18n.format("OSE.error.outOfAmmo", { name: this.name }));
+        ui.notifications.error(game.i18n.format("OSE.error.outOfAmmo", { name: this.displayName }));
         return false;
       }
       options.onConfirm = async () => {
         const qty = (this.system as AnyItemSystem).quantity?.value ?? 0;
         if (qty > 0) {
-          await this.update({ "system.quantity.value": Math.max(0, qty - 1) });
+          await this.update({ "system.quantity.value": Math.max(0, qty - 1) } as never);
           return null;
         }
-        return game.i18n.format("OSE.error.outOfAmmo", { name: this.name });
+        return game.i18n.format("OSE.error.outOfAmmo", { name: this.displayName });
       };
       return true;
     }
@@ -308,7 +376,7 @@ export default class OseItem extends Item {
     const validAmmo = actor.items.filter((i: any) => {
       if (i.type !== "item" && i.type !== "weapon") return false;
       const iName = (i.name ?? "").toLowerCase();
-      return requiredAmmo?.some((req) => iName.includes(req));
+      return Boolean(requiredAmmo?.some((req) => iName.includes(req)));
     });
 
     // biome-ignore lint/suspicious/noExplicitAny: actor.items filter callback
@@ -319,7 +387,15 @@ export default class OseItem extends Item {
         ui.notifications.error(game.i18n.format("OSE.error.noAmmoFound", { type: requiredAmmo?.[0] ?? "ammo" }));
         return false;
       }
-      options.onConfirm = async () => {
+      options.onConfirm = async (
+        _form?: HTMLFormElement | null,
+        rollData?: { data?: { roll?: Record<string, unknown> } },
+      ) => {
+        delete options.selectedAmmo;
+        delete options.selectedAmmoBonus;
+        if (rollData?.data?.roll) {
+          delete rollData.data.roll.ammo;
+        }
         return game.i18n.format("OSE.error.noAmmoFound", { type: requiredAmmo?.[0] ?? "ammo" });
       };
       return true;
@@ -335,12 +411,15 @@ export default class OseItem extends Item {
     });
 
     // biome-ignore lint/suspicious/noExplicitAny: map callback
-    options.ammoOptions = availableAmmo.map((a: any) => ({
-      id: a.id,
-      name: a.name,
-      quantity: a.system.quantity.value,
-      bonus: OseItem.extractAmmoBonus(a),
-    }));
+    options.ammoOptions = availableAmmo.map((a: any) => {
+      const ammoIdentified = a.isIdentified ?? a.system?.identified !== false;
+      return {
+        id: a.id,
+        name: a.displayName ?? a.name,
+        quantity: a.system.quantity.value,
+        bonus: game.user?.isGM || ammoIdentified ? OseItem.extractAmmoBonus(a) : 0,
+      };
+    });
 
     // biome-ignore lint/suspicious/noExplicitAny: rollData passed from OseDice.Roll
     options.onConfirm = async (form: HTMLFormElement | null, rollData?: any) => {
@@ -349,12 +428,25 @@ export default class OseItem extends Item {
         // biome-ignore lint/suspicious/noExplicitAny: fallback form access
         (form as any)?.elements?.ammoId?.value ||
         // biome-ignore lint/suspicious/noExplicitAny: ammoOptions array
-        (options.ammoOptions as any[])[0].id;
-      const ammoItem = actor.items.get(ammoId);
+        (options.ammoOptions as any[])?.[0]?.id;
+      const ammoItem = actor.items.get(ammoId) as (OseItem & { system?: AnyItemSystem }) | undefined;
       if (ammoItem) {
+        const ammoDisplayName = ammoItem.displayName ?? ammoItem.name;
         const currentAmmoQty = ammoItem.system?.quantity?.value ?? 0;
+        if (currentAmmoQty <= 0) {
+          delete options.selectedAmmo;
+          delete options.selectedAmmoBonus;
+          if (rollData?.data?.roll) {
+            delete rollData.data.roll.ammo;
+          }
+          if (mode === "enforce") {
+            ui.notifications.error(game.i18n.format("OSE.error.outOfAmmo", { name: ammoDisplayName }));
+          }
+          return game.i18n.format("OSE.error.outOfAmmo", { name: ammoDisplayName });
+        }
+
         const newQty = Math.max(0, currentAmmoQty - 1);
-        await ammoItem.update({ "system.quantity.value": newQty });
+        await ammoItem.update({ "system.quantity.value": newQty } as never);
 
         const ammoBonus = OseItem.extractAmmoBonus(ammoItem);
         options.selectedAmmo = ammoItem;
@@ -369,12 +461,12 @@ export default class OseItem extends Item {
             const globalIgnore = game.settings?.get?.(game.system?.id ?? "ose", "ignoreAttackBonusOnDamageRoll");
             const actorIgnore = rollData.data?.actor?.system?.config?.ignoreBonusDamage;
             if (!globalIgnore && !actorIgnore && Array.isArray(rollData.data?.roll?.dmg)) {
-              rollData.data.roll.dmg.push(ammoBonus);
+              rollData.data.roll.dmg = [...rollData.data.roll.dmg, ammoBonus];
             }
           }
         }
 
-        return `${ammoItem.name} (${newQty} left)`;
+        return `${ammoDisplayName} (${newQty} left)`;
       }
       return null;
     };
@@ -389,17 +481,23 @@ export default class OseItem extends Item {
       throw new Error("This Item does not have a formula to roll!");
     }
 
-    const label = `${this.name}`;
+    const label = `${this.displayName}`;
     const rollParts = [itemData.roll];
 
     const type = itemData.rollType;
 
     const rollData: Record<string, unknown> = {
       actor: this.actor as OwningActor,
-      item: { ...(this._source as Record<string, unknown>), name: this.displayName },
+      item: {
+        ...(this._source as Record<string, unknown>),
+        _id: this.id ?? (this._source as { _id?: string })?._id,
+        id: this.id,
+        system: this.#cloneDerivedSystem(),
+        name: this.displayName,
+      },
       description: null,
       save: itemData.save,
-      properties: this.system.autoTags,
+      properties: this.#visibleAutoTags(),
       roll: {
         type,
         target: itemData.effectiveTarget ?? itemData.rollTarget,
@@ -408,7 +506,7 @@ export default class OseItem extends Item {
     };
 
     if (this.type === "spell") {
-      rollData.description = itemData.description;
+      rollData.description = this.displayDescription;
     }
 
     const hasAbilityScore = Boolean(itemData.abilityScore);
@@ -416,7 +514,7 @@ export default class OseItem extends Item {
       options.skipDialog !== undefined
         ? options.skipDialog
         : hasAbilityScore
-          ? skipRollDialogCheck(options.event)
+          ? skipRollDialogCheck(options.event as Event)
           : true;
 
     // Roll and return
@@ -665,8 +763,14 @@ export default class OseItem extends Item {
     const templateData: Record<string, unknown> = {
       actor: this.actor as OwningActor,
       tokenId: token ? `${token.parent?.id}.${token.id}` : null,
-      item: { ...(this._source as Record<string, unknown>), name: this.displayName },
-      itemId: (this._source as { _id?: string })._id,
+      item: {
+        ...(this._source as Record<string, unknown>),
+        _id: this.id ?? (this._source as { _id?: string })?._id,
+        id: this.id,
+        system: this.#cloneDerivedSystem(),
+        name: this.displayName,
+      },
+      itemId: this.id ?? (this._source as { _id?: string })._id,
       data: { ...(await this.getChatData()), description: this.displayDescription },
       labels: (this as unknown as Record<string, unknown>).labels,
       isHealing: (this as unknown as Record<string, unknown>).isHealing,
@@ -677,7 +781,7 @@ export default class OseItem extends Item {
     };
     const chatItemData = templateData.data as AnyItemSystem;
     templateData.rollFormula = new Roll(chatItemData.roll ?? "", templateData).formula;
-    chatItemData.properties = this.system.autoTags;
+    chatItemData.properties = this.#visibleAutoTags();
 
     // Render the chat card template
     const template = `${OSE.systemPath()}/templates/chat/item-card.html`;

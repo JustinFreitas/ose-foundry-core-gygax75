@@ -1,13 +1,10 @@
 /**
- * @file Minimal Foundry globals for running data-model logic under Vitest.
- *
- * Mirrors only what the item data models touch: the `TypeDataModel` base, the
- * schema field classes used by `defineSchema()`, `CONFIG.OSE`, and
- * `game.i18n.localize`. Anything beyond that is deliberately absent — a test
- * that needs more Foundry than this belongs in the Quench suite.
+ * @file Minimal Foundry globals and mock documents for running unit/spec suites under Vitest.
  */
-import { vi } from "vitest";
+import { beforeEach, vi } from "vitest";
 import { OSE } from "../src/module/config";
+
+type HookCallback = (...args: any[]) => any;
 
 interface FieldOptions {
   initial?: unknown;
@@ -219,8 +216,21 @@ class Item {
     this.flags = data.flags || {};
   }
 
-  updateSource(data: any) {
-    Object.assign(this.system, data);
+  updateSource(data: Record<string, any> = {}) {
+    for (const [key, value] of Object.entries(data)) {
+      if (key.includes(".")) {
+        foundry.utils.setProperty(this, key, value);
+      } else if (key === "system" && value && typeof value === "object") {
+        if (typeof this.system?.updateSource === "function") {
+          this.system.updateSource(value);
+        } else {
+          this.system = { ...this.system, ...value };
+        }
+      } else {
+        (this as Record<string, any>)[key] = value;
+      }
+    }
+    return data;
   }
 
   async _preCreate(_data: any, _options: any, _user: any) {
@@ -252,7 +262,6 @@ class MockDialogV2 {
   }
   static confirm = () => Promise.resolve(true);
   static prompt = vi.fn().mockResolvedValue({ level: 1, rollHp: false, offer: false });
-  static wait = vi.fn().mockResolvedValue(true);
 }
 
 // Global Math.clamp
@@ -260,27 +269,33 @@ if (!Math.clamp) {
   Math.clamp = (val: number, min: number, max: number) => Math.min(Math.max(val, min), max);
 }
 
-const settingsStore = new Map<string, any>([
-  ["ose.ascendingAC", false],
-  ["ose.initiative", "group"],
-  ["ose.rerollInitiative", "reset"],
-  ["ose.gygax75Encumbrance", true],
-  ["ose.savedParties", {}],
-  ["ose.effectsTab", true],
-  ["ose.multipleClasses", true],
-  ["ose.enableClassItems", false],
-]);
+function createDefaultSettingsEntries(): Array<[string, any]> {
+  return [
+    ["ose.ascendingAC", false],
+    ["ose.initiative", "group"],
+    ["ose.rerollInitiative", "reset"],
+    ["ose.gygax75Encumbrance", true],
+    ["ose.savedParties", {}],
+    ["ose.effectsTab", true],
+    ["ose.multipleClasses", true],
+    ["ose.enableClassItems", false],
+  ];
+}
 
-const hookRegistry = new Map<string, Function[]>();
+const settingsStore = new Map<string, any>(createDefaultSettingsEntries());
+
+const hookRegistry = new Map<string, HookCallback[]>();
 const Hooks = {
   events: hookRegistry,
-  on: vi.fn((event: string, fn: Function) => {
-    if (!hookRegistry.has(event)) hookRegistry.set(event, []);
-    hookRegistry.get(event)!.push(fn);
+  on: vi.fn((event: string, fn: HookCallback) => {
+    const callbacks = hookRegistry.get(event) ?? [];
+    callbacks.push(fn);
+    hookRegistry.set(event, callbacks);
   }),
-  once: vi.fn((event: string, fn: Function) => {
-    if (!hookRegistry.has(event)) hookRegistry.set(event, []);
-    hookRegistry.get(event)!.push(fn);
+  once: vi.fn((event: string, fn: HookCallback) => {
+    const callbacks = hookRegistry.get(event) ?? [];
+    callbacks.push(fn);
+    hookRegistry.set(event, callbacks);
   }),
   callAll: vi.fn((event: string, ...args: any[]) => {
     const callbacks = hookRegistry.get(event) || [];
@@ -293,6 +308,14 @@ const Hooks = {
     return true;
   }),
 };
+
+beforeEach(() => {
+  settingsStore.clear();
+  for (const [key, value] of createDefaultSettingsEntries()) {
+    settingsStore.set(key, value);
+  }
+  hookRegistry.clear();
+});
 
 Object.assign(globalThis, {
   Roll,
@@ -376,10 +399,10 @@ Object.assign(globalThis, {
       },
       ux: {
         TextEditor: {
-          implementation: class {
-            static enrichHTML(content: string) {
+          implementation: {
+            enrichHTML(content: string) {
               return Promise.resolve(content);
-            }
+            },
           },
         },
         DragDrop: {
@@ -472,18 +495,40 @@ Object.assign(globalThis, {
     },
     settings: {
       _store: settingsStore,
-      get: vi.fn((_scope: string, key: string) => {
-        const fullKey = `ose.${key}`;
-        if (settingsStore.has(fullKey)) return settingsStore.get(fullKey);
+      get: vi.fn((scope: string, key: string) => {
+        const scopedKey = `${scope || "ose"}.${key}`;
+        if (settingsStore.has(scopedKey)) return settingsStore.get(scopedKey);
+        const oseKey = `ose.${key}`;
+        if (settingsStore.has(oseKey)) return settingsStore.get(oseKey);
         if (settingsStore.has(key)) return settingsStore.get(key);
         return undefined;
       }),
-      set: vi.fn().mockImplementation(async (_scope: string, key: string, value: any) => {
-        const fullKey = `ose.${key}`;
-        settingsStore.set(fullKey, value);
+      set: vi.fn().mockImplementation(async (scope: string, key: string, value: any) => {
+        const scopedKey = `${scope || "ose"}.${key}`;
+        settingsStore.set(scopedKey, value);
         return value;
       }),
       register: vi.fn(),
     },
   },
 });
+
+declare module "@league-of-foundry-developers/foundry-vtt-types/configuration" {
+  interface AssumeHookRan {
+    init: never;
+    i18nInit: never;
+    setup: never;
+    ready: never;
+  }
+
+  interface SystemNameConfig {
+    name: "ose";
+  }
+
+  interface SettingConfig extends ClientSettings.Values {
+    "core.dynamicTokenRing": string;
+    "ose.encumbranceItemStrengthMod": boolean;
+    "ose.invertedCtrlBehavior": boolean;
+    "ose.hasPromptedDefaultOSETokenRing": boolean;
+  }
+}

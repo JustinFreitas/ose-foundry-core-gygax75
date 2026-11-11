@@ -10,36 +10,43 @@ jobs:
     steps:
       # Standard required steps for a Node.js package
       - name: Checkout repository to add to workspace
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Setup Node.js version 22
-        uses: actions/setup-node@v4
+      - name: Setup Node.js version 24
+        uses: actions/setup-node@v6
         with:
-          node-version: 22
-          cache: 'npm'
+          node-version: 24
+          cache: "npm"
 
-      # Get dev dependencies for the package, including Gulp and Rollup
+      # Get dev dependencies for the package, including Rollup and Sass
       - name: Install dev dependencies
-        run: npm ci #--cache .npm --prefer-offline --ignore-scripts
+        run: npm ci
 
-      # Create a build using Gulp build script
-      - name: Run Gulp build script
+      # Build the distribution bundle
+      - name: Run build script
         run: npm run build
 
       # Insert "manifest", "download", and "version" for this release into the system.json manifest file
       # Doing it this way works for forks as well
       - name: Insert release-specific values in manifest file
         id: sub_manifest_link_version
-        uses: microsoft/variable-substitution@v1
-        with:
-          files: "system.json"
         env:
-          id: ose
-          title: "Old-School Essentials"
-          version: ${{github.event.release.tag_name}}
-          url: https://github.com/${{github.repository}}
-          manifest: https://github.com/${{github.repository}}/releases/download/${{github.event.release.tag_name}}/system.json
-          download: https://github.com/${{github.repository}}/releases/download/${{github.event.release.tag_name}}/system.zip
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const tag = process.env.RELEASE_TAG;
+            const repo = process.env.REPO;
+            const manifest = JSON.parse(fs.readFileSync("system.json", "utf8"));
+            manifest.id = "ose";
+            manifest.title = "Old-School Essentials";
+            manifest.version = tag;
+            manifest.url = `https://github.com/${repo}`;
+            manifest.manifest = `https://github.com/${repo}/releases/download/${tag}/system.json`;
+            manifest.download = `https://github.com/${repo}/releases/download/${tag}/system.zip`;
+            fs.writeFileSync("system.json", `${JSON.stringify(manifest, null, 2)}\n`);
+          '
 
       # Replace "ose-dev" with "ose" in all files inside the dist folder
       - name: Replace 'ose-dev' with 'ose' in dist folder

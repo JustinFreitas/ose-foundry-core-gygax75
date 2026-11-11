@@ -2,13 +2,6 @@
  * @file Unit tests for Container-to-Container Drag & Drop on Actor Sheets.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  getTargetContainer,
-  onContainerItemAdd,
-  onContainerItemRemove,
-  onDropItem,
-  transferItemBetweenContainers,
-} from "../../sheet/drag-drop";
 import OseActorSheet from "../actor-sheet";
 
 describe("Container-to-Container Drag and Drop", () => {
@@ -315,6 +308,142 @@ describe("Container-to-Container Drag and Drop", () => {
         (i) => i.system.containerId !== "" && !itemsMap.has(i.system.containerId),
       );
       expect(phantoms.length).toBe(0);
+    });
+
+    it("copies a container and its stowed contents with fresh linked IDs on cross-actor drop", async () => {
+      const sourceActor: any = {
+        id: "actor-source",
+        items: [],
+      };
+      const sourceTorch: any = {
+        _id: "src-torch",
+        id: "src-torch",
+        name: "Torch",
+        type: "item",
+        parent: sourceActor,
+        system: { containerId: "src-bag", itemIds: [] },
+        toObject: () => ({
+          _id: "src-torch",
+          name: "Torch",
+          type: "item",
+          system: { containerId: "src-bag" },
+        }),
+      };
+      const sourceBag: any = {
+        _id: "src-bag",
+        id: "src-bag",
+        name: "Adventurer Pack",
+        type: "container",
+        parent: sourceActor,
+        system: {
+          containerId: "",
+          itemIds: ["src-torch"],
+          contents: [sourceTorch],
+        },
+        toObject: () => ({
+          _id: "src-bag",
+          name: "Adventurer Pack",
+          type: "container",
+          system: { containerId: "", itemIds: ["src-torch"] },
+        }),
+      };
+      sourceActor.items = [sourceBag, sourceTorch];
+
+      await sheet._onDropItemCreate(sourceBag, null);
+
+      const createdBag = Array.from(itemsMap.values()).find((i) => i.type === "container");
+      const createdTorch = Array.from(itemsMap.values()).find((i) => i.name === "Torch");
+
+      expect(createdBag).toBeDefined();
+      expect(createdTorch).toBeDefined();
+      expect(createdBag.id).not.toBe("src-bag");
+      expect(createdTorch.id).not.toBe("src-torch");
+      expect(createdTorch.system.containerId).toBe(createdBag.id);
+      expect(createdBag.system.itemIds).toEqual([createdTorch.id]);
+    });
+
+    it("treats items from a duplicated actor sharing IDs as foreign and cleans up source container", async () => {
+      // Target actor happens to have an item with the same _id "shared-1"
+      createMockItem("shared-1", "Local Ration", "item", { containerId: "" });
+
+      const otherItems = new Map<string, any>();
+      const otherActor: any = {
+        id: "actor-2",
+        items: {
+          get: (id: string) => otherItems.get(id) || null,
+        },
+        updateEmbeddedDocuments: vi.fn().mockImplementation(async (_type: string, updates: any[]) => {
+          for (const u of updates) {
+            const target = otherItems.get(u._id);
+            if (target && u["system.itemIds"]) target.system.itemIds = u["system.itemIds"];
+          }
+          return updates;
+        }),
+        deleteEmbeddedDocuments: vi.fn().mockResolvedValue([]),
+      };
+      const otherBag: any = {
+        _id: "other-bag",
+        id: "other-bag",
+        name: "Other Bag",
+        type: "container",
+        parent: otherActor,
+        system: { containerId: "", itemIds: ["shared-1"] },
+        update: vi.fn().mockImplementation(async (d: any) => {
+          otherBag.system.itemIds = d["system.itemIds"];
+        }),
+      };
+      const foreignItem: any = {
+        _id: "shared-1",
+        id: "shared-1",
+        name: "Foreign Gem",
+        type: "item",
+        actor: otherActor,
+        parent: otherActor,
+        system: { containerId: "other-bag", itemIds: [] },
+        toObject: () => ({
+          _id: "shared-1",
+          name: "Foreign Gem",
+          type: "item",
+          system: { containerId: "other-bag" },
+        }),
+      };
+      otherItems.set("other-bag", otherBag);
+      otherItems.set("shared-1", foreignItem);
+      (globalThis as any).Item.implementation.fromDropData = vi.fn().mockResolvedValue(foreignItem);
+
+      const mockEvent = { target: { closest: () => null } } as any;
+      await sheet._onDropItem(mockEvent, { uuid: "Actor.actor-2.Item.shared-1" });
+
+      expect(otherBag.system.itemIds).toEqual([]);
+      expect(otherActor.deleteEmbeddedDocuments).toHaveBeenCalledWith("Item", ["shared-1"]);
+      expect(Array.from(itemsMap.values()).some((i) => i.name === "Foreign Gem")).toBe(true);
+    });
+
+    it("handles stale or missing containerId in _removeItemFromActor without throwing", async () => {
+      actor.deleteEmbeddedDocuments = vi.fn().mockResolvedValue([]);
+      const orphan = createMockItem("orphan-1", "Orphan Coin", "item", { containerId: "deleted-bag-id" });
+
+      await expect(sheet._removeItemFromActor(orphan)).resolves.not.toThrow();
+      expect(actor.deleteEmbeddedDocuments).toHaveBeenCalledWith("Item", ["orphan-1"]);
+    });
+
+    it("awaits async fromUuid resolution across folder contents in _onDropFolder", async () => {
+      const folderDoc = {
+        type: "Item",
+        contents: [{ uuid: "Compendium.ose.items.Item.rope" }],
+      };
+      (globalThis as any).fromUuid = vi.fn().mockResolvedValue({
+        name: "Hemp Rope",
+        type: "item",
+        system: {},
+        toObject: () => ({ name: "Hemp Rope", type: "item", system: {} }),
+      });
+
+      const mockEvent = { target: { closest: () => null } } as any;
+      await sheet._onDropFolder(mockEvent, folderDoc);
+
+      expect((globalThis as any).fromUuid).toHaveBeenCalledWith("Compendium.ose.items.Item.rope");
+      expect(Array.from(itemsMap.values()).some((i) => i.name === "Hemp Rope")).toBe(true);
     });
   });
 });

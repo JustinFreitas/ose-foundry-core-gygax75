@@ -27,7 +27,7 @@ describe("OseDataModelArmor", () => {
       expect(armor.cost).toBe(0);
       expect(armor.weight).toBe(0);
       expect(armor.itemslots).toBe(1);
-      expect(armor.quantity).toEqual({ value: 0, max: 0 });
+      expect(armor.quantity).toEqual({ value: 1, max: 0 });
     });
   });
 
@@ -104,6 +104,48 @@ describe("OseDataModelArmor", () => {
         { label: "OSE.armor.light", icon: "fa-tshirt" },
         { title: undefined, value: "homebrew", label: "homebrew" },
       ]);
+    });
+  });
+
+  describe("cumulative getters", () => {
+    it("multiplies weight, cost, and itemslots by quantity", () => {
+      const shields = new OseDataModelArmor({
+        type: "shield",
+        weight: 100,
+        cost: 10,
+        itemslots: 1,
+        quantity: { value: 2, max: 0 },
+      });
+
+      expect(shields.cumulativeWeight).toBe(200);
+      expect(shields.cumulativeCost).toBe(20);
+      expect(shields.cumulativeItemslots).toBe(2);
+    });
+
+    it("calculates unit-proportional values when bundled (max > 0)", () => {
+      const armorBundle = new OseDataModelArmor({
+        weight: 200,
+        cost: 40,
+        itemslots: 2,
+        quantity: { value: 1, max: 2 },
+      });
+
+      expect(armorBundle.cumulativeWeight).toBe(100);
+      expect(armorBundle.cumulativeCost).toBe(20);
+      expect(armorBundle.cumulativeItemslots).toBe(1);
+    });
+
+    it("treats legacy quantity.value: 0 on existing armor documents as 1", () => {
+      const legacyBarding = new OseDataModelArmor({
+        weight: 600,
+        cost: 150,
+        itemslots: 3,
+        quantity: { value: 0, max: 0 },
+      });
+
+      expect(legacyBarding.cumulativeWeight).toBe(600);
+      expect(legacyBarding.cumulativeCost).toBe(150);
+      expect(legacyBarding.cumulativeItemslots).toBe(3);
     });
   });
 });

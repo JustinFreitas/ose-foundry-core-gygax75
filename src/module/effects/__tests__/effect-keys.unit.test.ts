@@ -22,6 +22,8 @@ describe("effectKeys", () => {
       expect.arrayContaining([
         "system.scores.str.value",
         "system.ac.mod",
+        "system.damage.mod.melee",
+        "system.damage.mod.missile",
         "system.exploration.od",
         "system.details.xp.bonus",
         "system.encumbrance.max",
@@ -30,9 +32,18 @@ describe("effectKeys", () => {
     );
   });
 
-  it("offers monsters their stored AC and none of the character-only inputs", () => {
+  it("offers monsters their stored AC, encumbrance cap, damage bonuses and none of the character-only inputs", () => {
     const monster = keys("monster");
-    expect(monster).toEqual(expect.arrayContaining(["system.ac.value", "system.details.morale", "system.hp.max"]));
+    expect(monster).toEqual(
+      expect.arrayContaining([
+        "system.ac.value",
+        "system.damage.mod.melee",
+        "system.damage.mod.missile",
+        "system.details.morale",
+        "system.encumbrance.max",
+        "system.hp.max",
+      ]),
+    );
     expect(monster.some((k) => /scores|exploration|ac\.mod|details\.xp\.bonus/.test(k))).toBe(false);
   });
 

@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "ose",
-  "version": "3.2.0-gygax75.1",
+  "version": "3.2.0-gygax75.2",
   "description": "",
   "type": "module",
   "scripts": {
@@ -15,6 +15,7 @@
     "watch:js": "rollup -c --watch",
     "watch:css": "sass --watch src/ose.scss dist/ose.css --source-map",
     "typecheck": "tsc --noEmit",
+    "typecheck:ci": "tsc -p tsconfig.ci.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "link": "node ./tools/symlink.js",

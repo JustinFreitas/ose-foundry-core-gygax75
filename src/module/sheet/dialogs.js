@@ -16,7 +16,14 @@ export const chooseItemType = async (choices = ["weapon", "armor", "shield", "ge
     templateData,
   );
   return new Promise((resolve) => {
-    new foundry.applications.api.DialogV2({
+    let settled = false;
+    const finish = (value) => {
+      if (!settled) {
+        settled = true;
+        resolve(value);
+      }
+    };
+    const dialog = new foundry.applications.api.DialogV2({
       classes: ["ose", "dialog"],
       position: { width: 400, height: "auto" },
       window: { title: game.i18n.localize("OSE.dialog.createItem") },
@@ -28,17 +35,21 @@ export const chooseItemType = async (choices = ["weapon", "armor", "shield", "ge
           icon: "fas fa-check",
           default: true,
           callback: (_event, button) => {
-            resolve(new foundry.applications.ux.FormDataExtended(button.form).object);
+            finish(new foundry.applications.ux.FormDataExtended(button.form).object);
           },
         },
         {
           action: "cancel",
           icon: "fas fa-times",
           label: game.i18n.localize("OSE.Cancel"),
-          callback: () => {},
+          callback: () => {
+            finish(null);
+          },
         },
       ],
-    }).render({ force: true });
+    });
+    dialog.addEventListener?.("close", () => finish(null), { once: true });
+    dialog.render({ force: true });
   });
 };
 

@@ -21,19 +21,22 @@ const OseDice = {
       speaker,
     };
 
+    const tokenId = data.actor?.token ? `${data.actor.token.parent?.id}.${data.actor.token.id}` : null;
     const templateData = {
       title,
       flavor,
       data,
       config: CONFIG.OSE,
+      tokenId,
     };
 
+    const rollParts = [...parts];
     // Optionally include a situational bonus
-    if (form?.bonus.value) {
-      parts.push(form.bonus.value);
+    if (form?.bonus?.value) {
+      rollParts.push(form.bonus.value);
     }
 
-    const roll = new Roll(parts.join("+"), data);
+    const roll = new Roll(rollParts.join("+"), data);
     await roll.evaluate({ allowStrings: true });
 
     // Convert the roll to a chat message and return the roll
@@ -41,7 +44,7 @@ const OseDice = {
     rollMode = form ? form.rollMode.value : rollMode;
 
     // Force blind roll (ability formulas)
-    if (!form && data.roll.blindroll) {
+    if (!form && data.roll?.blindroll) {
       rollMode = game.user.isGM ? "selfroll" : "blindroll";
     }
 
@@ -49,30 +52,23 @@ const OseDice = {
     if (rollMode === "selfroll") chatData.whisper = [game.user.id];
     if (rollMode === "blindroll") {
       chatData.blind = true;
-      data.roll.blindroll = true;
+      if (data.roll) data.roll.blindroll = true;
     }
 
     templateData.result = OseDice.digestResult(data, roll);
+    templateData.rollOSE = await roll.render();
+    chatData.content = await foundry.applications.handlebars.renderTemplate(template, templateData);
 
-    return new Promise((resolve) => {
-      roll.render().then((r) => {
-        templateData.rollOSE = r;
-        foundry.applications.handlebars.renderTemplate(template, templateData).then((content) => {
-          chatData.content = content;
-          // Dice So Nice
-          if (game.dice3d) {
-            game.dice3d.showForRoll(roll, game.user, true, chatData.whisper, chatData.blind).then(() => {
-              if (chatMessage !== false) ChatMessage.create(chatData);
-              resolve(roll);
-            });
-          } else {
-            chatData.sound = CONFIG.sounds.dice;
-            if (chatMessage !== false) ChatMessage.create(chatData);
-            resolve(roll);
-          }
-        });
-      });
-    });
+    // Dice So Nice
+    if (game.dice3d) {
+      await game.dice3d.showForRoll(roll, game.user, true, chatData.whisper, chatData.blind);
+      if (chatMessage !== false) await ChatMessage.create(chatData);
+      return roll;
+    }
+
+    chatData.sound = CONFIG.sounds.dice;
+    if (chatMessage !== false) await ChatMessage.create(chatData);
+    return roll;
   },
 
   /**
@@ -87,14 +83,14 @@ const OseDice = {
     const result = {
       isSuccess: false,
       isFailure: false,
-      target: data.roll.target,
+      target: data.roll?.target,
       total: roll.total,
       direction: "",
     };
 
     const die = roll.dice?.[0]?.results?.[0]?.result ?? roll.total;
     // eslint-disable-next-line default-case
-    switch (data.roll.type) {
+    switch (data.roll?.type) {
       case "result": {
         result.direction = "OSE.roll.direction.exactly";
         if (roll.total === result.target) {
@@ -179,12 +175,13 @@ const OseDice = {
    * @returns {boolean} - Did the attack succeed?
    */
   attackIsSuccess(roll, thac0, ac) {
+    const d20 = roll.dice?.[0]?.results?.[0]?.result ?? roll.terms?.[0]?.results?.[0]?.result;
     // Natural 1
-    if (roll.terms[0].results[0].result === 1) {
+    if (d20 === 1) {
       return false;
     }
     // Natural 20
-    if (roll.terms[0].results[0].result === 20) {
+    if (d20 === 20) {
       return true;
     }
     return roll.total + ac >= thac0;
@@ -247,20 +244,7 @@ const OseDice = {
   /**
    * Puts together the information needed to roll a Roll and the
    * expectations on hitting a target. Also creates the chat card
-   * containing the infromation about the evaluated roll.
-   *
-   * @param {object} param0 - Object to evaluate
-   * @param {Array<String || number>} param0.parts - Roll parts (e.g. ["1d20", "3", "0", "0"])
-   * @param {object} param0.data - Object containing target data
-   * @param {object} param0.data.roll - Roll target data
-   * @param {Array<String || number|} param0.data.roll.dmg - Roll parts for damage roll if hit
-   * @param {Actor | null} param0.data.target - Target data for the intended hit target
-   * @param {object} param0.flags -Not used directly in function, but may be passed on
-   * @param {string} param0.title - Modified in RollSave() if magic save required
-   * @param {string} param0.flavor - Not used directly in function
-   * @param {object} param0.speaker - Speaker data for the chat card
-   * @param {object} param0.form - Data from the Dialog Form that generates data for the function
-   * @returns {Promise || Void} - Either not returning anything, or a Promise for rendering a Chat Card
+   * containing the information about the evaluated roll.
    */
   async sendAttackRoll({
     parts = [],
@@ -272,9 +256,6 @@ const OseDice = {
     form = null,
   } = {}) {
     if (data.roll.dmg.filter((v) => v !== "").length === 0) {
-      /**
-       * @todo should this error be localized?
-       */
       ui.notifications.error("Attack has no damage dice terms; be sure to set the attack's damage");
       return;
     }
@@ -285,17 +266,20 @@ const OseDice = {
       flags,
     };
 
+    const tokenId = data.actor?.token ? `${data.actor.token.parent?.id}.${data.actor.token.id}` : null;
     const templateData = {
       title,
       flavor,
       data,
       config: CONFIG.OSE,
+      tokenId,
     };
 
+    const rollParts = [...parts];
     // Optionally include a situational bonus
-    if (form?.bonus.value) parts.push(form.bonus.value);
+    if (form?.bonus?.value) rollParts.push(form.bonus.value);
 
-    const roll = new Roll(parts.join("+"), data);
+    const roll = new Roll(rollParts.join("+"), data);
     await roll.evaluate();
     const dmgRoll = new Roll(data.roll.dmg.join("+"), data);
     await dmgRoll.evaluate();
@@ -317,37 +301,24 @@ const OseDice = {
     }
 
     templateData.result = OseDice.digestAttackResult(data, roll);
+    templateData.rollOSE = await roll.render();
+    templateData.rollDamage = await dmgRoll.render();
+    chatData.content = await foundry.applications.handlebars.renderTemplate(template, templateData);
 
-    return new Promise((resolve) => {
-      roll.render().then((r) => {
-        templateData.rollOSE = r;
-        dmgRoll.render().then((dr) => {
-          templateData.rollDamage = dr;
-          foundry.applications.handlebars.renderTemplate(template, templateData).then((content) => {
-            chatData.content = content;
-            // 2 Step Dice So Nice
-            if (game.dice3d) {
-              game.dice3d.showForRoll(roll, game.user, true, chatData.whisper, chatData.blind).then(() => {
-                if (templateData.result.isSuccess) {
-                  templateData.result.dmg = dmgRoll.total;
-                  game.dice3d.showForRoll(dmgRoll, game.user, true, chatData.whisper, chatData.blind).then(() => {
-                    ChatMessage.create(chatData);
-                    resolve(roll);
-                  });
-                } else {
-                  ChatMessage.create(chatData);
-                  resolve(roll);
-                }
-              });
-            } else {
-              chatData.sound = CONFIG.sounds.dice;
-              ChatMessage.create(chatData);
-              resolve(roll);
-            }
-          });
-        });
-      });
-    });
+    // 2 Step Dice So Nice
+    if (game.dice3d) {
+      await game.dice3d.showForRoll(roll, game.user, true, chatData.whisper, chatData.blind);
+      if (templateData.result.isSuccess) {
+        templateData.result.dmg = dmgRoll.total;
+        await game.dice3d.showForRoll(dmgRoll, game.user, true, chatData.whisper, chatData.blind);
+      }
+      await ChatMessage.create(chatData);
+      return roll;
+    }
+
+    chatData.sound = CONFIG.sounds.dice;
+    await ChatMessage.create(chatData);
+    return roll;
   },
 
   async RollSave({
@@ -360,16 +331,17 @@ const OseDice = {
     chatMessage = true,
   } = {}) {
     let rolled = false;
+    const rollParts = [...parts];
     const template = `${OSE.systemPath()}/templates/chat/roll-dialog.html`;
     const dialogData = {
-      formula: parts.join(" "),
+      formula: rollParts.join(" "),
       data,
       rollMode: getRollMode(),
       rollModes: getRollModes(),
     };
 
     const rollData = {
-      parts,
+      parts: rollParts,
       data,
       title,
       flavor,
@@ -387,6 +359,7 @@ const OseDice = {
         action: "ok",
         label: game.i18n.localize("OSE.Roll"),
         icon: "fas fa-dice-d20",
+        default: true,
         callback: (_event, button) => {
           rolled = true;
           rollData.form = button.form;
@@ -401,19 +374,21 @@ const OseDice = {
           rolled = true;
           rollData.form = button.form;
           rollData.parts.push(`${rollData.data.roll.magic}`);
-          rollData.title += ` ${game.i18n.localize("OSE.saves.magic.short")} (${rollData.data.roll.magic})`;
+          rollData.title =
+            `${rollData.title || ""} ${game.i18n.localize("OSE.saves.magic.short")} (${rollData.data.roll.magic})`.trim();
           roll = OseDice.sendRoll(rollData);
         },
       },
       {
-        action: "Poison",
+        action: "poison",
         label: game.i18n.localize("OSE.saves.poison.short"),
         icon: "fas fa-skull",
         callback: (_event, button) => {
           rolled = true;
           rollData.form = button.form;
           rollData.parts.push(`${rollData.data.roll.poison}`);
-          rollData.title += ` ${game.i18n.localize("OSE.saves.poison.short")} (${rollData.data.roll.poison})`;
+          rollData.title =
+            `${rollData.title || ""} ${game.i18n.localize("OSE.saves.poison.short")} (${rollData.data.roll.poison})`.trim();
           roll = OseDice.sendRoll(rollData);
         },
       },
@@ -429,17 +404,22 @@ const OseDice = {
 
     // Create Dialog window
     return new Promise((resolve) => {
-      new foundry.applications.api.DialogV2({
+      let settled = false;
+      const finish = async () => {
+        if (settled) return;
+        settled = true;
+        resolve(rolled ? await roll : false);
+      };
+      const dialog = new foundry.applications.api.DialogV2({
         classes: ["ose", "dialog"],
         position: { width: 400, height: "auto" },
         window: { title: title || "" },
         content: html,
         buttons,
-        default: "ok",
-        submit: () => {
-          resolve(rolled ? roll : false);
-        },
-      }).render({ force: true });
+        submit: () => finish(),
+      });
+      dialog.addEventListener?.("close", () => finish());
+      dialog.render({ force: true });
     });
   },
 
@@ -456,16 +436,17 @@ const OseDice = {
     onConfirm = null,
   } = {}) {
     let rolled = false;
+    const rollParts = [...parts];
     const template = `${OSE.systemPath()}/templates/chat/roll-dialog.html`;
     const dialogData = {
-      formula: parts.join(" "),
+      formula: rollParts.join(" "),
       data,
-      rollMode: data.roll.blindroll ? "blindroll" : getRollMode(),
+      rollMode: data.roll?.blindroll ? "blindroll" : getRollMode(),
       rollModes: getRollModes(),
       ammoOptions,
     };
     const rollData = {
-      parts,
+      parts: rollParts,
       data,
       title,
       flavor,
@@ -481,7 +462,7 @@ const OseDice = {
           rollData.title = rollData.title ? `${rollData.title} [${warning}]` : `[${warning}]`;
         }
       }
-      return ["melee", "missile", "attack"].includes(data.roll.type)
+      return ["melee", "missile", "attack"].includes(data.roll?.type)
         ? OseDice.sendAttackRoll(rollData)
         : OseDice.sendRoll(rollData);
     }
@@ -493,19 +474,22 @@ const OseDice = {
         action: "ok",
         label: game.i18n.localize("OSE.Roll"),
         icon: "fas fa-dice-d20",
-        callback: async (_event, button) => {
+        callback: (_event, button) => {
           rolled = true;
           rollData.form = button.form;
-          if (typeof onConfirm === "function") {
-            const warning = await onConfirm(button.form, rollData);
-            if (warning) {
-              rollData.flavor = rollData.flavor ? `${rollData.flavor} [${warning}]` : `[${warning}]`;
-              rollData.title = rollData.title ? `${rollData.title} [${warning}]` : `[${warning}]`;
+          roll = (async () => {
+            if (typeof onConfirm === "function") {
+              const warning = await onConfirm(button.form, rollData);
+              if (warning) {
+                rollData.flavor = rollData.flavor ? `${rollData.flavor} [${warning}]` : `[${warning}]`;
+                rollData.title = rollData.title ? `${rollData.title} [${warning}]` : `[${warning}]`;
+              }
             }
-          }
-          roll = ["melee", "missile", "attack"].includes(data.roll.type)
-            ? OseDice.sendAttackRoll(rollData)
-            : OseDice.sendRoll(rollData);
+            return ["melee", "missile", "attack"].includes(data.roll?.type)
+              ? OseDice.sendAttackRoll(rollData)
+              : OseDice.sendRoll(rollData);
+          })();
+          return roll;
         },
         default: true,
       },
@@ -521,16 +505,22 @@ const OseDice = {
 
     // Create Dialog window
     return new Promise((resolve) => {
-      new foundry.applications.api.DialogV2({
+      let settled = false;
+      const finish = async () => {
+        if (settled) return;
+        settled = true;
+        resolve(rolled ? await roll : false);
+      };
+      const dialog = new foundry.applications.api.DialogV2({
         classes: ["ose", "dialog"],
         position: { width: 400, height: "auto" },
         window: { title: title || "" },
         content: html,
         buttons,
-        submit: () => {
-          resolve(rolled ? roll : false);
-        },
-      }).render({ force: true });
+        submit: () => finish(),
+      });
+      dialog.addEventListener?.("close", () => finish());
+      dialog.render({ force: true });
     });
   },
 };

@@ -1,4 +1,4 @@
-import { createOseMacro } from "../macros";
+import { createOseMacro } from "../helpers-macros";
 
 export const key = "ose.macro";
 export const options = { displayName: "Macro" };

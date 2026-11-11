@@ -244,6 +244,8 @@ export default class OseCharacterCreator extends HandlebarsApplicationMixin(Appl
         const worldGpBank = game.items.find((i) => i.name === "GP (Bank)" && i.type === "item");
         if (worldGpBank) {
           const itemData = worldGpBank.toObject();
+          itemData.system = itemData.system || {};
+          itemData.system.treasure = true;
           itemData.system.quantity = itemData.system.quantity || {};
           itemData.system.quantity.value = this.gold;
           await this.document.createEmbeddedDocuments("Item", [itemData]);

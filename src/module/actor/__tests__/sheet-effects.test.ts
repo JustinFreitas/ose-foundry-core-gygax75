@@ -8,7 +8,6 @@ import { cleanUpActorsByKey, closeSheets, createMockActorKey, waitFor } from "..
 export const key = "ose.actor.sheet.effects";
 export const options = { displayName: "OSE: Actor: Sheet: Effects Tab" };
 
-// biome-ignore lint/suspicious/noExplicitAny: Foundry documents and sheets
 type Any = any;
 
 const tabIds = (sheet: Any) => sheet._getTabsConfig("primary").tabs.map((t: { id: string }) => t.id);

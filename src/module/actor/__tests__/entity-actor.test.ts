@@ -767,7 +767,7 @@ export default ({ describe, it, expect, after, afterEach, before, assert }: e2e.
               scores: { con: { value: con } },
             },
           });
-          const roll = await actor.rollHitDice();
+          const roll = await actor.rollHitDice({ skipDialog: true });
 
           expect(roll.terms.length).equal(1); // FunctionTerm: max(1d8 + 0, 1)
           expect(roll.terms[0].rolls.length).equal(2); // 1d8 + 0, 1

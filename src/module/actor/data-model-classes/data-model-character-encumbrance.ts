@@ -98,7 +98,7 @@ export default class OseDataModelCharacterEncumbrance implements CharacterEncumb
 
   #encumbranceVariant;
 
-  #max;
+  #max: number | null;
 
   #weight = 0;
 
@@ -106,16 +106,14 @@ export default class OseDataModelCharacterEncumbrance implements CharacterEncumb
    * The constructor
    *
    * @param {string} variant - The name of this encumbrance variant.
-   * @param {number} max - The max weight this character can carry
-   * @param {Item[]} items - The items this character is carrying. Note: we're not using this in the base class.
+   * @param {number | null} max - The max weight this character can carry (null/undefined dynamically uses baseEncumbranceCap)
    */
-  constructor(variant = "disabled", max = OseDataModelCharacterEncumbrance.baseEncumbranceCap) {
+  constructor(variant = "disabled", max: number | null = null) {
     this.#encumbranceVariant = variant;
-    this.#max = max;
+    this.#max = max ?? null;
   }
 
-  static defineSchema() {
-    // @ts-expect-error League v13 client/data/fields shadows common (only declares ShaderField)
+  static defineSchema(): foundry.data.fields.SchemaField.Any {
     const { ArrayField, BooleanField, NumberField, SchemaField, StringField } = foundry.data.fields;
 
     return new SchemaField({
@@ -127,7 +125,8 @@ export default class OseDataModelCharacterEncumbrance implements CharacterEncumb
       value: new NumberField({ integer: false }),
       max: new NumberField({
         integer: false,
-        initial: OseDataModelCharacterEncumbrance.baseEncumbranceCap,
+        nullable: true,
+        initial: null,
       }),
       atFirstBreakpoint: new BooleanField({ initial: false }),
       atSecondBreakpoint: new BooleanField({ initial: false }),
@@ -146,14 +145,15 @@ export default class OseDataModelCharacterEncumbrance implements CharacterEncumb
   }
 
   get pct() {
+    if (this.max <= 0) return 0;
     return Math.clamp((this.value / this.max) * 100, 0, 100);
   }
 
   get encumbered() {
+    if (!this.enabled) return false;
     return this.value > this.max;
   }
 
-  // eslint-disable-next-line class-methods-use-this
   get steps(): number[] {
     return [];
   }
@@ -162,11 +162,11 @@ export default class OseDataModelCharacterEncumbrance implements CharacterEncumb
     return this.#weight;
   }
 
-  get max() {
-    return this.#max;
+  get max(): number {
+    return this.#max ?? OseDataModelCharacterEncumbrance.baseEncumbranceCap;
   }
 
-  set max(value) {
+  set max(value: number | null) {
     this.#max = value;
   }
 
@@ -201,7 +201,6 @@ export default class OseDataModelCharacterEncumbrance implements CharacterEncumb
     return next !== null ? Math.max(0, next - this.value) : null;
   }
 
-  // eslint-disable-next-line class-methods-use-this
   get defaultMax() {
     return (this.constructor as typeof OseDataModelCharacterEncumbrance).baseEncumbranceCap;
   }

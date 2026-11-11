@@ -1,10 +1,37 @@
 import { OSE } from "../config";
 import { contextMenuEntry } from "../context-menu-entry";
+import type { OSECombat } from "./combat";
 import { OSECombatant } from "./combatant";
+
+interface FlagBearer {
+  getFlag(scope: string, key: string): unknown;
+  setFlag(scope: string, key: string, value: unknown): Promise<unknown>;
+}
+
+interface TrackerTurn {
+  id: string;
+  initiative: number | string | null;
+  isSlowed?: boolean;
+  isFast?: boolean;
+  isCasting?: boolean;
+  isRetreating?: boolean;
+  isOwnedByUser?: boolean;
+  group?: unknown;
+}
+
+interface TrackerRenderContext extends foundry.applications.sidebar.tabs.CombatTracker.RenderContext {
+  turns?: TrackerTurn[];
+}
+
+function parseTrackerInitiative(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
 
 export default class OSECombatTracker extends foundry.applications.sidebar.tabs.CombatTracker {
   /** @inheritDoc */
-  static DEFAULT_OPTIONS = {
+  static override DEFAULT_OPTIONS = {
     ...foundry.applications.sidebar.tabs.CombatTracker.DEFAULT_OPTIONS,
     actions: {
       ...foundry.applications.sidebar.tabs.CombatTracker.DEFAULT_OPTIONS.actions,
@@ -15,26 +42,63 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
   };
 
   /** @inheritDoc */
-  async _prepareTrackerContext(context, options) {
+  protected override async _prepareTrackerContext(
+    context: foundry.applications.sidebar.tabs.CombatTracker.RenderContext,
+    options: foundry.applications.sidebar.tabs.CombatTracker.RenderOptions,
+  ) {
     await super._prepareTrackerContext(context, options);
-    const combat = this.viewed;
-    context.turns?.forEach((turn) => {
-      const combatant = combat?.combatants.get(turn.id);
+    const trackerContext = context as TrackerRenderContext;
+    const combat = this.viewed as OSECombat | null;
+    trackerContext.turns?.forEach((turn) => {
+      const combatant = combat?.combatants.get(turn.id) as OSECombatant | undefined;
       if (!combatant) return;
-      turn.isSlowed = turn.initiative === `${OSECombatant.INITIATIVE_VALUE_SLOWED}`;
-      turn.isFast = turn.initiative === `${OSECombatant.INITIATIVE_VALUE_FAST}`;
-      turn.isCasting = !!combatant.getFlag(game.system.id, "prepareSpell");
-      turn.isRetreating = !!combatant.getFlag(game.system.id, "moveInCombat");
-      turn.isOwnedByUser = !!combatant.actor?.isOwner;
+      const parsedInit = parseTrackerInitiative(turn.initiative);
+      const groupObj =
+        typeof combatant.group === "object" && combatant.group !== null
+          ? (combatant.group as { name?: string | null })
+          : undefined;
+      turn.isSlowed =
+        Boolean(combatant.isSlow) || groupObj?.name === "slow" || parsedInit === OSECombatant.INITIATIVE_VALUE_SLOWED;
+      turn.isFast =
+        !turn.isSlowed &&
+        (Boolean(combatant.isFast) || groupObj?.name === "fast" || parsedInit === OSECombatant.INITIATIVE_VALUE_FAST);
+      const flagDoc = combatant as unknown as FlagBearer;
+      turn.isCasting = Boolean(flagDoc.getFlag(game.system.id, "prepareSpell"));
+      turn.isRetreating = Boolean(flagDoc.getFlag(game.system.id, "moveInCombat"));
+      turn.isOwnedByUser = Boolean(combatant.actor?.isOwner);
       turn.group = combatant.group;
     });
-    return context;
+  }
+
+  /** @override */
+  protected override _onUpdateInitiative(event: Event) {
+    const input = event.target as HTMLInputElement | null;
+    if (!input) return;
+    const li = input.closest<HTMLElement>("[data-combatant-id]");
+    const combatantId = li?.dataset?.combatantId;
+    const combatant = combatantId ? this.viewed?.combatants.get(combatantId) : undefined;
+    if (!combatant) return;
+    const rawValue = input.value.trim();
+    if (rawValue === "") {
+      void combatant.update({ initiative: null });
+      return;
+    }
+    const parsed = parseTrackerInitiative(rawValue);
+    if (parsed !== null && !/^[+=]/.test(rawValue)) {
+      void combatant.update({ initiative: parsed });
+      return;
+    }
+    super._onUpdateInitiative(event);
   }
 
   /** Roll initiative for the group whose header button was clicked. */
-  static #onRollGroup(_event: PointerEvent, target: HTMLElement) {
-    const group = this.viewed?.groups.get(target.dataset.groupId);
-    if (group) return this.viewed.rollGroupInitiative([group]);
+  static #onRollGroup(this: OSECombatTracker, _event: PointerEvent, target: HTMLElement) {
+    const combat = this.viewed as OSECombat | null;
+    const groupId = target.dataset.groupId;
+    const group = groupId ? combat?.groups.get(groupId) : undefined;
+    if (combat && group) {
+      void combat.rollGroupInitiative([group]);
+    }
   }
 
   /**
@@ -43,22 +107,36 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
    * @param {CombatantGroup} group - The group to set.
    */
   async #promptGroupInitiative(group: CombatantGroup) {
-    const value = await foundry.applications.api.DialogV2.prompt({
+    const promptFn = foundry.applications.api.DialogV2.prompt as unknown as <T = string>(
+      config: Record<string, unknown>,
+    ) => Promise<T | null | undefined>;
+    const value = await promptFn<string>({
       classes: ["ose", "dialog"],
       position: { width: 400, height: "auto" },
       window: { title: "OSE.combat.SetGroupInitiative" },
       content: `<label>${game.i18n.localize("OSE.Initiative")} <input type="number" name="initiative" value="${group.initiative ?? ""}" autofocus></label>`,
-      ok: { callback: (_event, button) => button.form.elements.initiative.value },
+      ok: {
+        callback: (_event: Event, button: HTMLButtonElement): string => {
+          const input = button.form?.elements.namedItem("initiative") as HTMLInputElement | null;
+          return input?.value ?? "";
+        },
+      },
       rejectClose: false,
     });
     if (value === null || value === undefined) return;
-    if (value === "" && !game.user.isGM) return;
-    await this.viewed.setGroupInitiative(group, value === "" ? null : Number(value));
+    if (value === "" && !game.user?.isGM) return;
+    const combat = this.viewed as OSECombat | null;
+    if (!combat) return;
+    await combat.setGroupInitiative(group, value === "" ? null : Number(value));
   }
 
   /** @inheritDoc */
-  static #onCombatantControl(...args) {
-    return this._onCombatantControl(...args);
+  static #onCombatantControl(
+    this: OSECombatTracker,
+    event: PointerEvent,
+    target: Parameters<foundry.applications.sidebar.tabs.CombatTracker["_onCombatantControl"]>[1],
+  ) {
+    void this._onCombatantControl(event, target);
   }
 
   /**
@@ -68,33 +146,41 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
    * @param {HTMLElement} target - The action target element.
    * @protected
    */
-  async _onCombatantControl(event, target) {
+  protected override async _onCombatantControl(
+    event: PointerEvent,
+    target: Parameters<foundry.applications.sidebar.tabs.CombatTracker["_onCombatantControl"]>[1],
+  ) {
     event.preventDefault();
     event.stopPropagation();
-    const btn = target || event.currentTarget;
-    const { combatantId } = btn.closest(".combatant").dataset;
-    const combatant = this.viewed.combatants.get(combatantId);
-    const action = btn.dataset.control || btn.dataset.action;
-    switch (action) {
-      case "casting":
-        await this.#toggleFlag(combatant as OSECombatant, "prepareSpell");
-        return super._onCombatantControl(event, target);
+    const btn = (target || event.currentTarget) as HTMLElement | null;
+    const combatantId = btn?.closest<HTMLElement>(".combatant")?.dataset?.combatantId;
+    const combatant = combatantId ? (this.viewed?.combatants.get(combatantId) as OSECombatant | undefined) : undefined;
+    const action = btn?.dataset?.control || btn?.dataset?.action;
+    if (combatant) {
+      switch (action) {
+        case "casting":
+          await this.#toggleFlag(combatant, "prepareSpell");
+          return super._onCombatantControl(event, target);
 
-      case "retreat":
-        await this.#toggleFlag(combatant as OSECombatant, "moveInCombat");
-        return super._onCombatantControl(event, target);
+        case "retreat":
+          await this.#toggleFlag(combatant, "moveInCombat");
+          return super._onCombatantControl(event, target);
+      }
     }
     return super._onCombatantControl(event, target);
   }
 
   /** @override */
-  _configureRenderOptions(options: object) {
+  protected override _configureRenderOptions(
+    options: Parameters<foundry.applications.sidebar.tabs.CombatTracker["_configureRenderOptions"]>[0],
+  ) {
     super._configureRenderOptions(options);
 
     // Replace the tracker template
-    this.constructor.PARTS.tracker.template = `${OSE.systemPath()}/templates/sidebar/combat-tracker-combatant.hbs`;
-
-    return options;
+    const ctor = this.constructor as unknown as { PARTS?: { tracker?: { template?: string } } };
+    if (ctor.PARTS?.tracker) {
+      ctor.PARTS.tracker.template = `${OSE.systemPath()}/templates/sidebar/combat-tracker-combatant.hbs`;
+    }
   }
 
   /**
@@ -105,8 +191,9 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
    * @private
    */
   async #toggleFlag(combatant: OSECombatant, flag: string) {
-    const isActive = !!combatant.getFlag(game.system.id, flag);
-    await combatant.setFlag(game.system.id, flag, !isActive);
+    const flagDoc = combatant as unknown as FlagBearer;
+    const isActive = Boolean(flagDoc.getFlag(game.system.id, flag));
+    await flagDoc.setFlag(game.system.id, flag, !isActive);
   }
 
   /**
@@ -115,7 +202,7 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
    * @returns {ContextMenuEntry[]}
    * @protected
    */
-  _getEntryContextOptions() {
+  protected override _getEntryContextOptions() {
     const options = super._getEntryContextOptions();
     return [
       contextMenuEntry({
@@ -123,8 +210,12 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
         icon: '<i class="fas fa-star-of-life"></i>',
         onClick: (li: HTMLElement) => {
           const { combatantId } = li.dataset;
-          const turnToActivate = this.viewed.turns.findIndex((t: OSECombatant) => t.id === combatantId);
-          this.viewed.activateCombatant(turnToActivate);
+          const combat = this.viewed as OSECombat | null;
+          if (!combat || !combatantId) return;
+          const turnToActivate = combat.turns.findIndex((t) => t.id === combatantId);
+          if (turnToActivate >= 0) {
+            void combat.activateCombatant(turnToActivate);
+          }
         },
       }),
       ...options,
@@ -137,7 +228,8 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
    * @param {HTMLElement} html - The combat tracker being rendered.
    */
   async renderGroups(html: HTMLElement) {
-    if (!this.viewed || game.settings.get(game.system.id, "initiative") !== "group") {
+    const combat = this.viewed as OSECombat | null;
+    if (!combat || game.settings.get(game.system.id as "ose", "initiative") !== "group") {
       return;
     }
 
@@ -183,24 +275,26 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
     }
 
     const list = html.querySelector(".directory-list, .combat-tracker");
-    for (const combatantGroup of this.viewed?.groups?.values() ?? []) {
+    for (const combatantGroup of combat.groups?.values() ?? []) {
       if (!combatantGroup.members?.size) {
         continue;
       }
 
-      const children =
-        list?.querySelectorAll(
-          [...combatantGroup.members.map((c: OSECombatant) => `[data-combatant-id="${c?.id}"]`)].join(", "),
-        ) || [];
+      const selectors = [...combatantGroup.members]
+        .map((c) => (c?.id ? `[data-combatant-id="${c.id}"]` : ""))
+        .filter(Boolean);
+      const children = selectors.length > 0 ? list?.querySelectorAll(selectors.join(", ")) || [] : [];
       if (children.length === 0) {
         continue;
       }
 
-      const label = combatantGroup.name;
+      const label = combatantGroup.name ?? "";
       const groupContainer = document.createElement("li");
 
-      const isOwner = game.user.isGM || combatantGroup.members.some((c: OSECombatant) => c.isOwner);
-      const unrolled = combatantGroup.initiative === null;
+      const isOwner = Boolean(game.user?.isGM) || combatantGroup.members.some((c) => Boolean(c.isOwner));
+      const parsedGroupInit = parseTrackerInitiative(combatantGroup.initiative);
+      const unrolled = parsedGroupInit === null;
+      const formattedGroupInit = unrolled ? "" : `${parsedGroupInit}`;
       let initiativeCounter: HTMLElement;
       if (label === "slow") {
         initiativeCounter = document.createElement("span");
@@ -213,11 +307,11 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
         initiativeCounter.setAttribute("type", "button");
         initiativeCounter.classList.add("inline-control", "icon", "fa-solid", "fa-dice-d6");
         initiativeCounter.dataset.action = "rollGroup";
-        initiativeCounter.dataset.groupId = combatantGroup.id;
+        initiativeCounter.dataset.groupId = combatantGroup.id ?? "";
         initiativeCounter.dataset.tooltip = game.i18n.localize("OSE.combat.RollGroupInitiative");
       } else {
         initiativeCounter = document.createElement("span");
-        initiativeCounter.textContent = combatantGroup.initiative;
+        initiativeCounter.textContent = formattedGroupInit;
       }
       initiativeCounter.classList.add("create-button");
       initiativeCounter.style.fontSize = "1.25em";
@@ -225,11 +319,11 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
       initiativeCounter.style.flex = "0 0 20px";
       initiativeCounter.style.textAlign = "center";
       // Players may only enter a value for their own unrolled group.
-      if (!["slow", "fast"].includes(label) && (game.user.isGM || (isOwner && unrolled))) {
+      if (!["slow", "fast"].includes(label) && (game.user?.isGM || (isOwner && unrolled))) {
         initiativeCounter.addEventListener("contextmenu", (event) => {
           event.preventDefault();
           event.stopPropagation();
-          this.#promptGroupInitiative(combatantGroup);
+          void this.#promptGroupInitiative(combatantGroup);
         });
       }
 
@@ -268,9 +362,14 @@ export default class OSECombatTracker extends foundry.applications.sidebar.tabs.
       groupContainer.append(groupHeader);
       groupContainer.append(wrapper);
       groupContainer.dataset.groupKey = label;
-      groupContainer.dataset.initiative =
-        label === "slow" ? "-789" : label === "fast" ? "789" : combatantGroup.initiative;
-      children[0].before(groupContainer);
+      if (label === "slow") {
+        groupContainer.dataset.initiative = `${OSECombatant.INITIATIVE_VALUE_SLOW}`;
+      } else if (label === "fast") {
+        groupContainer.dataset.initiative = `${OSECombatant.INITIATIVE_VALUE_FAST}`;
+      } else if (!unrolled) {
+        groupContainer.dataset.initiative = formattedGroupInit;
+      }
+      children[0]?.before(groupContainer);
       groupContainer.querySelector(".group-children")?.replaceChildren(...children);
     }
   }

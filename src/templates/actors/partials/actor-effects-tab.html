@@ -1,4 +1,4 @@
-<div class="inventory effects-list">
+<div class="inventory effects effects-list resizable" data-base-size="320">
   {{#each effectGroups as |group|}}
   <div class="item-category-title flexrow">
     <div class="category-name">{{localize group.label}}</div>
@@ -10,7 +10,7 @@
   </div>
   <ol class="item-list">
     {{#each group.effects as |e|}}
-    <li class="item-entry effect-entry {{#if e.disabled}}inactive{{/if}}" data-effect-uuid="{{e.uuid}}" data-effect-id="{{e.id}}">
+    <li class="item-entry effect-entry {{#if e.disabled}}inactive{{/if}} {{#if e.suppressed}}suppressed{{/if}}" data-effect-uuid="{{e.uuid}}" data-effect-id="{{e.id}}" {{#if e.suppressed}}data-effect-suppressed="true"{{/if}}>
       <div class="item-header flexrow">
         <div class="item-name flexrow">
           <div class="item-image" style="background-image: url('{{e.img}}')"></div>

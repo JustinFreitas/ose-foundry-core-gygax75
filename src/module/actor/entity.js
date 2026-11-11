@@ -1214,14 +1214,13 @@ export default class OseActor extends Actor {
       dmgParts.push("1d6");
     }
 
-    // Add Str and melee damage modifiers to melee damage
-    if (attData.roll?.type === "melee") {
-      if (data.scores?.str?.mod) {
-        dmgParts.push(data.scores.str.mod);
-      }
-      if (data.damage?.mod?.melee) {
-        dmgParts.push(data.damage.mod.melee);
-      }
+    // Add Str (for melee) and type-specific damage modifiers
+    if (attData.roll?.type === "melee" && data.scores?.str?.mod) {
+      dmgParts.push(data.scores.str.mod);
+    }
+    const damageMod = data.damage?.mod?.[attData.roll?.type];
+    if (damageMod) {
+      dmgParts.push(damageMod);
     }
 
     // Damage roll

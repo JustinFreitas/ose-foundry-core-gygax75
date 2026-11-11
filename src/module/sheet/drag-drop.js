@@ -164,12 +164,28 @@ export const onDropItem = async (sheet, event, item) => {
   }
 
   const removeFromSourceActor = async () => {
-    if (resolvedItem.actor && resolvedItem.actor.id !== sheet.actor.id && !event?.ctrlKey) {
-      if (typeof resolvedItem.actor.deleteEmbeddedDocuments === "function") {
-        await removeItemFromActor(resolvedItem.actor, resolvedItem);
+    if (!resolvedItem.actor || event?.ctrlKey) return;
+    const isSameActor =
+      resolvedItem.actor.uuid && sheet.actor.uuid
+        ? resolvedItem.actor.uuid === sheet.actor.uuid
+        : resolvedItem.actor === sheet.actor;
+    if (isSameActor) return;
+
+    if (typeof resolvedItem.actor.deleteEmbeddedDocuments === "function") {
+      if (resolvedItem.type === "container") {
+        const listedIds = new Set(Array.isArray(resolvedItem.system?.itemIds) ? resolvedItem.system.itemIds : []);
+        const actorItems = resolvedItem.actor.items?.contents ?? [...(resolvedItem.actor.items ?? [])];
+        const childIds = actorItems
+          .filter((i) => i && (i.system?.containerId === resolvedItem.id || listedIds.has(i.id)))
+          .map((i) => i.id)
+          .filter(Boolean);
+        const idsToDelete = [...new Set([resolvedItem.id, ...childIds].filter(Boolean))];
+        await resolvedItem.actor.deleteEmbeddedDocuments("Item", idsToDelete);
       } else {
-        await resolvedItem.delete?.();
+        await removeItemFromActor(resolvedItem.actor, resolvedItem);
       }
+    } else {
+      await resolvedItem.delete?.();
     }
   };
 

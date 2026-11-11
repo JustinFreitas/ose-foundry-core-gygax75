@@ -17,12 +17,17 @@ export const augmentTable = (table, html) => {
   }
 
   const head = html?.querySelector?.(".sheet-header");
-  head?.append(treasureTableToggle);
-
-  html?.querySelector?.(".toggle-treasure")?.addEventListener("click", () => {
-    const isTreasure = Boolean(table.document.getFlag(game.system.id, "treasure"));
-    table.document.setFlag(game.system.id, "treasure", !isTreasure);
-  });
+  let existingToggle = head?.querySelector?.(".toggle-treasure");
+  if (!existingToggle && head) {
+    head.append(treasureTableToggle);
+    existingToggle = treasureTableToggle;
+    existingToggle.addEventListener("click", () => {
+      const isTreasure = Boolean(table.document.getFlag(game.system.id, "treasure"));
+      table.document.setFlag(game.system.id, "treasure", !isTreasure);
+    });
+  } else if (existingToggle) {
+    existingToggle.classList.toggle("active", isTreasureTable);
+  }
 
   // Treasure table formatting
   if (!isTreasureTable) {

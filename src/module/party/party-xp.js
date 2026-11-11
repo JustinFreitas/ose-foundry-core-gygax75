@@ -100,6 +100,7 @@ export default class OsePartyXP extends HandlebarsApplicationMixin(ApplicationV2
       });
       if (confirmed) {
         await resetDutyXP(dutyActors);
+        (this.options?.partySheet ?? foundry.applications?.instances?.get?.("party-sheet"))?.render();
       }
     }
   }

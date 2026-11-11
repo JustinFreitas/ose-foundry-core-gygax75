@@ -95,6 +95,7 @@ export const resetDutyXP = async (targetActors = null) => {
       game.i18n.format("OSE.dialog.party.infoDutyReset", { count: resetLogs.length }) ||
         `Reset Duty XP for ${resetLogs.length} character(s).`,
     );
+    globalThis.foundry?.applications?.instances?.get?.("party-sheet")?.render?.();
   } else {
     const noDutyMsg = game.i18n?.localize?.("OSE.dialog.party.noDutyActive");
     ui.notifications.info(

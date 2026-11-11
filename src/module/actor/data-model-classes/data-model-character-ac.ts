@@ -105,11 +105,12 @@ export default class OseDataModelCharacterAC implements CharacterAC {
    * @returns {number | null} - The AC value from worn armor
    */
   get #armored(): number | null {
-    const armor = (
-      this.#armor.find(({ system: { type } }: Item) => type !== "shield")?.system as AcSystem | undefined
-    )?.[this.#acProp]?.value;
-    // Null if any falsy value but 0
-    if (!armor && armor !== 0) return null;
+    const values = this.#armor
+      .filter(({ system: { type } }: Item) => type !== "shield")
+      .map((item) => (item.system as AcSystem | undefined)?.[this.#acProp]?.value)
+      .filter((v): v is number => typeof v === "number" && Number.isFinite(v));
+    if (values.length === 0) return null;
+    const armor = this.#isAscending ? Math.max(...values) : Math.min(...values);
 
     return this.#isAscending ? armor + this.#dexMod : armor - this.#dexMod;
   }

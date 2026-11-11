@@ -159,7 +159,7 @@ export default class OseItem extends Item {
     return sys;
   }
 
-  #visibleAutoTags(): unknown[] {
+  getVisibleAutoTags(): unknown[] {
     const allTags = (this.system as AnyItemSystem)?.autoTags ?? [];
     if (game.user?.isGM || this.isIdentified) return allTags;
     const manualValues = new Set(((this.system as AnyItemSystem)?.manualTags ?? []).map((t: ItemTag) => t.value));
@@ -497,7 +497,7 @@ export default class OseItem extends Item {
       },
       description: null,
       save: itemData.save,
-      properties: this.#visibleAutoTags(),
+      properties: this.getVisibleAutoTags(),
       roll: {
         type,
         target: itemData.effectiveTarget ?? itemData.rollTarget,
@@ -523,14 +523,13 @@ export default class OseItem extends Item {
       parts: rollParts,
       data: rollData,
       skipDialog,
-      // biome-ignore lint/suspicious/noExplicitAny: getSpeaker expects an Actor; this passes the Item, as the original did
-      speaker: ChatMessage.getSpeaker({ actor: this as any }),
+      speaker: ChatMessage.getSpeaker({ actor: (this.actor as Actor | null) ?? undefined }),
       flavor: game.i18n.format("OSE.roll.formula", { label }),
       title: game.i18n.format("OSE.roll.formula", { label }),
     } as never);
   }
 
-  async spendSpell() {
+  async spendSpell(options: Record<string, unknown> = {}) {
     if (this.type !== "spell") throw new Error("Trying to spend a spell on an item that is not a spell.");
 
     const itemData = this.system;
@@ -540,7 +539,7 @@ export default class OseItem extends Item {
     if (config.consume) await this.update({ system: { cast: (itemData.cast ?? 0) - 1 } });
 
     if (itemData.roll) {
-      await this.rollFormula();
+      await this.rollFormula(options);
     } else {
       await this.show({ skipDialog: true });
     }
@@ -729,7 +728,7 @@ export default class OseItem extends Item {
       }
 
       case "spell": {
-        this.spendSpell();
+        this.spendSpell(options);
         break;
       }
 
@@ -781,7 +780,7 @@ export default class OseItem extends Item {
     };
     const chatItemData = templateData.data as AnyItemSystem;
     templateData.rollFormula = new Roll(chatItemData.roll ?? "", templateData).formula;
-    chatItemData.properties = this.#visibleAutoTags();
+    chatItemData.properties = this.getVisibleAutoTags();
 
     // Render the chat card template
     const template = `${OSE.systemPath()}/templates/chat/item-card.html`;
@@ -792,11 +791,7 @@ export default class OseItem extends Item {
       user: game.user.id,
       style: CONST.CHAT_MESSAGE_STYLES.OTHER,
       content: html,
-      speaker: {
-        actor: (this.actor as OwningActor | null)?.id,
-        token: (this.actor as OwningActor | null)?.token,
-        alias: (this.actor as OwningActor | null)?.name,
-      },
+      speaker: ChatMessage.getSpeaker({ actor: (this.actor as Actor | null) ?? undefined }),
     };
 
     // Toggle default roll mode
@@ -824,71 +819,86 @@ export default class OseItem extends Item {
     event.preventDefault();
 
     // Extract card data
-    const button = (event.target as HTMLElement).closest(".card-buttons button") as HTMLButtonElement;
+    const button = (event.target as HTMLElement | null)?.closest(".card-buttons button") as HTMLButtonElement | null;
+    if (!button) return undefined;
     button.disabled = true;
-    const card = button.closest(".chat-card") as HTMLElement;
-    const { messageId } = (card.closest(".message") as HTMLElement).dataset;
-    const message = game.messages.get(messageId as string);
-    const { action } = button.dataset;
 
-    // Validate permission to proceed with the roll
-    const isTargetted = action === "save";
-    if (!(isTargetted || game.user.isGM || message?.isAuthor)) return;
+    try {
+      const card = button.closest(".chat-card") as HTMLElement | null;
+      if (!card) return undefined;
+      const messageEl = card.closest(".message") as HTMLElement | null;
+      const messageId = messageEl?.dataset?.messageId;
+      const message = messageId ? game.messages.get(messageId) : undefined;
+      const { action } = button.dataset;
 
-    // Get the Actor from a synthetic Token
-    const actor = OseItem._getChatCardActor(card);
-    if (!actor) return;
+      // Validate permission to proceed with the roll
+      const isTargetted = action === "save";
+      if (!(isTargetted || game.user.isGM || message?.isAuthor)) return undefined;
 
-    // Get the Item
-    // Widened because the "damage" branch below calls item.rollDamage, which is
-    // defined on the Actor, not the Item — preserved from the JavaScript.
-    // biome-ignore lint/suspicious/noExplicitAny: see above
-    const item = actor.items.get(card.dataset.itemId as string) as (OseItem & Record<string, any>) | undefined;
-    if (!item) {
-      return ui.notifications.error(
-        game.i18n.format("OSE.error.itemNoLongerExistsOnActor", {
-          actorName: actor.name,
-          itemId: card.dataset.itemId ?? "",
-        }),
-      );
-    }
+      // Get the Actor from a synthetic Token or world Actor
+      const actor = OseItem._getChatCardActor(card);
+      if (!actor) return undefined;
 
-    // Get card targets
-    let targets: OwningActor[] = [];
-    if (isTargetted) {
-      targets = OseItem._getChatCardTargets(card);
-    }
-
-    // Attack and Damage Rolls
-    switch (action) {
-      case "damage": {
-        await item.rollDamage({ event });
-        break;
+      // Get the Item
+      const item = actor.items.get(card.dataset.itemId as string) as OseItem | undefined;
+      if (!item) {
+        return ui.notifications.error(
+          game.i18n.format("OSE.error.itemNoLongerExistsOnActor", {
+            actorName: actor.name,
+            itemId: card.dataset.itemId ?? "",
+          }),
+        );
       }
 
-      case "formula": {
-        await item.rollFormula({ event });
-        break;
+      // Get card targets
+      let targets: OwningActor[] = [];
+      if (isTargetted) {
+        targets = OseItem._getChatCardTargets(card);
       }
 
-      case "save": {
-        if (targets.length === 0) {
-          ui.notifications.error(game.i18n.localize("OSE.error.noTokenControlled"));
-          button.disabled = false;
-          return button.disabled;
+      // Attack and Damage Rolls
+      switch (action) {
+        case "damage": {
+          const sys = item.system as AnyItemSystem;
+          const rollType = sys?.melee ? "melee" : sys?.missile ? "missile" : undefined;
+          await (actor as unknown as { rollDamage: (attData: unknown, opts: unknown) => Promise<unknown> }).rollDamage(
+            {
+              item,
+              actor,
+              label: item.displayName || item.name,
+              roll: {
+                dmg: sys?.damage,
+                type: rollType,
+              },
+            },
+            { event },
+          );
+          break;
         }
-        for (const t of targets) {
-          await t.rollSave(button.dataset.save, { event });
+
+        case "formula": {
+          await item.rollFormula({ event });
+          break;
         }
 
-        break;
-      }
-      // No default
-    }
+        case "save": {
+          if (targets.length === 0) {
+            ui.notifications.error(game.i18n.localize("OSE.error.noTokenControlled"));
+            return false;
+          }
+          for (const t of targets) {
+            await t.rollSave(button.dataset.save, { event });
+          }
 
-    // Re-enable the button
-    button.disabled = false;
-    return undefined;
+          break;
+        }
+        // No default
+      }
+
+      return undefined;
+    } finally {
+      button.disabled = false;
+    }
   }
 
   static _getChatCardActor(card: HTMLElement): OwningActor | null {

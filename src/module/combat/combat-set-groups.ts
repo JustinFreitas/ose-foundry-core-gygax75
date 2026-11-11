@@ -18,7 +18,7 @@ export default class OSECombatGroupSelector extends HandlebarsApplicationMixin(A
   // ===========================================================================
   static override DEFAULT_OPTIONS = {
     id: "combat-set-groups-{id}",
-    classes: ["ose", "combat-set-groups"],
+    classes: ["ose", "dialog", "combat-set-groups"],
     tag: "form",
     window: {
       frame: true,
@@ -49,7 +49,10 @@ export default class OSECombatGroupSelector extends HandlebarsApplicationMixin(A
   };
 
   #getActiveCombatants() {
-    return game.combats?.active?.combatants ?? game.combat?.combatants;
+    type CombatantCollection = NonNullable<typeof game.combat>["combatants"];
+    const viewed = (ui as unknown as { combat?: { viewed?: { combatants?: CombatantCollection } } })?.combat?.viewed
+      ?.combatants;
+    return viewed ?? game.combats?.active?.combatants ?? game.combat?.combatants;
   }
 
   // ===========================================================================

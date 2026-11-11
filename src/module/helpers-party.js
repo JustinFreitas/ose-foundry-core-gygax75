@@ -9,9 +9,9 @@ import OsePartySheet from "./party/party-sheet";
  * @param {foundry.applications.sidebar.tabs.ActorDirectory} object - The actor directory object
  */
 export const addControl = (object) => {
-  const html = object.element;
-  if (html?.querySelector("button.ose-party-sheet")) {
-    // If the button already exists, do not add it again
+  const html = object?.element;
+  if (!html || html.querySelector("button.ose-party-sheet")) {
+    // If element is not rendered or button already exists, do not add it
     return;
   }
 
@@ -23,7 +23,7 @@ export const addControl = (object) => {
   icon.className = "fas fa-users";
   control.append(icon);
 
-  const searchToggle = html.querySelector(".toggle-search-mode");
+  const searchToggle = html?.querySelector(".toggle-search-mode");
   if (searchToggle) {
     control.addEventListener("click", (ev) => {
       ev.preventDefault();

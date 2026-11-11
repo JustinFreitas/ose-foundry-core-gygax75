@@ -195,6 +195,7 @@ Hooks.on("createCombatant", (combatant) => {
 });
 
 Hooks.on("renderCompendium", renderList.RenderCompendium);
+Hooks.on("renderItemDirectory", renderList.RenderItemDirectory);
 Hooks.on("activateItemDirectory", renderList.RenderItemDirectory);
 
 Hooks.on("OSE.Party.showSheet", OsePartySheet.showPartySheet);

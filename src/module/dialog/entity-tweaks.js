@@ -50,7 +50,9 @@ export default class OseEntityTweaks extends HandlebarsApplicationMixin(Applicat
   async _prepareContext() {
     const context = this.document.toObject();
     context.isCharacter = this.document.type === "character";
-    context.hasClasses = this.document.items.some((i) => i.type === "class");
+    context.hasClasses =
+      Boolean(game.settings?.get?.(game.system.id, "enableClassItems")) &&
+      this.document.items.some((i) => i.type === "class");
     context.user = game.user;
     context.tweaks = tweakValues(this.document);
     context.config = {

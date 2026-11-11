@@ -461,7 +461,7 @@ export default class OseActorSheetCharacter extends OseActorSheet {
   static _onRollAbilityScore(event, target) {
     const { score, stat } = target.closest(".ability-score").dataset;
     if (score) return this.actor.rollCheck(score, { event });
-    if (stat === "lr") return this.actor.rollLoyalty(score, { event });
+    if (stat === "lr") return this.actor.rollLoyalty({ event });
   }
 
   static _onRollExploration(event, target) {

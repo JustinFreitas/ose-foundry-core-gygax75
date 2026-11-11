@@ -445,5 +445,103 @@ describe("Container-to-Container Drag and Drop", () => {
       expect((globalThis as any).fromUuid).toHaveBeenCalledWith("Compendium.ose.items.Item.rope");
       expect(Array.from(itemsMap.values()).some((i) => i.name === "Hemp Rope")).toBe(true);
     });
+
+    it("deletes both container and stowed children on source actor when moving a container across actors", async () => {
+      const otherItems = new Map<string, any>();
+      const otherActor: any = {
+        id: "actor-2",
+        uuid: "Actor.actor-2",
+        items: {
+          get: (id: string) => otherItems.get(id) || null,
+          get contents() {
+            return Array.from(otherItems.values());
+          },
+          [Symbol.iterator]: () => otherItems.values(),
+        },
+        updateEmbeddedDocuments: vi.fn().mockResolvedValue([]),
+        deleteEmbeddedDocuments: vi.fn().mockResolvedValue([]),
+      };
+      const stowedCoin: any = {
+        _id: "coin-1",
+        id: "coin-1",
+        name: "GP (Found)",
+        type: "item",
+        actor: otherActor,
+        parent: otherActor,
+        system: { containerId: "other-sack", itemIds: [] },
+        toObject: () => ({
+          _id: "coin-1",
+          name: "GP (Found)",
+          type: "item",
+          system: { containerId: "other-sack" },
+        }),
+      };
+      const otherSack: any = {
+        _id: "other-sack",
+        id: "other-sack",
+        name: "Large Sack",
+        type: "container",
+        actor: otherActor,
+        parent: otherActor,
+        system: { containerId: "", itemIds: ["coin-1"] },
+        toObject: () => ({
+          _id: "other-sack",
+          name: "Large Sack",
+          type: "container",
+          system: { containerId: "", itemIds: ["coin-1"] },
+        }),
+      };
+      otherItems.set("other-sack", otherSack);
+      otherItems.set("coin-1", stowedCoin);
+      (globalThis as any).Item.implementation.fromDropData = vi.fn().mockResolvedValue(otherSack);
+
+      const mockEvent = { target: { closest: () => null } } as any;
+      await sheet._onDropItem(mockEvent, { uuid: "Actor.actor-2.Item.other-sack" });
+
+      expect(otherActor.deleteEmbeddedDocuments).toHaveBeenCalledWith("Item", ["other-sack", "coin-1"]);
+      expect(otherActor.updateEmbeddedDocuments).not.toHaveBeenCalled();
+      expect(Array.from(itemsMap.values()).some((i) => i.name === "Large Sack")).toBe(true);
+      expect(Array.from(itemsMap.values()).some((i) => i.name === "GP (Found)")).toBe(true);
+    });
+
+    it("removes item from source unlinked token even when base actor.id matches target token actor.id", async () => {
+      const tokenItems = new Map<string, any>();
+      const sourceTokenActor: any = {
+        id: "actor-1", // Same base Actor ID as sheet.actor!
+        uuid: "Scene.scene-1.Token.tok-A.Actor.actor-1",
+        items: {
+          get: (id: string) => tokenItems.get(id) || null,
+          get contents() {
+            return Array.from(tokenItems.values());
+          },
+          [Symbol.iterator]: () => tokenItems.values(),
+        },
+        deleteEmbeddedDocuments: vi.fn().mockResolvedValue([]),
+      };
+      actor.uuid = "Scene.scene-1.Token.tok-B.Actor.actor-1";
+      const potion: any = {
+        _id: "pot-1",
+        id: "pot-1",
+        name: "Potion of Healing",
+        type: "item",
+        actor: sourceTokenActor,
+        parent: sourceTokenActor,
+        system: { containerId: "", itemIds: [] },
+        toObject: () => ({
+          _id: "pot-1",
+          name: "Potion of Healing",
+          type: "item",
+          system: { containerId: "" },
+        }),
+      };
+      tokenItems.set("pot-1", potion);
+      (globalThis as any).Item.implementation.fromDropData = vi.fn().mockResolvedValue(potion);
+
+      const mockEvent = { target: { closest: () => null } } as any;
+      await sheet._onDropItem(mockEvent, { uuid: "Scene.scene-1.Token.tok-A.Actor.actor-1.Item.pot-1" });
+
+      expect(sourceTokenActor.deleteEmbeddedDocuments).toHaveBeenCalledWith("Item", ["pot-1"]);
+      expect(Array.from(itemsMap.values()).some((i) => i.name === "Potion of Healing")).toBe(true);
+    });
   });
 });

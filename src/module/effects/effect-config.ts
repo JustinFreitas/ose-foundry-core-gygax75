@@ -32,6 +32,9 @@ export const augmentEffectConfig = (app: any, element: HTMLElement | JQuery) => 
   for (const k of tableKeys(app.document?.parent)) keys.set(k.key, k);
 
   const id = `ose-effect-keys-${app.id}`;
+  for (const prev of section.querySelectorAll<HTMLDataListElement>("datalist")) {
+    if (prev.id === id) prev.remove();
+  }
   const list = document.createElement("datalist");
   list.id = id;
   for (const { key, label, data } of keys.values()) {

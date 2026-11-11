@@ -162,10 +162,15 @@ export default class OsePartySheet extends HandlebarsApplicationMixin(Applicatio
     await this._recursiveAddFolder(folder);
   }
 
-  async _onDragStart(event) {
+  _onDragStart(event) {
     try {
-      const { uuid } = event.currentTarget.dataset;
-      const dragData = (await fromUuid(uuid)).toDragData();
+      const { uuid, actorId } = event.currentTarget.dataset;
+      const resolveSync = foundry.utils?.fromUuidSync ?? globalThis.fromUuidSync;
+      const doc =
+        (uuid && typeof resolveSync === "function" ? resolveSync(uuid) : null) ??
+        game.actors?.get?.(actorId ?? uuid?.replace(/^Actor\./, ""));
+      if (!doc || typeof doc.toDragData !== "function") return false;
+      const dragData = doc.toDragData();
       event.dataTransfer.setData("text/plain", JSON.stringify(dragData));
     } catch (_error) {
       return false;
@@ -195,7 +200,7 @@ export default class OsePartySheet extends HandlebarsApplicationMixin(Applicatio
   }
 
   _handleDealXP() {
-    OsePartyXP.open();
+    OsePartyXP.open({ partySheet: this });
   }
 
   _handleOpenActorSheet(target) {

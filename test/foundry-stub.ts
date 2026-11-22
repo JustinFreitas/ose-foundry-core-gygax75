@@ -199,6 +199,10 @@ class Actor {
     }
     return this;
   }
+
+  getRollData() {
+    return { ...this.system };
+  }
 }
 
 class Item {

@@ -26,6 +26,10 @@ import OseItem from "../item/entity";
  */
 const removeFalsyElements = (arr) => arr.filter((b) => b);
 
+function isClassItemsEnabled() {
+  return Boolean(game.settings?.get?.(game.system?.id ?? "ose", "enableClassItems"));
+}
+
 const stripHtmlTags = (value) =>
   String(value ?? "")
     .replace(/<[^>]*>/g, " ")
@@ -280,10 +284,6 @@ export default class OseActor extends Actor {
     return source;
   }
 
-  #isClassItemsEnabled() {
-    return Boolean(game.settings?.get?.(game.system?.id ?? "ose", "enableClassItems"));
-  }
-
   applyActiveEffects(phase) {
     if (phase !== "final") this.system.prepareTables?.();
     return super.applyActiveEffects(phase);
@@ -293,7 +293,7 @@ export default class OseActor extends Actor {
   getRollData() {
     const data = super.getRollData();
     if (this.type !== "character") return data;
-    const classes = this.#isClassItemsEnabled() ? (this.system.classes ?? []) : [];
+    const classes = isClassItemsEnabled() ? (this.system.classes ?? []) : [];
     if (classes.length) {
       data.classTables = Object.fromEntries(
         classes.map((c) => [c.system.key || c.id, tableRowValues(c.system.tables ?? [], c.system.level)]),
@@ -350,7 +350,7 @@ export default class OseActor extends Actor {
     /* -------------------------------------------- */
   async getExperience(value, _options = {}) {
     if (this.type !== "character") return;
-    const classes = this.#isClassItemsEnabled() ? (this.system.classes ?? []) : [];
+    const classes = isClassItemsEnabled() ? (this.system.classes ?? []) : [];
     let gained;
     if (classes.length > 0) {
       const shares = splitXp(value, classes.length).map((share, i) => {
@@ -457,7 +457,7 @@ export default class OseActor extends Actor {
    */
   async addClass(data, { level, rollHp = false, replace } = {}) {
     this.#requireCharacter();
-    if (!this.#isClassItemsEnabled()) return undefined;
+    if (!isClassItemsEnabled()) return undefined;
     const item = foundry.utils.deepClone(data);
     const progress =
       replace && level === undefined
@@ -485,7 +485,7 @@ export default class OseActor extends Actor {
    */
   async setRace(data, { modifiersIncluded = false } = {}) {
     this.#requireCharacter();
-    if (!this.#isClassItemsEnabled()) return undefined;
+    if (!isClassItemsEnabled()) return undefined;
     const item = foundry.utils.deepClone(data);
     if (modifiersIncluded) {
       const modifiers = (item.effects ?? []).find((e) => e.flags?.[game.system.id]?.raceModifiers);

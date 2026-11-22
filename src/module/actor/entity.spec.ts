@@ -309,5 +309,35 @@ describe("OseActor Hit Dice, Creature Groups & Class Item Gating (Gygax '75)", (
       expect(addedClass).toBeUndefined();
       expect(addedRace).toBeUndefined();
     });
+
+    it("allows OseActor.prototype.getRollData() on an unbranded receiver during super() construction", async () => {
+      const unbrandedReceiver = {
+        type: "character",
+        system: {
+          classes: [
+            {
+              id: "cls-thief",
+              system: {
+                key: "thief",
+                level: 1,
+                tables: [{ key: "skills", columns: ["hs"], rows: [[10]] }],
+              },
+            },
+          ],
+        },
+      };
+
+      await game.settings.set("ose" as "core", "enableClassItems" as never, false as never);
+      expect(() => OseActor.prototype.getRollData.call(unbrandedReceiver)).not.toThrow();
+      expect(OseActor.prototype.getRollData.call(unbrandedReceiver)).not.toHaveProperty("classTables");
+
+      await game.settings.set("ose" as "core", "enableClassItems" as never, true as never);
+      const rollData = OseActor.prototype.getRollData.call(unbrandedReceiver) as {
+        classTables?: Record<string, Record<string, unknown>>;
+      };
+      expect(rollData.classTables?.thief).toBeDefined();
+
+      await game.settings.set("ose" as "core", "enableClassItems" as never, false as never);
+    });
   });
 });

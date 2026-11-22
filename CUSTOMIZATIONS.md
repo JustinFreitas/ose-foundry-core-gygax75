@@ -48,7 +48,7 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 | `GYGAX-025` | `🟢 Active` | Monster Sheet | Monster Sheet RollTable Drop Hyperlink Labels | `src/module/actor/monster-sheet.js` |
 | `GYGAX-026` | `🟢 Active` | Monster Sheet | Monster Sheet Description Editor 100% Height | `src/scss/monster.scss` |
 | `GYGAX-027` | `🔴 Obsolete` | Legacy Architecture | ApplicationV1 FormApplication Overrides | Various pre-v3 JS files |
-| `GYGAX-028` | `🔴 Obsolete` | Manifests | Legacy Ad-Hoc `template.json` Field Injections | `template.json` (superseded by `TypeDataModel` schemas) |
+| `GYGAX-028` | `🔴 Obsolete` | Manifests | Legacy Ad-Hoc `template.json` Field Injections | Removed in `3.4.0-gygax75.2` (superseded by `TypeDataModel` schemas; see `GYGAX-038`) |
 | `GYGAX-029` | `🔴 Obsolete` | UI & Sizing | Hardcoded Sheet Window Pixel Dimensions | Legacy sheet constructors |
 | `GYGAX-030` | `🔴 Obsolete` | Dialog Architecture | Legacy `.wait()` Dialog Pattern | Pre-ApplicationV2 dialog wrappers |
 | `GYGAX-031` | `🟢 Active` | Combat & Ammunition | Magical Ammo Bonuses & Auto-Range Modifiers | `src/module/item/entity.ts`, `src/module/helpers-dice.js`, `src/module/actor/entity.js` |
@@ -58,6 +58,7 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 | `GYGAX-035` | `🟢 Active` | Abilities | Ability-Linked Roll-Under Proficiencies | `src/module/item/data-model-ability.ts`, `src/module/item/entity.ts`, `src/templates/items/ability-sheet.html` |
 | `GYGAX-036` | `🟢 Active` | Monsters & Mounts | Silver/Magic Gating, Damage Mitigation, MR % & Mount Load | `src/module/actor/entity.js`, `src/module/actor/data-model-monster.js`, `src/module/helpers-chat.ts` |
 | `GYGAX-037` | `🟢 Active` | Manifests | Intentional Omission of `relationships.recommends` | `system.json` |
+| `GYGAX-038` | `🟢 Active` | Manifests | Removal of Deprecated `template.json` | Removed `template.json`; `.github/workflows/{release,pre-release}.yml` |
 
 ---
 
@@ -309,6 +310,12 @@ Whenever upstream changes are merged or new features are introduced, consult thi
 * **Description**: Intentionally maintains `"relationships": {}` in `system.json`, omitting upstream's `relationships.recommends` entries (`ose-advancedfantasytome` and `classicfantasycompendium`) so Foundry VTT does not pop up recommended-module installation prompts every time a new `ose-foundry-core-gygax75` release is installed or updated.
 * **Upstream Merge Guard**: Keep `"relationships": {}` in `system.json` when merging upstream manifest updates.
 
+#### `GYGAX-038`: Removal of Deprecated `template.json`
+* **Status**: `🟢 Active`
+* **Category**: Manifests
+* **Files**: Removed `template.json`; updated [`.github/workflows/release.yml`](.github/workflows/release.yml), [`.github/workflows/pre-release.yml`](.github/workflows/pre-release.yml)
+* **Description**: Removes deprecated `template.json` from the repository and release zip packaging, silencing Foundry V14's V16 deprecation warning because all Actor (`character`, `monster`) and Item (`item`, `weapon`, `armor`, `spell`, `ability`, `container`, `class`, `race`) types are registered via `system.json` `documentTypes` and `TypeDataModel` classes (superseding `GYGAX-028`).
+
 ---
 
 ### 🔴 Obsolete Customizations
@@ -414,3 +421,17 @@ Whenever upstream changes are merged or new features are introduced, consult thi
   - **Chat Card Actions, Spells, Loyalty & Armor AC**: Protected `OseItem._onChatCardAction()` button state with `try/finally`, wired chat card `damage` actions to `actor.rollDamage()`, forwarded roll options (`skipDialog`, `event`) through `OseItem.spendSpell()` and `OseActorSheetCharacter._onRollAbilityScore()` (`rollLoyalty({ event })`), and selected the best AC across multiple equipped non-shield armor items (`OseDataModelCharacterAC`).
   - **UI Idempotency, `ApplicationV2` & Item Piles Integration**: Made `RenderItemDirectory`, `RenderCompendium`, `augmentTable`, `augmentEffectConfig`, and `addControl` idempotent/null-safe; added `"dialog"` styling class and `ui.combat.viewed` priority to `OSECombatGroupSelector`; refreshed the Party Sheet after resetting Duty XP; gated `OseEntityTweaks` `hasClasses` on `enableClassItems` (`GYGAX-001`); and updated `fvttModuleAPIs.js` with `"spell,ability,class,race"` filters and all 5 standard OSE coin denominations (`PP`, `GP`, `EP`, `SP`, `CP`) at `weight: 1` cn.
 * **Verification**: 100% test coverage passing (667 / 667 vitest tests across 48 test suites, 0 Biome 2.4.4 lint/format warnings or errors, `npm run typecheck:ci` exit 0, and Rollup/SASS + TypeScript declaration builds clean).
+
+---
+
+## Release Log: `3.4.0-gygax75.1`
+* **Upstream Synchronization (`v3.4.0` Official Release — PRs #211, #212)**:
+  - Merged `NecroticGnome/ose-foundry-core` `v3.4.0` (`noTableLink` ability opt-out, `.ose-notice` CSS styling, and `repairSpellSlotAdjustments()` migration repair).
+  - Resolved `src/module/settings.ts` and `src/scss/core.scss` conflicts preserving both `enableClassItems` (`GYGAX-001`) + `spellSlotsRepaired` and `#pause` (`GYGAX-003`) + `.ose-notice`.
+* **Verification**: 673 / 673 vitest tests across 48 test suites, 190 files checked by Biome with 0 issues, `npm run typecheck:ci`, `npm run build:types`, and `npm run build` clean.
+
+---
+
+## Release Log: `3.4.0-gygax75.2`
+* **Manifest & Foundry V14 Deprecation Cleanup (`GYGAX-038`)**:
+  - Removed deprecated `template.json` from the repository and release packaging workflows (`.github/workflows/release.yml`, `.github/workflows/pre-release.yml`), silencing Foundry V14's V16 deprecation warning while all Actor/Item types remain registered via `system.json` `documentTypes` and `TypeDataModel` schemas.

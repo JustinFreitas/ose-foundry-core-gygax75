@@ -172,10 +172,19 @@ const registerSettings = () => {
     config: true,
     requiresReload: true,
   });
-
   game.settings.register(game.system.id, "multipleClasses", {
     name: "OSE.Setting.MultipleClasses",
     hint: "OSE.Setting.MultipleClassesHint",
+    default: false,
+    scope: "world",
+    type: Boolean,
+    config: true,
+    requiresReload: true,
+  });
+
+  game.settings.register(game.system.id, "advancedHitDice", {
+    name: "OSE.Setting.AdvancedHitDice",
+    hint: "OSE.Setting.AdvancedHitDiceHint",
     default: false,
     scope: "world",
     type: Boolean,
@@ -241,6 +250,7 @@ declare global {
       "ose.ignoreAttackBonusOnDamageRoll": boolean;
       "ose.hasPromptedDefaultOSETokenRing": boolean;
       "ose.multipleClasses": boolean;
+      "ose.advancedHitDice": boolean;
       "ose.promptAddClassAbilities": boolean;
       "ose.effectsTab": boolean;
       "ose.enableClassItems": boolean;
